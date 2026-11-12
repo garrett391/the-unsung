@@ -1,0 +1,20 @@
+{
+  "name": "the-unsung",
+  "version": "0.2.0",
+  "description": "A fan-made Hero of Time vertical slice in Three.js: the night raid at the Mirror.",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test/run.mjs test/shots full",
+    "test:phone": "node test/run.mjs test/phone phone 844 390 touch"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "puppeteer-core": "^25.17.0",
+    "three": "^0.170.0"
+  },
+  "private": true
+}
