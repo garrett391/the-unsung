@@ -4,8 +4,9 @@ import { PI, clamp, lerp, sstep, wrap, damp } from '../core/util.js';
 import { buildHumanoid, JN, NJ, PL, HIP } from './rig.js';
 import { sample, locoPose } from './anim.js';
 import { TEX } from '../gfx/materials.js';
+import { drip } from '../gfx/fx.js';
 
-const tmpA = new T.Vector3(), tmpB = new T.Vector3();
+const tmpA = new T.Vector3(), tmpB = new T.Vector3(), GORE = new T.Color(0x6e0a10);
 
 // Shared body: transform, pose blending, locomotion phase, trail and hit flash.
 export class Char {
@@ -19,6 +20,7 @@ export class Char {
     this.flash = 0; this.flashCol = [1, 1, 1]; this.trail = null; this.trailOn = false; this.dead = false; this.open = false; this.state = 'loco';
     this.shadow = new T.Mesh(new T.PlaneGeometry(1.5, 1.5), new T.MeshBasicMaterial({ map: TEX.shadow, transparent: true, depthWrite: false, opacity: 0.5 }));
     this.shadow.rotation.x = -PI / 2; G.scene.add(this.shadow);
+    this.wet = 0; this._wet = false; this.bladeBase = this.rig.bladeMat.color.clone(); // wet: blood on the blade, 0..1, set by blood() in fx.js
     locoPose(this.cur, this, 0);
   }
   _snap() { for (let i = 0; i < PL; i++) { let v = this.cur[i]; if (i < NJ * 3) v = wrap(v); this.snap[i] = v; } this.blend = 0; }
@@ -54,6 +56,11 @@ export class Char {
     if (this.flash > 0 || this._fl) {
       this.flash = Math.max(0, this.flash - dt * 7); this._fl = this.flash > 0; const f = this.flash * 1.4;
       for (const m of this.rig.mats) m.emissive.setRGB(f * this.flashCol[0], f * this.flashCol[1], f * this.flashCol[2]);
+    }
+    if (this.wet > 0 || this._wet) { // a blade that has cut stays red for a while and drips
+      this.wet = Math.max(0, this.wet - dt / 16); this._wet = this.wet > 0;
+      this.rig.bladeMat.color.copy(this.bladeBase).lerp(GORE, Math.min(1, this.wet * 1.6) * 0.78);
+      if (this.wet > 0.25 && !this.dead && Math.random() < dt * this.wet * 5) drip(this.rig.wBase.getWorldPosition(tmpA).lerp(this.rig.wTip.getWorldPosition(tmpB), 0.3 + Math.random() * 0.7));
     }
     const ss = clamp(1 - this.yoff * 0.25, 0.3, 1) * this.scale;
     this.shadow.position.set(this.pos.x, 0.045, this.pos.z); this.shadow.scale.setScalar(ss); this.shadow.visible = this.yoff > -0.5 && this.root.visible;

@@ -4,7 +4,7 @@ import { PI, $ } from './core/util.js';
 import { initAudio, playMusic, stopMusic } from './core/audio.js';
 import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, setBlood, releaseAll } from './core/input.js';
 import { initRenderer } from './gfx/renderer.js';
-import { initFx, updateFx } from './gfx/fx.js';
+import { initFx, updateFx, clearBlood } from './gfx/fx.js';
 import { buildLevel, confine } from './world/level.js';
 import { cam, updateCamera } from './world/camera.js';
 import { Player } from './actors/player.js';
@@ -34,7 +34,7 @@ G.spawn = (kind, x, z, o) => { const e = new Enemy(kind, x, z, o); G.enemies.pus
 G.clearEnemies = () => { for (const e of G.enemies) e.dispose(); G.enemies.length = 0; };
 // Put the world in a known state for the start of a stage.
 G.resetWorld = (o) => {
-  G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.reset(...o.player); G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = 0;
+  G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.reset(...o.player); G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = G.hurt = 0; clearBlood();
   ui.holdBar(false); ui.objective(''); ui.hint(''); ui.hideDialogue(); ui.cinematic(false); level.marker(null); level.setDawn(0);
   if (o.corin) { corin.setVisible(true); corin.place(o.corin[0], o.corin[1], o.corin[2]); corin.setMode(o.corin[3]); } else corin.setVisible(false);
 };
@@ -68,6 +68,7 @@ function step(rdt, noRender) {
   let dt = rdt * G.timeScale;
   if (G.hitstop > 0) { G.hitstop -= rdt; dt = 0; } else if (G.slow > 0) { G.slow -= rdt; dt *= 0.3; }
   G.shake = Math.max(0, G.shake - rdt * 1.6) * Math.exp(-6 * rdt);
+  G.hurt = Math.max(0, G.hurt - rdt * 1.5); G.grade.uniforms.uHurt.value = opts.blood ? G.hurt * G.hurt * (3 - 2 * G.hurt) : 0; G.grade.uniforms.uTime.value = G.clock % 64;
   if (dt > 0) {
     G.time += dt;
     if (G.running) {

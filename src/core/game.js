@@ -1,6 +1,6 @@
 // Shared game state. Systems import G instead of reaching into each other.
 export const G = {
-  time: 0, rdt: 0, hitstop: 0, slow: 0, shake: 0, timeScale: 1,
+  time: 0, rdt: 0, hitstop: 0, slow: 0, shake: 0, hurt: 0, timeScale: 1,
   scene: null, camera: null, renderer: null,
   player: null, corin: null, enemies: [], spar: false,
   running: false, cinematic: false, freezeAI: false, maxAtk: 2, kills: 0,
