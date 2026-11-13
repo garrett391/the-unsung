@@ -2,7 +2,7 @@ import * as T from 'three';
 import { G } from './core/game.js';
 import { PI, $ } from './core/util.js';
 import { initAudio } from './core/audio.js';
-import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, setStance, releaseAll } from './core/input.js';
+import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, releaseAll } from './core/input.js';
 import { initRenderer } from './gfx/renderer.js';
 import { initFx, updateFx } from './gfx/fx.js';
 import { buildLevel, confine } from './world/level.js';
@@ -116,8 +116,6 @@ if (saved) {
 }
 
 // pause menu
-const stBtn = $('pstance'), stLabel = () => (stBtn.textContent = `CAPTAIN: ${opts.stance ? 'NEW' : 'OLD'} MOVEMENT`);
-stLabel(); stBtn.addEventListener('click', () => { setStance(!opts.stance); stLabel(); });
 const sens = $('psens'); sens.value = opts.sens; sens.addEventListener('input', () => setSens(+sens.value));
 G.pause = (on) => {
   if (!G.running || on === !!G.paused) return;
