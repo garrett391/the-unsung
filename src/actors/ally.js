@@ -14,7 +14,10 @@ const HIT = { dmg: 13, knock: 3, poise: 1, stop: 0.03 };
 // player did to him; in battle he fights beside the captain.
 export class Ally extends Char {
   constructor() {
-    super({ armor: 0x34508c, trim: 0xc9ccd4, under: 0x4a4e5c, dark: 0x25262e, steel: 0xdfe3ea, shield: 2, rim: 0x2c3f86, plume: 0x9fb4e0 }, 0.93);
+    // Polished steel over a navy gambeson, white Third Company tabard, open-faced helm with a
+    // crimson crest: younger and brighter than the captain, and readable at a glance beside him.
+    super({ armor: 0x9aa0aa, trim: 0x6c727c, under: 0x26305a, dark: 0x5a3a24, steel: 0xe6e9ef, shield: 2, rim: 0x23305a, plume: 0xb0283c,
+      helm: 'open', tabard: true, lames: true, knees: true, legs: 1.12, pads: 1.05 }, 0.93);
     this.type = { name: 'CORIN' }; this.hp = this.maxHp = 1; this.mode = 'idle'; this.want = null; this.st = 0; this.cd = 1.2; this.foe = null;
     this.trail = new Trail(0xb0d0ff); this.trail.life = 0.12; this.hitDone = false; this.guard = 1;
   }

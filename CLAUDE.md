@@ -30,7 +30,8 @@ A third-person sword-combat game for the browser, in three.js. Read `README.md` 
 ## Next up (owner's call on order)
 
 - Captain top-heaviness, step 1 done: `Player.layer()` adds a lower, wider base, hip-led swings and running pelvis turn over every pose; thicker legs and smaller pads via rig `legs`/`pads`. The pause menu toggles old/new movement for comparison; remove the toggle once the owner settles it. Next steps if wanted: footwork (planting, push-off), then the attack clips themselves.
-- Owner's playthrough feedback (Nov 2026), still open: Corin reads as a 'blue power ranger' (redesign); flames and tents need an art pass; allied soldiers who fight; enemy variety, including more shield-bearers; a full story (the owner has the arc; ask for it before writing any). The owner is unsure about the struck-out captain name but it stays for now.
+- Corin redesigned (owner's reference: a polished-steel royal guardsman): steel plate, white tabard with the Third Company badge, leather belt and strap, open-faced brimmed helm with a crimson crest, layered pauldrons, winged knee cops. Rig options `helm: 'open'`, `tabard`, `lames`, `knees`. The reference was another franchise's soldier: keep borrowing only generic armor features, never its crest or gear.
+- Owner's playthrough feedback (Nov 2026), still open: flames and tents need an art pass; allied soldiers who fight; enemy variety, including more shield-bearers; a full story (the owner has the arc; ask for it before writing any). The owner is unsure about the struck-out captain name but it stays for now.
 - The two cutscenes not yet built: Corin's last stand (the Still Draw) during the hold, and the captain's eye wound mid-Vessa fight, which leaves him blind on the right side for phase two.
 - Art pass (tents and crates are weakest), music, gamepad, saved progress.
 

@@ -102,3 +102,24 @@ export function shieldTex(kind) {
   t.wrapS = t.wrapT = T.ClampToEdgeWrapping; t.repeat.set(1 / 0.44, 1 / 0.62); t.offset.set(0.5, 0.35 / 0.62);
   return t;
 }
+
+// Corin's tabard: off-white cloth with a blue edge. 'top' carries the Third Company badge
+// (a gold-edged red diamond over a gold bar); 'low' is the hanging skirt, cut to a point.
+// Transparent outside the cloth, so use with alphaTest.
+export function tabardTex(part) {
+  return canvasTex(128, (g, n) => {
+    g.clearRect(0, 0, n, n);
+    const cloth = (path) => { g.fillStyle = '#2f4f8f'; path(0); g.fill(); g.fillStyle = '#e8e2d2'; path(9); g.fill(); };
+    if (part === 'mid') cloth((m) => g.rect(m, 0, n - 2 * m, n));
+    else if (part === 'top') {
+      cloth((m) => g.rect(m, 0, n - 2 * m, n));
+      g.fillStyle = '#d9b24a'; g.fillRect(34, 86, 60, 8);
+      g.beginPath(); g.moveTo(64, 22); g.lineTo(90, 52); g.lineTo(64, 82); g.lineTo(38, 52); g.closePath(); g.fill();
+      g.fillStyle = '#a51f25'; g.beginPath(); g.moveTo(64, 30); g.lineTo(83, 52); g.lineTo(64, 74); g.lineTo(45, 52); g.closePath(); g.fill();
+      g.fillStyle = '#e8e2d2'; g.fillRect(61, 44, 6, 16);
+    } else {
+      cloth((m) => { g.beginPath(); g.moveTo(m, 0); g.lineTo(n - m, 0); g.lineTo(n - m, n * 0.72 - m * 0.4); g.lineTo(n / 2, n - m * 1.4); g.lineTo(m, n * 0.72 - m * 0.4); g.closePath(); });
+      g.strokeStyle = 'rgba(47,79,143,.55)'; g.lineWidth = 3; g.beginPath(); g.moveTo(40, 58); g.lineTo(64, 76); g.lineTo(88, 58); g.stroke();
+    }
+  });
+}

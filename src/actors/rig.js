@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { PI } from '../core/util.js';
-import { toon, shieldTex } from '../gfx/materials.js';
+import { toon, shieldTex, tabardTex } from '../gfx/materials.js';
 
 // Procedural armored humanoid. Faces +Z; the sword hand is at -X.
 // Joints are plain groups so the animation system only writes rotations.
@@ -40,17 +40,55 @@ export function buildHumanoid(o) {
   const chest = (J.chest = joint(spine, 0, 0.2, 0));
   mk(new T.CylinderGeometry(0.285, 0.2, 0.36, SEG), mA, chest, 0, 0.18, 0).scale.z = 0.8;
   mk(new T.CylinderGeometry(0.12, 0.21, 0.07, SEG), mT, chest, 0, 0.385, 0).scale.z = 0.85;
-  mk(new T.BoxGeometry(0.1, 0.1, 0.03), mT, chest, 0, 0.22, 0.215).rotation.z = PI / 4;
-  mk(new T.BoxGeometry(0.028, 0.28, 0.03), mT, chest, 0, 0.17, 0.2).rotation.x = 0.18;
+  if (!o.tabard) {
+    mk(new T.BoxGeometry(0.1, 0.1, 0.03), mT, chest, 0, 0.22, 0.215).rotation.z = PI / 4;
+    mk(new T.BoxGeometry(0.028, 0.28, 0.03), mT, chest, 0, 0.17, 0.2).rotation.x = 0.18;
+  }
+  if (o.tabard) {
+    // White tabard front and back, a leather belt with a brass buckle, and a strap across the chest.
+    const mTop = M(0xffffff, { map: tabardTex('top'), alphaTest: 0.5, side: T.DoubleSide }), mLow = M(0xffffff, { map: tabardTex('low'), alphaTest: 0.5, side: T.DoubleSide }), mMid = M(0xffffff, { map: tabardTex('mid'), alphaTest: 0.5, side: T.DoubleSide });
+    const mLeather = M(0x6a4428), mBrass = M(0xd9b24a);
+    for (const sd of [1, -1]) {
+      const tp = mk(new T.PlaneGeometry(0.3, 0.4), mTop, chest, 0, 0.17, sd * 0.214); tp.rotation.set(-sd * 0.19, sd < 0 ? PI : 0, 0);
+      const lw = mk(new T.PlaneGeometry(0.3, 0.46), mLow, hips, 0, -0.19, sd * 0.248); lw.rotation.set(sd * 0.14, sd < 0 ? PI : 0, 0);
+      const md = mk(new T.PlaneGeometry(0.3, 0.26), mMid, spine, 0, 0.1, sd * 0.172); md.rotation.y = sd < 0 ? PI : 0;
+    }
+    const belt = mk(new T.CylinderGeometry(0.236, 0.236, 0.055, SEG), mLeather, hips, 0, 0.055, 0); belt.scale.z = 0.82;
+    mk(new T.BoxGeometry(0.075, 0.06, 0.02), mBrass, hips, 0, 0.055, 0.2);
+    const strap = mk(new T.BoxGeometry(0.045, 0.56, 0.02), mLeather, chest, 0.01, 0.17, 0.226); strap.rotation.set(-0.19, 0, 0.62);
+    const back = mk(new T.BoxGeometry(0.045, 0.56, 0.02), mLeather, chest, 0.01, 0.17, -0.226); back.rotation.set(0.19, 0, -0.62);
+  }
   // helm
   const neck = (J.neck = joint(chest, 0, 0.4, 0));
-  mk(new T.CylinderGeometry(0.15, 0.16, 0.24, SEG), mA, neck, 0, 0.135, 0);
-  const dome = mk(new T.SphereGeometry(0.15, SEG, 8, 0, PI * 2, 0, PI / 2), mA, neck, 0, 0.255, 0); dome.scale.y = 0.75;
-  mk(new T.CylinderGeometry(0.156, 0.156, 0.03, SEG), mT, neck, 0, 0.25, 0);
-  mk(new T.CylinderGeometry(0.157, 0.157, 0.042, 10, 1, true, -0.95, 1.9), mEye, neck, 0, 0.165, 0);
-  mk(new T.BoxGeometry(0.036, 0.19, 0.03), mT, neck, 0, 0.11, 0.15);
-  mk(new T.BoxGeometry(0.22, 0.09, 0.04), mA, neck, 0, 0.03, -0.125);
-  if (o.plume) {
+  if (o.helm === 'open') {
+    // Open-faced helm with a brim and cheek plates: the face shows.
+    const mSkin = M(o.skin || 0xd9a77e), mHair = M(o.hair || 0x7a5228);
+    mk(new T.CylinderGeometry(0.1, 0.13, 0.1, SEG), mU, neck, 0, 0.03, 0);
+    const face = mk(ball(0.118), mSkin, neck, 0, 0.15, 0.02); face.scale.set(0.95, 1.12, 1);
+    for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.026, 0.02, 0.012), mEye, neck, sd * 0.042, 0.165, 0.128);
+    mk(new T.BoxGeometry(0.05, 0.012, 0.012), M(0x8a5a40), neck, 0, 0.098, 0.124);
+    for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.035, 0.16, 0.06), mHair, neck, sd * 0.12, 0.13, -0.01);
+    const dome = mk(new T.SphereGeometry(0.168, SEG, 8, 0, PI * 2, 0, PI / 2), mA, neck, 0, 0.215, -0.01); dome.scale.y = 0.85;
+    const brim = mk(new T.CylinderGeometry(0.2, 0.235, 0.025, SEG), mA, neck, 0, 0.215, 0.015); brim.rotation.x = 0.16;
+    mk(new T.CylinderGeometry(0.172, 0.172, 0.03, SEG), mT, neck, 0, 0.235, -0.01);
+    mk(new T.BoxGeometry(0.02, 0.06, 0.24), mT, neck, 0, 0.36, -0.01);
+    for (const sd of [-1, 1]) { const ck = mk(new T.BoxGeometry(0.03, 0.15, 0.13), mA, neck, sd * 0.155, 0.12, 0.02); ck.rotation.z = sd * 0.12; }
+    mk(new T.BoxGeometry(0.26, 0.12, 0.05), mA, neck, 0, 0.13, -0.135);
+  } else {
+    mk(new T.CylinderGeometry(0.15, 0.16, 0.24, SEG), mA, neck, 0, 0.135, 0);
+    const dome = mk(new T.SphereGeometry(0.15, SEG, 8, 0, PI * 2, 0, PI / 2), mA, neck, 0, 0.255, 0); dome.scale.y = 0.75;
+    mk(new T.CylinderGeometry(0.156, 0.156, 0.03, SEG), mT, neck, 0, 0.25, 0);
+    mk(new T.CylinderGeometry(0.157, 0.157, 0.042, 10, 1, true, -0.95, 1.9), mEye, neck, 0, 0.165, 0);
+    mk(new T.BoxGeometry(0.036, 0.19, 0.03), mT, neck, 0, 0.11, 0.15);
+    mk(new T.BoxGeometry(0.22, 0.09, 0.04), mA, neck, 0, 0.03, -0.125);
+  }
+  if (o.plume && o.helm === 'open') {
+    // a tall feathered crest rising from the crown and sweeping back
+    const mP = M(o.plume);
+    mk(new T.CylinderGeometry(0.03, 0.04, 0.08, 8), mT, neck, 0, 0.39, -0.03);
+    const tuft = (y, z, rx, w, h) => { const m = mk(ball(1), mP, neck, 0, y, z); m.scale.set(w, h, 0.07); m.rotation.x = rx; };
+    tuft(0.47, 0.0, -0.3, 0.085, 0.1); tuft(0.5, -0.1, -0.8, 0.1, 0.12); tuft(0.46, -0.21, -1.2, 0.09, 0.11); tuft(0.39, -0.29, -1.5, 0.07, 0.09);
+  } else if (o.plume) {
     const mP = M(o.plume);
     mk(new T.BoxGeometry(0.05, 0.11, 0.22), mP, neck, 0, 0.4, -0.02);
     mk(new T.BoxGeometry(0.05, 0.2, 0.14), mP, neck, 0, 0.34, -0.2).rotation.x = -0.5;
@@ -65,6 +103,11 @@ export function buildHumanoid(o) {
     const sh = (J[a] = joint(chest, s * 0.3, 0.3, 0));
     mk(ball(0.135), mA, sh, s * 0.02, 0.03, 0).scale.set(1.12 * PD, 0.85 * PD, 1.15 * PD);
     mk(ball(0.1), mA, sh, s * 0.05, -0.07, 0).scale.set(PD, 0.7 * PD, 1.15 * PD);
+    if (o.lames) { // stacked plates stepping down the upper arm
+      mk(new T.SphereGeometry(0.15, SEG, 6, 0, PI * 2, 0, PI / 2.4), mA, sh, s * 0.035, 0.0, 0).scale.set(1.15, 0.8, 1.2);
+      mk(new T.CylinderGeometry(0.105, 0.125, 0.06, SEG, 1, true), mA, sh, s * 0.03, -0.08, 0).scale.z = 1.15;
+      mk(new T.CylinderGeometry(0.095, 0.112, 0.05, SEG, 1, true), mA, sh, s * 0.025, -0.13, 0).scale.z = 1.1;
+    }
     mk(limb(0.07, 0.06, 0.27), mU, sh);
     mk(new T.CylinderGeometry(0.078, 0.078, 0.03, SEG), mT, sh, 0, -0.15, 0);
     const el = (J[b] = joint(sh, 0, -0.27, 0));
@@ -81,7 +124,13 @@ export function buildHumanoid(o) {
     const kn = (J[b] = joint(th, 0, -0.42, 0));
     mk(ball(0.072 * LG), mT, kn, 0, 0, 0.035 * LG); mk(limb(0.078 * LG, 0.06 * LG, 0.38), mA, kn);
     mk(new T.BoxGeometry(0.03, 0.3, 0.03), mT, kn, 0, -0.2, 0.062 * LG);
+    if (o.knees) { // a knee cop with a swept wing on the outside, over a tall greave
+      mk(ball(0.085 * LG), mA, kn, 0, 0.01, 0.05).scale.set(1.15, 1.05, 0.8);
+      const wg = mk(new T.BoxGeometry(0.02, 0.17, 0.11), mA, kn, s * 0.085 * LG, 0.05, 0.02); wg.rotation.z = -s * 0.45; wg.rotation.x = -0.15;
+      mk(new T.CylinderGeometry(0.095 * LG, 0.088 * LG, 0.12, SEG, 1, true), mA, kn, 0, -0.08, 0.008);
+    }
     const an = (J[c] = joint(kn, 0, -0.38, 0));
+    if (o.knees) mk(new T.CylinderGeometry(0.085 * LG, 0.095 * LG, 0.05, SEG), mA, an, 0, 0.03, 0.01);
     mk(new T.BoxGeometry(0.115 * LG, 0.09 * LG, 0.27 * LG), mD, an, 0, -0.025, 0.055); mk(new T.BoxGeometry(0.12 * LG, 0.06 * LG, 0.09), mT, an, 0, -0.04, 0.16 * LG);
   };
   leg(1, 'thL', 'knL', 'anL'); leg(-1, 'thR', 'knR', 'anR');
