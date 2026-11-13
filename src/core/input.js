@@ -52,6 +52,15 @@ export function initInput(canvas, cam) {
     if (e.pointerType !== 'mouse') touchT = performance.now();
     if (e.target === canvas || e.target.closest?.('#dlg, #chron')) G.confirm = true;
   });
+  // Phones: a quick second tap is a double-tap, which zooms the page. Taps on the game itself
+  // never need the browser's default; on buttons and sliders only a rapid second tap is dropped.
+  let tapT = -9;
+  document.addEventListener('touchend', (e) => {
+    const now = performance.now(), fast = now - tapT < 400; tapT = now;
+    if ((fast || !e.target.closest?.('button, input, summary, a')) && e.cancelable) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('dblclick', (e) => e.preventDefault());
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
   addEventListener('contextmenu', (e) => { e.preventDefault(); releaseAll(); });
   // Mouse buttons use mousedown/up: unlike pointer events, these fire for every button
   // even while another is held (a "chord"), so a held right button can't get lost.

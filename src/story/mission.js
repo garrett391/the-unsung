@@ -19,16 +19,29 @@ const NAME = '<span class="strike">&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;</s
 const live = () => G.enemies.filter((e) => !e.dead).length;
 const breach = () => [rnd(-2.6, 2.6), rnd(27, 33)];
 const east = () => [rnd(22, 26), rnd(-4, -2)];
+// Turn the camera to something the player needs to know about (a wave coming in, where to go),
+// hold on it for a moment, then hand it back. The captain can't act or be hurt meanwhile.
+async function glance(d, x, z, o = {}) {
+  const P = G.player, was = P.controlEnabled, dx = P.pos.x - x, dz = P.pos.z - z, l = Math.hypot(dx, dz) || 1, back = Math.min(o.back || 9, l * 0.8);
+  const p0 = cam.pos.toArray(), l0 = cam.look.toArray();
+  P.controlEnabled = false; P.inv = Math.max(P.inv, 3.8); G.cinematic = true; ui.cinematic(true);
+  cam.shot([x + (dx / l) * back - (dz / l) * 2.2, o.h || 3.2, z + (dz / l) * back + (dx / l) * 2.2], [x, o.y || 1.3, z], 0.9);
+  await d.wait(o.hold || 1.9);
+  cam.shot(p0, l0, 0.6); await d.wait(0.6);
+  cam.release(); G.cinematic = false; ui.cinematic(false); P.controlEnabled = was; P.buf.a = '';
+}
 
 stage('intro', {
   setup() { G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); },
   async run(d) {
     G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); cam.shot([7, 5, 27], [0, 1.6, 8]);
-    await d.chronicle('Register of the Western Watch', [
-      '<em>He saved the realm twice. Nobody remembers either time.</em>',
-      'Year three of the Sealing. The Usurper could not be killed, so the wardens shut him behind the Glass Door, in the ruins of the desert.',
-      'His loyalists, the Witches of the dunes, raid out of the sand to set him free.',
-      `Guarding the Door: the Third Company of the Royal Guard, under Captain ${NAME}, of the forest.`,
+    G.player.controlEnabled = false; // nothing moves until the cards are read and Corin has spoken
+    await d.chronicle('From the Register of the Western Watch', [
+      '<em>Some names are cut into stone. Others are cut out of it.</em>',
+      'The Usurper could not be killed. So the wardens sealed him alive behind the Glass Door, under the ruins at the edge of the desert.',
+      'That was three years ago. Every season since, his Witches have come out of the dunes to break the Door and bring him back.',
+      `One company of the Royal Guard stands in their way: the Third, under Captain ${NAME}, of the forest.`,
+      '<em>What follows was never entered in the Register.</em>',
     ], TAP);
     ui.chronClose(); ui.fade(0, 1.8); cam.shot([2.6, 3.2, 17.5], [0, 1.4, 8], 3.6);
     await d.wait(3.2);
@@ -44,7 +57,7 @@ stage('spar', {
       n = 0; C.setMode(mode, want); const off = count(kind); const tick = d.every(() => ui.objective(need > 1 ? `${objective} (${Math.min(n, need)}/${need})` : objective));
       ui.hint(hint); await d.until(() => n >= need); off(); tick(); ui.hint(''); await d.wait(0.7);
     };
-    G.cinematic = false; ui.cinematic(false); cam.behind();
+    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; // talk() holds him still, then hands control back
     await d.talk([
       ['Corin', 'Captain! You promised me one lesson before the night watch.'],
       ['Corin', "I've been drilling the guard you showed me. Try to get through it."],
@@ -87,12 +100,14 @@ stage('raid', {
     await d.talk([['Corin', 'Raiders at the breach!'], ['Captain', 'Corin. Guard my right side.'], ['Corin', 'Always, Captain.']]);
     C.setMode('battle'); ui.objective('Drive back the raiders'); ui.hint('Lock on with {k} to keep a raider in front of you');
     for (let i = 0; i < 3; i++) G.spawn('raider', ...breach());
+    await glance(d, 0, 27);
     await d.wait(6); ui.hint('');
     await d.until(() => live() === 0);
     await d.wait(0.8);
     await d.talk([['Corin', 'Bronze shields, coming through the gap!']]);
     G.maxAtk = 2; ui.hint('Shields stop light strikes from the front. Bash them ({l}, {h}), charge a heavy (hold {h}), or roll to their flank.');
     G.spawn('bulwark', ...breach()); G.spawn('raider', ...breach()); G.spawn('raider', ...breach());
+    await glance(d, 0, 27);
     await d.wait(8); ui.hint('');
     await d.until(() => live() === 0);
     await d.wait(0.6);
@@ -109,6 +124,7 @@ stage('fallback', {
       ['Corin', 'We will hold it.'],
     ]);
     ui.objective('Get to the mouth of the Narrows'); G.level.marker(MOUTH.x, MOUTH.z + 1);
+    await glance(d, MOUTH.x, MOUTH.z + 1, { back: 10, h: 3.6, y: 2.2 });
     await d.until(() => Math.hypot(G.player.pos.x - MOUTH.x, G.player.pos.z - MOUTH.z - 1) < 2.6);
     G.level.marker(null);
   },

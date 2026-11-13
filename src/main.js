@@ -92,7 +92,6 @@ function step(rdt, noRender) {
   if (G.running) director.update(rdt);
   const t = player.lock; lockRing.visible = lockRing2.visible = !!t;
   if (t) { lockRing.position.set(t.pos.x, 0.08, t.pos.z); lockRing2.position.copy(lockRing.position); lockRing.rotation.z += rdt * 2.2; const s = t.scale * (1 + Math.sin(G.time * 6) * 0.05); lockRing.scale.setScalar(s); lockRing2.scale.setScalar(s); }
-  if (!G.running) { cam.yaw += rdt * 0.05; }
   updateCamera(rdt, false); ui.frame(); if (!noRender) G.composer.render();
 }
 
@@ -105,7 +104,7 @@ $('thelp').innerHTML = $('phelp').innerHTML = help;
 $('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
 function begin(from = 0) {
   if (G.running) return; initAudio(); $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
-  G.running = true; G.confirm = false; G.runFrom(from);
+  player.setVisible(true); G.running = true; G.confirm = false; G.runFrom(from);
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
 }
 $('tplay').addEventListener('click', () => begin(0));
@@ -127,11 +126,13 @@ G.togglePause = () => G.pause(!G.paused);
 $('presume').addEventListener('click', () => G.pause(false));
 $('pretry').addEventListener('click', () => { G.pause(false); ui.fade(1, 0.3); setTimeout(() => G.runFrom(G.checkpoint), 350); });
 $('pquit').addEventListener('click', () => location.reload());
-G.resetWorld({ player: [0.6, 12.5, PI], corin: [0, 4.5, 0, 'guard'] });
-cam.shot([6, 3.4, 20], [0, 1.5, 8]); ui.fade(0, 1.5);
+// The title looks down the empty Narrows at the Glass Door, drifting closer; nobody is on stage yet.
+G.resetWorld({ player: [0.6, 12.5, PI], corin: null }); player.setVisible(false); player.shadow.visible = false;
+cam.shot([0.5, 1.5, -11.5], [0, 3.2, -27.8]); cam.shot([-0.3, 1.7, -18], [0, 3.3, -27.8], 70); ui.fade(0, 1.5);
 
+// rdt is clamped at zero: the first frame can carry a timestamp earlier than this one.
 let last = performance.now();
-function frame(now) { const rdt = Math.min(0.05, (now - last) / 1000); last = now; step(rdt); requestAnimationFrame(frame); }
+function frame(now) { const rdt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; step(rdt); requestAnimationFrame(frame); }
 requestAnimationFrame(frame);
 
 // handles for the headless playtest and for poking at things in the console

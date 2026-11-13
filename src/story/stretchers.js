@@ -19,7 +19,6 @@ const STEP = 4.2; // stride phase per metre: short, quick steps under a load
 // Camp orderlies, not line soldiers: open helms, light shoulders, drab colours.
 const LOOK = { armor: 0x6a4a3c, trim: 0x9a8a6a, under: 0x4a4038, dark: 0x2c2620, rim: 0x2c3f86, weapon: 'none', helm: 'open', pads: 0.72, legs: 1.05 };
 const WOUNDED = { armor: 0x8d8168, trim: 0x6f6450, under: 0x57503f, dark: 0x3a2c22, rim: 0x2c3f86, weapon: 'none', helm: 'none', bandage: true, pads: 0.6 };
-const BLANKETS = [0x7c3136, 0x4d5a74, 0x6b6a4a];
 const HAIR = [0x7a5228, 0x2c2420, 0xa9844e];
 
 function at(d, out) {
@@ -51,10 +50,10 @@ class Bearer extends Char {
 }
 const tmp = new T.Vector3(), gA = new T.Vector3(), gB = new T.Vector3();
 
-// Poles, a canvas bed that sags between them, and a wounded soldier under a blanket.
+// Poles, a canvas bed that sags between them, and a wounded soldier.
 function litter() {
   const g = new T.Group(); g.rotation.order = 'YXZ';
-  const wood = toon(0x6a4a2c), canvas = toon(0xcfc2a2, { side: T.DoubleSide, map: clothTex }), wool = toon(BLANKETS[0], { side: T.DoubleSide, map: clothTex });
+  const wood = toon(0x6a4a2c), canvas = toon(0xcfc2a2, { side: T.DoubleSide, map: clothTex });
   const add = (geo, mat, x, y, z) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
   for (const s of [-1, 1]) {
     add(new T.CylinderGeometry(0.026, 0.026, GAP + 0.16, 6), wood, s * 0.27, 0, 0).rotation.x = PI / 2;
@@ -70,17 +69,11 @@ function litter() {
   const rig = buildHumanoid(WOUNDED), J = rig.J; rig.root.scale.setScalar(SC); rig.root.rotation.x = -PI / 2; rig.root.position.set(0, 0.13, 0.82); g.add(rig.root);
   J.thL.rotation.set(0, 0, 0.05); J.thR.rotation.set(0, 0, -0.05); J.anL.rotation.set(0.5, 0.3, 0); J.anR.rotation.set(0.5, -0.3, 0);
   J.spine.rotation.set(-0.03, 0, 0); J.shield.rotation.set(0, 0, 0);
-  // blanket from the shins to the chest, arched over the body with its edges on the canvas
-  const bl = new T.CylinderGeometry(0.265, 0.265, 0.9, 10, 1, true, -PI / 2, PI); bl.rotateX(PI / 2); bl.rotateZ(PI);
-  add(bl, wool, 0, -0.03, 0.2).scale.set(1, 1.62, 1);
-  const fl = new T.CylinderGeometry(0.275, 0.275, 0.1, 10, 1, true, -PI / 2, PI); fl.rotateX(PI / 2); fl.rotateZ(PI);
-  add(fl, wool, 0, -0.03, -0.24).scale.set(1, 1.64, 1); // the turned-back top edge
-  add(new T.CircleGeometry(0.265, 10, 0, PI), wool, 0, -0.03, 0.65).scale.set(1, 1.62, 1); // the end hanging over the shins
   const hairMat = rig.mats.find((m) => m.color.getHex() === 0x7a5228);
   G.scene.add(g);
-  // A different casualty each trip: blanket, hair and which arm has slipped off the side.
+  // A different casualty each trip: hair and which arm has slipped off the side.
   const dress = (k) => {
-    const s = k % 2 ? -1 : 1; g.userData.side = s; wool.color.setHex(BLANKETS[k % BLANKETS.length]); if (hairMat) hairMat.color.setHex(HAIR[(k * 2) % HAIR.length]);
+    const s = k % 2 ? -1 : 1; g.userData.side = s; if (hairMat) hairMat.color.setHex(HAIR[(k * 2) % HAIR.length]);
     const out = s > 0 ? ['shL', 'elL'] : ['shR', 'elR'], inn = s > 0 ? ['shR', 'elR'] : ['shL', 'elL'];
     J[inn[0]].rotation.set(-0.3, s * 1.15, 0); J[inn[1]].rotation.set(-1.75, 0, 0); // a hand resting on the chest
     J[out[0]].rotation.set(0.7, 0, s * 0.6); J[out[1]].rotation.set(-0.2, 0, 0);
