@@ -114,17 +114,31 @@ export function buildLevel() {
   const gateMat = new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.85, 0.78), fog: false });
   const gate = new T.Mesh(new T.PlaneGeometry(3.8, 6.4), gateMat); gate.position.set(0, 3.3, -27.75); scene.add(gate);
   const gateL = new T.PointLight(0x7fe0d0, 12, 16, 2); gateL.position.set(0, 3, -25.5); scene.add(gateL);
-  // The Glass Door itself: leaded panes behind an iron grid, a gold seal chained to the four
-  // corners, a dressed stone surround, glass growing out of the rock at its foot, and a ward
-  // ring cut into the floor in front of it.
+  // The archway at the end of the Narrows has two dressings that share its stone surround.
+  // In play it is the sanctum gate: an open arch with lamplight inside and a raised portcullis,
+  // where the wounded are carried. On the title screen it is the Glass Door, which stands
+  // somewhere else in the story: leaded panes behind an iron grid, a gold seal chained to the
+  // four corners, glass growing out of the rock at its foot, and a ward ring cut into the floor.
+  const mIron = toon(0x23262e);
   {
+    for (const s of [-1, 1]) { // surround: jambs with a gold fillet, plinth and capital on each pillar
+      box(0.3, 6.5, 0.6, mStone, s * 2.05, 3.25, -27.45); box(0.06, 6.3, 0.05, mGold, s * 1.93, 3.25, -27.14);
+      box(1.5, 0.45, 1.5, mStone, s * 2.5, 0.22, -27.8); box(1.42, 0.14, 1.42, mDark, s * 2.5, 0.52, -27.8); box(1.5, 0.4, 1.5, mStone, s * 2.5, 6.75, -27.8);
+    }
+    box(4.4, 0.32, 0.6, mStone, 0, 6.62, -27.45); box(3.9, 0.06, 0.05, mGold, 0, 6.48, -27.14);
+    box(0.8, 0.95, 0.5, mStone, 0, 7.25, -27.05); box(0.3, 0.3, 0.08, mGold, 0, 7.25, -26.78).rotation.z = PI / 4;
+    box(4.3, 0.1, 1.1, mStone, 0, 0.03, -27.3);
+  }
+  const doorG = new T.Group(), sanctumG = new T.Group(); scene.add(doorG, sanctumG);
+  {
+    doorG.add(gate); const n0 = scene.children.length;
     const cv = document.createElement('canvas'); cv.width = 128; cv.height = 256; const c2 = cv.getContext('2d');
     const gr = c2.createRadialGradient(64, 124, 6, 64, 124, 170); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, '#c9f2ea'); gr.addColorStop(1, '#6fb5ac'); c2.fillStyle = gr; c2.fillRect(0, 0, 128, 256);
     const q = rng(41); c2.strokeStyle = 'rgba(40,90,90,0.55)'; c2.lineWidth = 1.5;
     for (let i = 0; i < 26; i++) { c2.beginPath(); let x = q() * 128, y = q() * 256; c2.moveTo(x, y); for (let k = 0; k < 3; k++) { x += (q() - 0.5) * 60; y += (q() - 0.5) * 70; c2.lineTo(x, y); } c2.stroke(); } // old cracks, sealed over
     c2.strokeStyle = 'rgba(255,255,255,0.7)'; c2.lineWidth = 2; for (const rr of [30, 44]) { c2.beginPath(); c2.arc(64, 124, rr, 0, 7); c2.stroke(); }
     gateMat.map = new T.CanvasTexture(cv); gateMat.map.colorSpace = T.SRGBColorSpace;
-    const mIron = toon(0x23262e), mGlass = new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.8, 0.72), fog: false }), g7 = rng(7), Q = (a, b) => a + g7() * (b - a);
+    const mGlass = new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.8, 0.72), fog: false }), g7 = rng(7), Q = (a, b) => a + g7() * (b - a);
     const zf = -27.68;
     for (const x of [-0.64, 0.64]) box(0.07, 6.4, 0.06, mIron, x, 3.3, zf); for (const y of [1.55, 5.05]) box(3.8, 0.07, 0.06, mIron, 0, y, zf);
     add(new T.TorusGeometry(0.86, 0.07, 8, 28), mGold, 0, 3.3, zf + 0.05); add(new T.TorusGeometry(0.6, 0.03, 6, 24), mGold, 0, 3.3, zf + 0.05);
@@ -133,13 +147,6 @@ export function buildLevel() {
       const a = V(sx * 0.62, 3.3 + sy * 0.62, zf + 0.05), b = V(sx * 1.84, 3.3 + sy * 3.0, zf + 0.05), ch = box(0.06, a.distanceTo(b), 0.06, mIron, (a.x + b.x) / 2, (a.y + b.y) / 2, a.z);
       ch.rotation.z = -Math.atan2(b.x - a.x, b.y - a.y); box(0.2, 0.2, 0.12, mIron, b.x, b.y, b.z);
     }
-    for (const s of [-1, 1]) { // surround: jambs with a gold fillet, plinth and capital on each pillar
-      box(0.3, 6.5, 0.6, mStone, s * 2.05, 3.25, -27.45); box(0.06, 6.3, 0.05, mGold, s * 1.93, 3.25, -27.14);
-      box(1.5, 0.45, 1.5, mStone, s * 2.5, 0.22, -27.8); box(1.42, 0.14, 1.42, mDark, s * 2.5, 0.52, -27.8); box(1.5, 0.4, 1.5, mStone, s * 2.5, 6.75, -27.8);
-    }
-    box(4.4, 0.32, 0.6, mStone, 0, 6.62, -27.45); box(3.9, 0.06, 0.05, mGold, 0, 6.48, -27.14);
-    box(0.8, 0.95, 0.5, mStone, 0, 7.25, -27.05); box(0.3, 0.3, 0.08, mGold, 0, 7.25, -26.78).rotation.z = PI / 4;
-    box(4.3, 0.1, 1.1, mStone, 0, 0.03, -27.3);
     // glass that has crept out of the Door into the rock around it
     const shard = (x, y, z, h, tilt, rz) => { const m = new T.Mesh(new T.ConeGeometry(h * 0.16, h, 4), mGlass); m.position.set(x, y, z); m.rotation.set(tilt, Q(0, 3), rz); scene.add(m); };
     for (const s of [-1, 1]) {
@@ -153,7 +160,26 @@ export function buildLevel() {
     for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2; flat(new T.PlaneGeometry(0.06, 0.5), Math.sin(a) * 1.58, -24 + Math.cos(a) * 1.58, -a); }
     flat(new T.RingGeometry(0.32, 0.44, 4), 0, -24, PI / 4);
     W.ward = mWard;
+    for (const m of scene.children.slice(n0)) doorG.add(m);
   }
+  {
+    const n0 = scene.children.length, zf = -27.7;
+    const dark = new T.Mesh(new T.PlaneGeometry(3.8, 6.4), mInside); dark.position.set(0, 3.3, -27.76); scene.add(dark);
+    // lamplight from inside, strongest at the floor
+    const cv = document.createElement('canvas'); cv.width = 32; cv.height = 128; const c2 = cv.getContext('2d');
+    const gr = c2.createLinearGradient(0, 128, 0, 0); gr.addColorStop(0, 'rgba(255,186,104,0.9)'); gr.addColorStop(0.28, 'rgba(200,110,54,0.4)'); gr.addColorStop(0.62, 'rgba(110,54,28,0.08)'); gr.addColorStop(1, 'rgba(60,30,20,0)'); c2.fillStyle = gr; c2.fillRect(0, 0, 32, 128);
+    const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace;
+    const glow = new T.Mesh(new T.PlaneGeometry(3.8, 6.4), new T.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, fog: false })); glow.position.set(0, 3.3, -27.74); scene.add(glow);
+    // portcullis drawn up into the head of the arch, ready to drop
+    for (let k = -3; k <= 3; k++) { box(0.09, 1.7, 0.09, mSteel, k * 0.52, 5.62, zf); add(new T.ConeGeometry(0.075, 0.26, 4), mSteel, k * 0.52, 4.64, zf).rotation.x = PI; }
+    for (const y of [5.25, 6.05]) box(3.8, 0.09, 0.07, mSteel, 0, y, zf);
+    // a lantern on each jamb
+    const mLamp = new T.MeshBasicMaterial({ color: new T.Color(1.5, 1.0, 0.5), fog: false });
+    for (const s of [-1, 1]) { box(0.3, 0.06, 0.3, mIron, s * 1.95, 3.3, -27.0); box(0.16, 0.26, 0.16, mLamp, s * 1.95, 3.1, -27.0); box(0.22, 0.05, 0.22, mIron, s * 1.95, 2.95, -27.0); box(0.05, 0.05, 0.3, mIron, s * 1.95, 3.34, -27.1); }
+    for (const m of scene.children.slice(n0)) sanctumG.add(m);
+  }
+  W.setGate = (kind) => { const door = kind === 'door'; doorG.visible = door; sanctumG.visible = !door; gateL.color.setHex(door ? 0x7fe0d0 : 0xffb070); gateL.intensity = door ? 12 : 9; };
+  W.setGate('sanctum');
 
   // columns, tents, crates, banners
   const column = (x, z, h, broken) => {
@@ -324,7 +350,7 @@ export function buildLevel() {
     for (let i = 0; i < W.banners.length; i++) W.banners[i].rotation.x = Math.sin(t * 1.3 + i * 1.7) * 0.06 + Math.sin(t * 2.9 + i) * 0.02;
     gateMat.color.setRGB(0.3, 0.85, 0.78).multiplyScalar(0.85 + Math.sin(t * 2.2) * 0.15);
     W.ward.opacity = 0.55 + Math.sin(t * 2.2 - 0.8) * 0.25;
-    if (Math.random() < dt * 2.5) FX.sparks.emit(tmp.set((Math.random() - 0.5) * 3.4, 0.4 + Math.random() * 5, -27.3), 1, 0.35, 0x9ff0e0, 1.8, { grav: -0.4, spread: 0.3 }); // motes drifting off the glass
+    if (doorG.visible && Math.random() < dt * 2.5) FX.sparks.emit(tmp.set((Math.random() - 0.5) * 3.4, 0.4 + Math.random() * 5, -27.3), 1, 0.35, 0x9ff0e0, 1.8, { grav: -0.4, spread: 0.3 }); // motes drifting off the glass
   };
   // waypoint marker
   const mk = new T.Mesh(new T.CylinderGeometry(0.9, 0.9, 5, 20, 1, true), new T.MeshBasicMaterial({ color: new T.Color(1.6, 1.3, 0.5), transparent: true, opacity: 0.35, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }));
