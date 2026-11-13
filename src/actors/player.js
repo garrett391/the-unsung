@@ -113,7 +113,7 @@ export class Player extends Char {
   }
   // An enemy's blow arrives. Returns 'miss' | 'parry' | 'block' | 'hit'.
   receive(e, dmg) {
-    if (this.dead || this.inv > 0) return 'miss';
+    if (this.dead || this.inv > 0 || G.talking) return 'miss'; // nothing lands while a line of dialogue holds him still
     const dir = tmpA.subVectors(this.pos, e.pos).setY(0).normalize(), ang = Math.abs(wrap(Math.atan2(-dir.x, -dir.z) - this.face));
     const hp = tmpB.copy(this.pos).addScaledVector(dir, -0.5).setY(1.15);
     if (this.state === 'loco' && I.block && this.controlEnabled && ang < 1.7) {

@@ -44,6 +44,10 @@ export class Ally extends Char {
     if (this.state === 'reel') { brake(7); if (this.st > 0.7) { this.set('loco'); this.stop(0.2); } }
     else if (this.state === 'parried') { brake(8); if (this.st > 2.4) { this.open = false; this.set('loco'); this.stop(0.25); this.cd = 1.2; } }
     else if (this.mode === 'guard' || this.mode === 'idle') { brake(8); this.turnTo(this.angleTo(P_), 6, dt); }
+    else if (this.mode === 'attack' && G.talking) { // sparring stops while anyone is speaking
+      brake(8); this.turnTo(this.angleTo(P_), 6, dt); this.trailOn = false; this.cd = Math.max(this.cd, 0.9);
+      if (this.state !== 'loco') { this.set('loco'); this.stop(0.2); }
+    }
     else if (this.mode === 'attack' || this.mode === 'battle') {
       // Sparring swings go at the captain; in battle, at the nearest raider.
       let foe = P_;

@@ -7,6 +7,7 @@ import { CL } from './anim.js';
 import { TYPES } from './data.js';
 import { FX, Trail, shock } from '../gfx/fx.js';
 import { pickLock } from './player.js';
+import { steer } from '../world/level.js';
 
 const tmpA = new T.Vector3(), tmpB = new T.Vector3();
 export const attackers = () => G.enemies.reduce((n, e) => n + (e.state === 'wind' || e.state === 'strike' ? 1 : 0), 0);
@@ -20,6 +21,7 @@ export class Enemy extends Char {
     this.hitDone = false; this.stagDur = 0.45; this.mv = t.moves[0]; this.phase2 = false;
     this.trail = new Trail(t.boss ? 0xb48cff : t.heavy ? 0xff6a40 : 0xffb070); this.trail.life = 0.12;
     this.face = Math.atan2(G.player.pos.x - x, G.player.pos.z - z); this.eyeBase = new T.Color(t.look.eye);
+    this.animate(0, G.time); // place the figure now: it is created after this frame's animation pass, and would be drawn once at the world origin
   }
   set(s) { this.state = s; this.st = 0; }
   parried() { this.set('parried'); this.open = true; this.play(CL.stun, 0.06); this.vel.set(0, 0, 0); this.trailOn = false; this.yoff = 0; }
@@ -83,7 +85,7 @@ export class Enemy extends Char {
         if (Math.random() < 0.5) FX.dust.emit(this.pos, 1, 1.5, 0xb8a37c, 0.4, { flat: 1, spread: 0.4, grav: -1 });
         if (this.st >= 0.9) { this.yoff = 0; this.set('chase'); } break;
       case 'chase':
-        this.turnTo(ang, 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt);
+        this.turnTo(steer(this.pos, this.radius, ang, d), 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt);
         if (d < 3.6 * this.scale) this.set('circle'); break;
       case 'circle': {
         this.turnTo(ang, 7, dt); const want = 2.7 + this.radius, rad = clamp((d - want) * 2.2, -1.6, speed), tan = this.dir * 1.35, nx = dx / d, nz = dz / d;
@@ -122,7 +124,7 @@ export class Enemy extends Char {
       case 'down': brake(8); if (this.st >= 1.0) { this.set('getup'); this.stop(0.4); } break;
       case 'getup': brake(8); if (this.st >= 0.4) { this.set('circle'); this.cd = rnd(0.4, 1.2); } break;
       case 'flee': {
-        this.turnTo(Math.atan2(-dx, -dz), 8, dt);
+        this.turnTo(steer(this.pos, this.radius, Math.atan2(-dx, -dz), 6), 8, dt);
         this.vel.x = damp(this.vel.x, f.x * 5.5, 6, dt); this.vel.z = damp(this.vel.z, f.z * 5.5, 6, dt); if (this.st > 4) this.gone = true; break; }
       case 'dead':
         brake(5); eye = Math.max(0, 1 - this.st);

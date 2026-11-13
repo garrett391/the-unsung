@@ -34,7 +34,8 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
     if (o.bot && p.controlEnabled) {
       const foes = G.targets().filter((e) => !e.dead && e.root.visible && (!o.home || Math.hypot(e.pos.x - o.home[0], e.pos.z - o.home[1]) < 8)); let e = null, bd = 1e9;
       for (const x of foes) { const d = p.dist(x); if (d < bd) { bd = d; e = x; } }
-      if (e) { p.lock = e; G.keys.KeyW = bd > 2.3; if (bd < 2.9 && f++ % 14 === 0) G.press(o.heavy && f % 3 === 0 ? 'h' : 'l'); } else { G.keys.KeyW = false; }
+      if (e && bd > 20) { p.lock = null; G.cam.yaw = Math.atan2(e.pos.x - p.pos.x, e.pos.z - p.pos.z) + Math.PI; G.cam.manualT = 1e9; G.keys.KeyW = true; } // too far to lock: run at it
+      else if (e) { p.lock = e; G.keys.KeyW = bd > 2.3; if (bd < 2.9 && f++ % 14 === 0) G.press(o.heavy && f % 3 === 0 ? 'h' : 'l'); } else { G.keys.KeyW = false; }
       if (o.home && !e && Math.hypot(p.pos.x - o.home[0], p.pos.z - o.home[1]) > 2) o.to = o.home; else if (o.home) o.to = null;
       if (o.to) { p.lock = null; const a = Math.atan2(o.to[0] - p.pos.x, o.to[1] - p.pos.z); G.cam.yaw = a + Math.PI; G.cam.manualT = 1e9; G.keys.KeyW = true; }
     }

@@ -17,7 +17,7 @@ const stage = (name, o) => STAGES.push({ name, ...o });
 const TAP = coarse ? 'TAP TO CONTINUE' : 'CLICK OR PRESS SPACE';
 const NAME = '<span class="strike">&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;</span>';
 const live = () => G.enemies.filter((e) => !e.dead).length;
-const breach = () => [rnd(-2.6, 2.6), rnd(27, 33)];
+const breach = () => [rnd(-2.6, 2.6), rnd(29, 36)]; // out on the raiders' road, beyond the wall
 const east = () => [rnd(22, 26), rnd(-4, -2)];
 // Turn the camera to something the player needs to know about (a wave coming in, where to go),
 // hold on it for a moment, then hand it back. The captain can't act or be hurt meanwhile.
