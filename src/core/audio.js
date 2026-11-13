@@ -19,22 +19,24 @@ function makeContext() {
 }
 
 // Looping music. Played through Web Audio rather than an <audio> element so the loop
-// has no gap and it starts the moment the context is unlocked.
+// has no gap. The track is decoded up front but only started once the context is really
+// running: a source started while it is still suspended stutters as the context wakes.
 const MUSIC_VOL = 0.55;
-let mus = null, musWant = false;
+let mus = null, musWant = false, musBuf = null;
+function startMusic() {
+  if (!musWant || mus || !musBuf || !AC || AC.state !== 'running') return;
+  const src = AC.createBufferSource(), g = AC.createGain(), t = AC.currentTime + 0.25; // a beat for the output to settle
+  src.buffer = musBuf; src.loop = true;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(MUSIC_VOL, t + 3);
+  src.connect(g); g.connect(AC.destination); src.start(t);
+  mus = { src, g };
+}
 export function playMusic(url) {
   makeContext(); if (!AC || mus) return;
-  musWant = true;
+  musWant = true; AC.addEventListener('statechange', startMusic);
   fetch(url).then((r) => r.arrayBuffer())
     .then((b) => new Promise((ok, no) => AC.decodeAudioData(b, ok, no)))
-    .then((buf) => {
-      if (!musWant || mus) return;
-      const src = AC.createBufferSource(), g = AC.createGain(), t = AC.currentTime;
-      src.buffer = buf; src.loop = true;
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(MUSIC_VOL, t + 2.5);
-      src.connect(g); g.connect(AC.destination); src.start(t);
-      mus = { src, g };
-    })
+    .then((buf) => { musBuf = buf; startMusic(); })
     .catch(() => { /* no music: the game plays on without it */ });
 }
 export function stopMusic(fade = 2.5) {
@@ -42,7 +44,8 @@ export function stopMusic(fade = 2.5) {
   if (!mus || !AC) return;
   const { src, g } = mus, t = AC.currentTime; mus = null;
   try {
-    g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t);
+    // Fade from wherever the volume is now, including part-way through the fade-in.
+    if (g.gain.cancelAndHoldAtTime) g.gain.cancelAndHoldAtTime(t); else { const v = g.gain.value; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(v, t); }
     g.gain.linearRampToValueAtTime(0, t + fade); src.stop(t + fade + 0.05);
   } catch (e) { /* ignore */ }
 }

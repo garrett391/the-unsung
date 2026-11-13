@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { G } from '../core/game.js';
-import { SFX } from '../core/audio.js';
+import { SFX, stopMusic } from '../core/audio.js';
 import { PI, rnd, lerp } from '../core/util.js';
 import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
@@ -57,6 +57,7 @@ stage('spar', {
       n = 0; C.setMode(mode, want); const off = count(kind); const tick = d.every(() => ui.objective(need > 1 ? `${objective} (${Math.min(n, need)}/${need})` : objective));
       ui.hint(hint); await d.until(() => n >= need); off(); tick(); ui.hint(''); await d.wait(0.7);
     };
+    stopMusic(18); // the title theme carries through the cards and dies away as the lesson begins
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; // talk() holds him still, then hands control back
     await d.talk([
       ['Corin', 'Captain! You promised me one lesson before the night watch.'],

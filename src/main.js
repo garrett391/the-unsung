@@ -103,7 +103,8 @@ const help = rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('') + (coa
 $('thelp').innerHTML = $('phelp').innerHTML = help;
 $('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
 function begin(from = 0) {
-  if (G.running) return; initAudio(); stopMusic(2.5); $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
+  if (G.running) return; initAudio(); if (from) stopMusic(8); // a new game keeps the title theme through the opening cards
+  $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
   player.setVisible(true); G.running = true; G.confirm = false; G.runFrom(from);
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
 }
