@@ -9,7 +9,7 @@ Owner's direction: melancholy over adventurous. Instrumental only, no singing.
 
 > Instrumental, no vocals. Melancholy dark fantasy title theme, desert at night. Solo duduk or cello melody, soft string drone, sparse oud, distant frame drum heartbeat. Slow, 66 BPM, D minor. One restrained swell, then a quiet return. Mournful, spacious, not heroic. Loopable ending.
 
-- Notes from the drafts: use the tool's instrumental toggle or leave lyrics empty to keep voices out; words like "lament" or "choir" invite singing. The long form of the prompt produced only a 29 s clip with no swell.
+- Notes from the drafts: the tool has no instrumental toggle, only the text description, so the prompt itself must keep voices out: lead with "Instrumental, no vocals" and avoid words like "lament" or "choir", which invite singing. The long form of the prompt produced only a 29 s clip with no swell.
 
 ### Long form of the prompt (kept for reference)
 
