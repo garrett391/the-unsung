@@ -143,7 +143,9 @@ export function buildHumanoid(o) {
     mk(new T.BoxGeometry(0.02, 0.12, 0.1), mA, el, s * 0.072, 0.0, -0.02).rotation.z = s * 0.22; // couter wing
     mk(new T.CylinderGeometry(0.112, 0.092, 0.085, SEG, 1, true), mF, el, 0, -0.175, 0); // flared gauntlet cuff
     const ha = (J[c] = joint(el, 0, -0.25, 0));
-    mk(new T.BoxGeometry(0.085, 0.1, 0.1), mD, ha, 0, -0.045, 0);
+    // a closed gauntlet: wrist, palm, curled fingers and a thumb (it used to be one block)
+    mk(new T.CylinderGeometry(0.05, 0.046, 0.03, 10), mD, ha, 0, -0.012, 0); mk(new T.BoxGeometry(0.07, 0.06, 0.092), mD, ha, 0, -0.05, 0);
+    mk(new T.BoxGeometry(0.066, 0.05, 0.088), mD, ha, -s * 0.012, -0.088, 0.004).rotation.z = -s * 0.45; mk(new T.BoxGeometry(0.03, 0.055, 0.032), mD, ha, -s * 0.02, -0.06, 0.058).rotation.x = -0.5;
     mk(new T.BoxGeometry(0.022, 0.085, 0.108), mA, ha, s * 0.05, -0.04, 0); mk(new T.BoxGeometry(0.03, 0.02, 0.11), mT, ha, s * 0.05, -0.085, 0); // back-of-hand plate and knuckles
     return ha;
   };

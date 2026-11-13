@@ -49,8 +49,9 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
 }, { sec, o });
 const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
-await page.evaluate((from) => { G.auto = true; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.runFrom(from); } else { G.begin(); G.auto = false; } }, only); // real timing through the prologue, so the shots catch it
+await page.evaluate((from) => { G.auto = true; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.runFrom(from); } else G.begin(); }, only);
 if (!only) {
+  await play(0.2); await page.evaluate(() => { G.auto = false; }); // past the opening card, then real timing through the prologue so the shots catch it
   await play(2.6); await shot('00a-door');
   log('door opens', await play(2.6, {})); await shot('00b-usurper');
   log('usurper', await play(8, { bot: true, god: true, until: "G.boss&&G.boss.state==='wind'" })); await play(0.9); await shot('00b2-swing');

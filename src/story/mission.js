@@ -33,7 +33,7 @@ async function glance(d, x, z, o = {}) {
 }
 
 // Prologue: the climax nobody saw. The Glass Door dressing turns the end of the Narrows into
-// the vault. It opens on the end of the fight with no cards, no hints and nothing explained
+// the vault. It opens on the end of the fight with one card of footing, no hints and nothing else explained
 // (owner's note: don't spell the theme out, don't sneak a tutorial in): the Usurper is already
 // beaten (TYPES.usurper), and all that is left is to put him behind the glass.
 const VAULT = -14.5; // the captain can't back out of the vault: its wall is at the canyon mouth
@@ -43,6 +43,7 @@ stage('door', {
   async run(d) {
     const P = G.player; G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
     const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.face = 0; U.hp = U.maxHp * 0.36; // most of the fight is behind them
+    if (!G.seenDoor) { G.seenDoor = true; await d.chronicle('Prologue', ['Before the war, the Usurper tried to take the realm.'], TAP); ui.chronClose(); } // one line of footing, once; not again on a retry
     cam.shot([-1.1, 1.25, -21.6], [0.3, 1.75, -23.2]); // on him first: bent over, breathing hard, the Door at his back
     await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 4.2);
     await d.wait(4);

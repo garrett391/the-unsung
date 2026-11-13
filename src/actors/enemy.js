@@ -36,7 +36,7 @@ export class Enemy extends Char {
     const w = this.hurtW, b = Math.sin(G.time * 4.6), b2 = Math.sin(G.time * 4.6 - 0.9), J = (n) => JI[n] * 3, hp = NJ * 3;
     o[J('hips')] += 0.05 * w; o[hp + 1] -= (0.1 + 0.012 * b) * w;
     o[J('spine')] += (0.15 + 0.04 * b) * w; o[J('spine') + 2] += 0.1 * w; o[J('chest')] += (0.12 + 0.06 * b2) * w; o[J('neck')] += (0.16 - 0.05 * b2) * w;
-    o[J('shL')] = lerp(o[J('shL')], -0.5, w); o[J('shL') + 1] = lerp(o[J('shL') + 1], 0, w); o[J('shL') + 2] = lerp(o[J('shL') + 2], -0.35 + 0.03 * b, w); o[J('elL')] = lerp(o[J('elL')], -1.75, w); o[J('elL') + 1] = lerp(o[J('elL') + 1], 0, w); o[J('elL') + 2] = lerp(o[J('elL') + 2], 0, w);
+    o[J('shL')] = lerp(o[J('shL')], -0.2, w); o[J('shL') + 1] = lerp(o[J('shL') + 1], -1.05, w); o[J('shL') + 2] = lerp(o[J('shL') + 2], 0.03 * b, w); o[J('elL')] = lerp(o[J('elL')], -1.5, w); o[J('elL') + 1] = lerp(o[J('elL') + 1], 0, w); o[J('elL') + 2] = lerp(o[J('elL') + 2], 0, w);
     if (!sw) { o[J('shR')] = lerp(o[J('shR')], 0.15, w * 0.8); o[J('shR') + 2] = lerp(o[J('shR') + 2], -0.12 - 0.03 * b, w * 0.8); o[J('elR')] = lerp(o[J('elR')], -0.25, w * 0.8); } // sword arm hangs
     for (const s of ['L', 'R']) { o[J('th' + s)] -= 0.16 * w; o[J('kn' + s)] += 0.34 * w; o[J('an' + s)] -= 0.16 * w; }
     return o;
