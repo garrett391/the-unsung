@@ -150,8 +150,8 @@ export function buildLevel() {
     // glass that has crept out of the Door into the rock around it
     const shard = (x, y, z, h, tilt, rz) => { const m = new T.Mesh(new T.ConeGeometry(h * 0.16, h, 4), mGlass); m.position.set(x, y, z); m.rotation.set(tilt, Q(0, 3), rz); scene.add(m); };
     for (const s of [-1, 1]) {
-      for (let i = 0; i < 6; i++) { const h = Q(0.5, 1.5); shard(s * Q(2.0, 2.75), h * 0.42, Q(-27.15, -26.75), h, Q(-0.25, 0.25), -s * Q(0.05, 0.5)); }
-      for (let i = 0; i < 3; i++) { const h = Q(0.35, 0.8); shard(s * Q(1.75, 2.3), 6.55 - h * 0.3, -27.1, h, PI + Q(-0.2, 0.2), s * Q(0.1, 0.5)); }
+      for (let i = 0; i < 6; i++) { const h = Q(0.25, 0.7); shard(s * Q(2.05, 2.7), h * 0.42, Q(-27.15, -26.75), h, Q(-0.25, 0.25), -s * Q(0.05, 0.5)); }
+      for (let i = 0; i < 3; i++) { const h = Q(0.18, 0.42); shard(s * Q(1.75, 2.3), 6.55 - h * 0.3, -27.1, h, PI + Q(-0.2, 0.2), s * Q(0.1, 0.5)); }
     }
     // ward ring on the floor
     const mWard = new T.MeshBasicMaterial({ color: new T.Color(0.2, 0.62, 0.56), transparent: true, opacity: 0.75, depthWrite: false, fog: false });
@@ -163,7 +163,7 @@ export function buildLevel() {
     // The Door stands in a vault under the ruins, not in the Narrows: a roof and a paved floor
     // close the canyon in, and glass veins the walls on the way up to it.
     box(8, 0.6, 22, mDark, 0, 9.4, -19).castShadow = false; box(5.8, 0.06, 19, mDark, 0, 0.0, -18.2);
-    for (let i = 0; i < 14; i++) { const sd = i % 2 ? 1 : -1, h = Q(0.4, 1.1); shard(sd * Q(2.6, 3.0), Q(0.3, 5.5), Q(-26.5, -20), h, Q(-0.4, 0.4), -sd * Q(0.7, 1.3)); }
+    for (let i = 0; i < 14; i++) { const sd = i % 2 ? 1 : -1, h = Q(0.2, 0.5); shard(sd * Q(2.8, 3.05), Q(0.3, 5.5), Q(-26.5, -20), h, Q(-0.4, 0.4), -sd * Q(0.9, 1.4)); }
     for (const m of scene.children.slice(n0)) doorG.add(m);
   }
   {
