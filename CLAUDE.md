@@ -35,6 +35,7 @@ A third-person sword-combat game for the browser, in three.js. Read `README.md` 
 - The two cutscenes not yet built: Corin's last stand (the Still Draw) during the hold, and the captain's eye wound mid-Vessa fight, which leaves him blind on the right side for phase two.
 - Environment art pass done (Nov 2026): ridge tents with ropes and flaps, layered flames with halos and smoke, plank crates, barrels, spear rack, fluted columns, richer stone/sand/cloth textures, instanced rubble and grass, textured moon. Dressing uses its own `dr` rng in `buildLevel` so the layout rng (and obstacles) stay stable. Characters (`rig.js`) have not had the same pass yet.
 - Saved progress done: reaching the raid, hold or Vessa checkpoint stores it in localStorage (`the-unsung.checkpoint`, skipped when `G.auto`); the title then shows CONTINUE plus NEW GAME.
+- GitHub Pages: `.github/workflows/pages.yml` builds and deploys on every push to `main`, so the game has a fixed URL where saves persist (the Claude artifact frame may not keep localStorage).
 - Music, gamepad.
 
 ## Working rules

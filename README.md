@@ -37,6 +37,8 @@ npm run dev        # local server with hot reload
 npm run build      # static build in dist/, runs from any host or folder
 ```
 
+Every push to `main` builds the game and publishes it to GitHub Pages (`.github/workflows/pages.yml`). One-time setup: Settings → Pages → Source: GitHub Actions.
+
 ## Test
 
 A bot plays every stage in headless Chrome and saves screenshots to `test/shots/`.
