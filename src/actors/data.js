@@ -34,6 +34,13 @@ export const TYPES = {
   brute: { name: 'BREAKER', hp: 200, speed: 2.3, poise: 6, scale: 1.4, heavy: true,
     look: { ...RAIDER, armor: 0x3e3230, trim: 0x8b3a34, steel: 0x77706a, eye: 0xff5a30, weapon: 'maul', blade: 1.0, horns: 1 },
     moves: [{ style: 'over', wind: 1.0, rec: 1.2, dmg: 30, range: 3.1, lunge: 5, slam: 1.6 }] },
+  // The prologue's fight at the Glass Door. It comes before any lesson, so he is slow and light-handed.
+  usurper: { name: 'THE USURPER', hp: 240, speed: 3.2, poise: 10, scale: 1.2, boss: true, heavy: true, trail: 0x8fd8cc,
+    look: { armor: 0x15171c, trim: 0x8fd8cc, under: 0x2a3034, dark: 0x0c0d10, steel: 0xbfeee6, eye: 0x9ff0e0, rim: 0x2c6a62, blade: 1.15, crown: 1, cape: 0x101418 },
+    moves: [
+      { style: 'slash', wind: 0.75, rec: 0.9, dmg: 9, range: 3.0, lunge: 7 },
+      { style: 'over', wind: 0.95, rec: 1.1, dmg: 12, range: 3.2, lunge: 6, slam: 1.6 },
+    ] },
   vessa: { name: "VESSA, THE WITCHES' HAND", hp: 820, speed: 4.2, poise: 14, scale: 1.22, boss: true, heavy: true,
     look: { armor: 0x2c2440, trim: 0xb48cff, under: 0x4a4266, dark: 0x16121e, steel: 0xd8ccff, eye: 0xc79bff, rim: 0x5a2c9a, weapon: 'glaive', blade: 1.25, crown: 1, cape: 0x3a1c5c },
     moves: [

@@ -40,8 +40,7 @@ export class Director {
   async chronicle(head, lines, tap) {
     const els = ui.chronOpen(head, lines, tap);
     for (const el of els) {
-      ui.chronShow(el); const s = el.querySelector('.strike');
-      if (s) { await this.wait(1.4); s.classList.add('done'); }
+      ui.chronShow(el);
       await this.wait(0.5); G.confirm = false;
       await this.until(() => this.confirmed());
     }

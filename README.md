@@ -2,17 +2,21 @@
 
 A third-person sword-combat game for the browser, built on three.js. This is a ground-up rebuild: an original setting, a new knight with a full combat system, and a cel-shaded night look.
 
-## The first night
+## The story so far
 
-A guard captain whose name has been struck from the record holds a ruined desert camp for one night.
+A man nobody knows saves the realm, and nobody sees it. Years later he is a guard captain on the desert frontier. The full outline is in `docs/story.md`.
+
+**Prologue.** The fight at the Glass Door, then the years on the road.
+
+**Act I, the first night at the ruins.**
 
 1. **Sparring** with Corin, the squire: strike, block, parry and riposte, shield bash, side roll.
 2. **The raid**: raiders come through the breach, then bronze shields.
 3. **Holding the Narrows** while the stretchers get through to the sanctum.
-4. **Vessa, the Witches' Hand.**
+4. **Vessa, the Witches' Hand**, who is driven off and will be back.
 5. **Dawn**, and the Western Watch's report.
 
-Still to come: the two big cutscenes (Corin's last stand, the captain's wound), in-game music, gamepad support and saved progress.
+Still to come: the waystation and the muster as playable missions, the rest of Act I, in-game music and gamepad support.
 
 ## Controls
 
@@ -46,6 +50,7 @@ A bot plays every stage in headless Chrome and saves screenshots to `test/shots/
 ```sh
 npm run build && npm test
 CHROME=/path/to/chrome npm test     # if Chrome is somewhere else
+FROM=raid npm test                  # start at a stage (door, spar, raid, fallback, hold, vessa)
 node test/playtest.mjs phone        # phone-sized touch layout
 ```
 

@@ -164,6 +164,7 @@ export function buildLevel() {
     // close the canyon in, and glass veins the walls on the way up to it.
     box(8, 0.6, 22, mDark, 0, 9.4, -19).castShadow = false; box(5.8, 0.06, 19, mDark, 0, 0.0, -18.2);
     for (let i = 0; i < 14; i++) { const sd = i % 2 ? 1 : -1, h = Q(0.2, 0.5); shard(sd * Q(2.8, 3.05), Q(0.3, 5.5), Q(-26.5, -20), h, Q(-0.4, 0.4), -sd * Q(0.9, 1.4)); }
+    box(9, 9.4, 0.6, mDark, 0, 4.7, -9.3).castShadow = false; // the vault's back wall: the camp is not outside it
     for (const m of scene.children.slice(n0)) doorG.add(m);
   }
   {
@@ -356,7 +357,8 @@ export function buildLevel() {
     for (let i = 0; i < W.fires.length; i++) W.fires[i].intensity = (W.fires[i].userData.base || FIRE) * (0.86 + Math.sin(t * 9 + i * 3) * 0.08 + Math.sin(t * 23 + i) * 0.06);
     for (let i = 0; i < W.banners.length; i++) W.banners[i].rotation.x = Math.sin(t * 1.3 + i * 1.7) * 0.06 + Math.sin(t * 2.9 + i) * 0.02;
     gateMat.color.setRGB(0.3, 0.85, 0.78).multiplyScalar(0.85 + Math.sin(t * 2.2) * 0.15);
-    W.ward.opacity = 0.55 + Math.sin(t * 2.2 - 0.8) * 0.25;
+    W.flare = Math.max(0, (W.flare || 0) - dt * 0.5); // the Door sealing: ward and glass burn bright, then settle
+    W.ward.opacity = Math.min(1, 0.55 + Math.sin(t * 2.2 - 0.8) * 0.25 + W.flare); if (W.doorMode) gateL.intensity = 12 + W.flare * 60;
     if (doorG.visible && Math.random() < dt * 2.5) FX.sparks.emit(tmp.set((Math.random() - 0.5) * 3.4, 0.4 + Math.random() * 5, -27.3), 1, 0.35, 0x9ff0e0, 1.8, { grav: -0.4, spread: 0.3 }); // motes drifting off the glass
   };
   // waypoint marker

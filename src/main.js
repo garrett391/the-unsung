@@ -35,22 +35,23 @@ G.clearEnemies = () => { for (const e of G.enemies) e.dispose(); G.enemies.lengt
 // Put the world in a known state for the start of a stage.
 G.resetWorld = (o) => {
   G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.reset(...o.player); G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = G.hurt = 0; clearBlood();
-  ui.holdBar(false); ui.objective(''); ui.hint(''); ui.hideDialogue(); ui.cinematic(false); level.marker(null); level.setDawn(0);
+  ui.holdBar(false); ui.objective(''); ui.hint(''); ui.hideDialogue(); ui.cinematic(false); level.marker(null); level.setDawn(0); level.flare = 0; level.setGate(o.gate || 'sanctum');
   if (o.corin) { corin.setVisible(true); corin.place(o.corin[0], o.corin[1], o.corin[2]); corin.setMode(o.corin[3]); } else corin.setVisible(false);
 };
 
-// Saved progress: the furthest checkpoint reached, kept in this browser. The spar is
-// the first checkpoint, so only later ones are worth saving (Continue skips the tutorial).
-const SAVE = 'the-unsung.checkpoint';
-const loadSave = () => { try { const k = +localStorage.getItem(SAVE); return k > 1 && STAGES[k] && STAGES[k].checkpoint ? k : 0; } catch (_) { return 0; } };
-const writeSave = (k) => { try { localStorage.setItem(SAVE, String(k)); } catch (_) { /* storage blocked: play on without saving */ } };
-const LABEL = { raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+// Saved progress: the latest checkpoint reached, kept in this browser under the stage's
+// name, so adding or reordering stages never moves a save. (Saves from before the prologue
+// existed were stage numbers: OLD maps them.) The first checkpoint is where a new game starts.
+const SAVE = 'the-unsung.checkpoint', OLD = { 2: 'raid', 4: 'hold', 5: 'vessa' };
+const loadSave = () => { try { const v = localStorage.getItem(SAVE), k = STAGES.findIndex((s) => s.name === (OLD[v] || v)); return k > 0 && STAGES[k].checkpoint ? k : 0; } catch (_) { return 0; } };
+const writeSave = (k) => { try { localStorage.setItem(SAVE, STAGES[k].name); } catch (_) { /* storage blocked: play on without saving */ } };
+const LABEL = { spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
   director.abort(); const id = ++G.runId;
   for (let k = i; k < STAGES.length; k++) {
-    const s = STAGES[k]; G.stage = k; if (s.checkpoint) { G.checkpoint = k; if (k > 1 && !G.auto) writeSave(k); }
+    const s = STAGES[k]; G.stage = k; if (s.checkpoint) { G.checkpoint = k; if (k > 0 && !G.auto) writeSave(k); }
     if (k === i && s.setup) s.setup();
     try { await s.run(director); } catch (e) { if (e === 'abort') return; throw e; }
     if (id !== G.runId) return;
@@ -105,7 +106,7 @@ $('thelp').innerHTML = $('phelp').innerHTML = help;
 $('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
 function begin(from = 0) {
   if (G.running) return; initAudio(); if (from) stopMusic(8); // a new game keeps the title theme through the opening cards
-  level.setGate('sanctum'); $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
+  $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
   player.setVisible(true); G.running = true; G.confirm = false; G.runFrom(from);
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
 }
@@ -132,8 +133,8 @@ $('pretry').addEventListener('click', () => { G.pause(false); ui.fade(1, 0.3); s
 $('pquit').addEventListener('click', () => location.reload());
 // The title shows the Glass Door, drifting closer; nobody is on stage yet. (It borrows the
 // archway at the end of the Narrows, which is the sanctum gate once the game starts.)
-G.resetWorld({ player: [0.6, 12.5, PI], corin: null }); player.setVisible(false); player.shadow.visible = false;
-level.setGate('door'); cam.shot([0.5, 1.5, -11.5], [0, 3.2, -27.8]); cam.shot([-0.3, 1.7, -18], [0, 3.3, -27.8], 70); ui.fade(0, 1.5);
+G.resetWorld({ player: [0.6, 12.5, PI], corin: null, gate: 'door' }); player.setVisible(false); player.shadow.visible = false;
+ cam.shot([0.5, 1.5, -11.5], [0, 3.2, -27.8]); cam.shot([-0.3, 1.7, -18], [0, 3.3, -27.8], 70); ui.fade(0, 1.5);
 // Title music. Browsers keep sound off until the player first taps, clicks or presses a
 // key, so it is queued now and fades in on that first touch; PLAY / CONTINUE fade it out.
 playMusic(import.meta.env.BASE_URL + 'music/title.mp3');

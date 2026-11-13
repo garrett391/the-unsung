@@ -98,7 +98,9 @@ Vessa, the Witches' Hand, is the face of it: a recurring enemy commander who spe
 
 ## Open questions
 
-- The current slice ends with Vessa killed. For this outline she should survive the first night (withdraw at dawn, or be driven off), so she can recur and kill Corin. That's a change to the `vessa` and `dawn` stages.
+- Settled and built: Vessa survives the first night. She is driven off and withdraws at dawn.
+- Built so far: the cold open at the Door is playable; the road, drifting, waystation and muster are cards. The waystation fight and the muster's trial bout still need to become playable, and the tutorial then moves from Corin's spar to the muster.
+- What the Usurper looks like. The game uses a placeholder (black iron, glass-teal trim).
 - The captain's eye wound mid-Vessa fight: keep only if it means something in this story (it could come from the Long Cut instead). Undecided.
 - Does the Usurper ever say the hero's name, and does the player ever hear it?
 - What does the Usurper want, and where did he come from? Not yet written.

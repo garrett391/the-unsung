@@ -8,14 +8,15 @@ import { MOUTH, RING } from '../world/level.js';
 import { FX, shock } from '../gfx/fx.js';
 import { coarse } from '../core/input.js';
 import { makeStretchers } from './stretchers.js';
+import { CL } from '../actors/anim.js';
 
-// The night raid, as a list of stages. A stage's run() is its script. setup() puts
+// The campaign, as a list of stages: the prologue at the Glass Door, then the first night
+// at the ruins (Act I). Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
 // the world in the state the stage expects and is only used when starting there
 // (first load, or retrying from a checkpoint).
 export const STAGES = [];
 const stage = (name, o) => STAGES.push({ name, ...o });
 const TAP = coarse ? 'TAP TO CONTINUE' : 'CLICK OR PRESS SPACE';
-const NAME = '<span class="strike">&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;</span>';
 const live = () => G.enemies.filter((e) => !e.dead).length;
 const breach = () => [rnd(-2.6, 2.6), rnd(29, 36)]; // out on the raiders' road, beyond the wall
 const east = () => [rnd(22, 26), rnd(-4, -2)];
@@ -31,17 +32,78 @@ async function glance(d, x, z, o = {}) {
   cam.release(); G.cinematic = false; ui.cinematic(false); P.controlEnabled = was; P.buf.a = '';
 }
 
+// Prologue: the climax nobody saw. The Glass Door dressing turns the end of the Narrows into
+// the vault. It is the first thing the player does, before any lesson, so the Usurper is
+// gentle (see TYPES.usurper) and the hint names the three buttons that matter.
+const VAULT = -14.5; // the captain can't back out of the vault: its wall is at the canyon mouth
+stage('door', {
+  checkpoint: true,
+  setup() { G.resetWorld({ player: [0, -17, PI], corin: null, gate: 'door' }); },
+  async run(d) {
+    const P = G.player; G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
+    const U = G.spawn('usurper', 0, -24, { spare: true }); G.boss = U; U.face = 0;
+    cam.shot([1.2, 1.5, -15.5], [0, 2.6, -27.8]);
+    if (!G.seenDoor) { // not again on a retry
+      G.seenDoor = true;
+      await d.chronicle('Prologue', [
+        'Before the war, the Usurper tried to take the realm.',
+        'One man stopped him, alone, in a vault under the desert ruins.',
+        '<em>Nobody saw it.</em>',
+      ], TAP);
+      ui.chronClose();
+    }
+    ui.fade(0, 1.6); cam.shot([2.2, 2.0, -18.6], [0, 1.9, -24], 2.6);
+    await d.wait(2.4);
+    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; U.cd = 1.4;
+    ui.objective('Drive the Usurper back to the Glass Door'); ui.hint('Strike: {l}. Guard: hold {b}. Dodge: {d}.');
+    const keep = d.every(() => { if (P.pos.z > VAULT) P.pos.z = VAULT; if (U.pos.z > VAULT + 1) U.pos.z = VAULT + 1; });
+    await d.until(() => U.hp <= 1);
+    // the sealing
+    keep(); ui.objective(''); ui.hint(''); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
+    U.stagDur = 99; U.open = false; U.set('stagger'); U.play(CL.stun, 0.08); U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; G.slow = 1.0; G.shake = 0.4;
+    cam.shot([P.pos.x * 0.5 + 1.9, 1.7, Math.min(-19, U.pos.z + 5)], [0, 2.4, -27.6], 1.1);
+    const x0 = U.pos.x, z0 = U.pos.z; U.face = 0;
+    await d.tween(1.5, (u) => { U.pos.x = lerp(x0, 0, u); U.pos.z = lerp(z0, -26.2, u * u); });
+    const at = new T.Vector3(0, 2.6, -27.2);
+    SFX.flame(); SFX.boom(); G.shake = 0.7; G.level.flare = 1; shock(new T.Vector3(0, 0, -26.4), 4.5, 0x9ff0e0);
+    FX.sparks.emit(at, 140, 8, 0x9ff0e0, 1.4, { grav: -1, spread: 1.2, boost: 2 });
+    U.gone = true; G.boss = null;
+    cam.shot([0.6, 1.6, -20.5], [0, 3.1, -27.8], 4);
+    await d.wait(2.2);
+    await d.talk([['The Usurper', 'Only you will remember this.']]);
+    await d.wait(0.8); ui.fade(1, 1.6); await d.wait(1.8);
+  },
+});
+
+// The years between, as cards. The waystation fight and the muster are to become playable
+// (docs/story.md, prologue 4 and 5); until then they are told here.
+stage('road', {
+  async run(d) {
+    G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); // behind a black screen: the camp, ready for the intro
+    G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false; G.freezeAI = false;
+    await d.chronicle('The road', [
+      'He walked out into a world where nothing had happened. No crowds, no thanks.',
+      'A caravan passed him on the road. No one looked twice.',
+      'For years he took labouring work where he found it. He could not settle, and he did not fit.',
+      "Then raiders came out of the desert and hit the waystation where he worked. He took up a fallen guard's sword.",
+      'A guard officer saw what he did, and brought him to the muster. The clerk asked his name.',
+      '<em>"Write whatever you like."</em>',
+      'They sent him to the worst posting on the frontier.',
+    ], TAP);
+    ui.chronClose();
+  },
+});
+
 stage('intro', {
   setup() { G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); },
   async run(d) {
     G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); cam.shot([7, 5, 27], [0, 1.6, 8]);
     G.player.controlEnabled = false; // nothing moves until the cards are read and Corin has spoken
-    await d.chronicle('From the Register of the Western Watch', [
-      '<em>Some names are cut into stone. Others are cut out of it.</em>',
-      'The Usurper could not be killed. So the wardens sealed him alive behind the Glass Door, under the ruins at the edge of the desert.',
-      'That was three years ago. Every season since, his Witches have come out of the dunes to break the Door and bring him back.',
-      `One company of the Royal Guard stands in their way: the Third, under Captain ${NAME}, of the forest.`,
-      '<em>What follows was never entered in the Register.</em>',
+    await d.chronicle('Act I: The Western Watch', [
+      'He served on the frontier with the Third Company, and rose to captain, because he was the one who kept people alive.',
+      'They gave him a squire, Corin, who would not leave him alone.',
+      'The raids out of the dunes had been scattered and easily driven off. Lately they came organised.',
+      '<em>The first night at the ruins.</em>',
     ], TAP);
     ui.chronClose(); ui.fade(0, 1.8); cam.shot([2.6, 3.2, 17.5], [0, 1.4, 8], 3.6);
     await d.wait(3.2);
@@ -172,24 +234,30 @@ stage('vessa', {
     G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.lock = null; G.freezeAI = true;
     const vx = 0, vz = MOUTH.z + 12; SFX.flame(); cam.shot([2.8, 2.2, MOUTH.z + 3], [vx, 1.9, vz]);
     FX.sparks.emit(new T.Vector3(vx, 1.2, vz), 90, 7, 0xb46cff, 1.1, { grav: -1.5, spread: 0.8, boost: 2 }); shock(new T.Vector3(vx, 0, vz), 4, 0xc79bff); G.shake = 0.3;
-    const V = G.spawn('vessa', vx, vz); G.boss = V; V.face = V.angleTo(P);
+    const V = G.spawn('vessa', vx, vz, { spare: true }); G.boss = V; V.face = V.angleTo(P); // spared: she is driven off, not killed, and comes back
     cam.shot([1.6, 1.8, MOUTH.z + 7.5], [vx, 2.0, vz], 3.2);
     await d.wait(1.6);
     await d.talk([
-      ['Vessa', 'The quiet captain from the forest.'],
+      ['Vessa', 'The quiet captain.'],
       ['Vessa', 'You hold a door for people who will never learn your name.'],
       ['Vessa', 'Step aside, and I will let you live long enough to be forgotten.'],
     ]);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.maxAtk = 1; V.cd = 1.2;
-    ui.objective("Defeat Vessa, the Witches' Hand"); ui.hint('Her glaive outreaches you. Parry it, or roll through and punish the recovery.');
+    ui.objective("Drive off Vessa, the Witches' Hand"); ui.hint('Her glaive outreaches you. Parry it, or roll through and punish the recovery.');
     const t = d.every(() => { if (!V.phase2 && V.hp < V.maxHp * 0.5 && !V.dead) { V.phase2 = true; V.flash = 1; SFX.flame(); shock(V.pos, 3.4, 0xc79bff); ui.banner('SHE STOPS HOLDING BACK', 2); } });
     await d.wait(7); ui.hint('');
-    await d.until(() => V.dead);
-    t(); G.slow = 1.2; G.shake = 0.5; ui.objective('');
-    FX.sparks.emit(new T.Vector3(V.pos.x, 1.2, V.pos.z), 120, 8, 0xb46cff, 1.4, { grav: -1, boost: 2 });
+    await d.until(() => V.hp <= 1);
+    // beaten, she withdraws with the night
+    t(); G.slow = 1.2; G.shake = 0.5; ui.objective(''); ui.hint(''); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
+    V.stagDur = 99; V.open = false; V.set('stagger'); V.play(CL.stun, 0.08); V.vel.set(0, 0, 0); V.trailOn = false; V.yoff = 0;
+    const dx = P.pos.x - V.pos.x, dz = P.pos.z - V.pos.z, l = Math.hypot(dx, dz) || 1;
+    cam.shot([V.pos.x + (dx / l) * 4.2 - (dz / l) * 1.6, 1.7, V.pos.z + (dz / l) * 4.2 + (dx / l) * 1.6], [V.pos.x, 1.9, V.pos.z], 1.2);
     await d.wait(1.6);
-    await d.talk([['Vessa', 'They will never... sing of this.']]);
-    await d.wait(1.2);
+    await d.talk([['Vessa', 'Dawn. Keep your pass, captain.'], ['Vessa', 'The dunes are patient. We will come again.']]);
+    SFX.flame(); shock(V.pos, 4, 0xc79bff); G.shake = 0.3;
+    FX.sparks.emit(new T.Vector3(V.pos.x, 1.2, V.pos.z), 120, 8, 0xb46cff, 1.4, { grav: -1.5, spread: 0.8, boost: 2 });
+    V.gone = true; G.boss = null;
+    await d.wait(1.4); G.freezeAI = false;
   },
 });
 
@@ -203,9 +271,9 @@ stage('dawn', {
     await d.wait(1.5); ui.fade(1, 2); await d.wait(2.2);
     await d.chronicle('Report of the Western Watch, the morning after', [
       'The Narrows held. Every stretcher reached the sanctum.',
-      "The Witches' Hand fell at the mouth of the pass, to a blade of the Third Company.",
-      `Credited: Captain ${NAME}.`,
-      "<em>By order of the Crown, the Third Company's part in the Sealing is not to be recorded.</em>",
+      "The Witches' Hand was driven off at the mouth of the pass, and withdrew into the dunes at first light.",
+      'Credited: the Third Company.',
+      '<em>The report does not say who held the mouth.</em>',
       'End of the first night. More to come.',
     ], TAP);
     location.reload();

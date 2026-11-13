@@ -19,7 +19,8 @@ export class Enemy extends Char {
     this.state = o.rise ? 'spawn' : 'chase'; this.yoff = o.rise ? -2 : 0; this.st = 0;
     this.cd = rnd(0.8, 2.2); this.dir = Math.random() < 0.5 ? 1 : -1; this.poise = t.poise; this.gp = 3; this.yv = 0;
     this.hitDone = false; this.stagDur = 0.45; this.mv = t.moves[0]; this.phase2 = false;
-    this.trail = new Trail(t.boss ? 0xb48cff : t.heavy ? 0xff6a40 : 0xffb070); this.trail.life = 0.12;
+    this.spare = !!o.spare; // a spared foe can't be killed: the stage script ends the fight when hp reaches 1
+    this.trail = new Trail(t.trail ? t.trail : t.boss ? 0xb48cff : t.heavy ? 0xff6a40 : 0xffb070); this.trail.life = 0.12;
     this.face = Math.atan2(G.player.pos.x - x, G.player.pos.z - z); this.eyeBase = new T.Color(t.look.eye);
     this.animate(0, G.time); // place the figure now: it is created after this frame's animation pass, and would be drawn once at the world origin
   }
@@ -44,7 +45,7 @@ export class Enemy extends Char {
       }
       this.gp = 3; this.stagDur = 1.4; this.open = true; SFX.clang(); // guard broken: this hit lands
     }
-    const wasOpen = this.open; dmg *= wasOpen && !a.crit ? 1.5 : 1; this.hp -= dmg; this.flash = 1;
+    const wasOpen = this.open; dmg *= wasOpen && !a.crit ? 1.5 : 1; this.hp -= dmg; if (this.spare && this.hp < 1) this.hp = 1; this.flash = 1;
     (a.heavy || a.crit ? SFX.big : SFX.hit)();
     FX.sparks.emit(hp, a.crit ? 34 : a.heavy ? 20 : 11, a.crit ? 8 : 5.5, a.crit ? 0xffe890 : 0xfff4d0, 0.32, { vx: dir.x * 3, vz: dir.z * 3, up: 1, boost: 1.6 });
     G.hitstop = Math.max(G.hitstop, a.stop || 0.05); G.shake = Math.max(G.shake, a.crit ? 0.5 : a.heavy ? 0.35 : 0.16); if (a.crit) G.slow = 0.4;

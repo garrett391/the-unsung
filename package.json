@@ -1,9 +1,9 @@
 {
   "name": "the-unsung",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
-  "description": "The Unsung: a third-person sword-combat game in three.js. One night holding the ruins.",
+  "description": "The Unsung: a third-person sword-combat game in three.js. A campaign on the desert frontier.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
