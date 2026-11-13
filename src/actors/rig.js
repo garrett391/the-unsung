@@ -69,8 +69,8 @@ export function buildHumanoid(o) {
   // helm
   const neck = (J.neck = joint(chest, 0, 0.4, 0));
   mk(new T.CylinderGeometry(o.helm === 'open' ? 0.125 : 0.158, 0.2, 0.075, SEG, 1, true), mUF, neck, 0, 0.0, 0).scale.z = 0.92; // mail collar
-  if (o.helm === 'open') {
-    // Open-faced helm with a brim and cheek plates: the face shows.
+  if (o.helm === 'open' || o.helm === 'none') {
+    // Open-faced helm with a brim and cheek plates: the face shows. 'none' is a bare head.
     const mSkin = M(o.skin || 0xd9a77e), mHair = M(o.hair || 0x7a5228);
     mk(new T.CylinderGeometry(0.1, 0.13, 0.1, SEG), mU, neck, 0, 0.03, 0);
     const face = mk(ball(0.118), mSkin, neck, 0, 0.15, 0.02); face.scale.set(0.95, 1.12, 1);
@@ -79,12 +79,17 @@ export function buildHumanoid(o) {
     mk(new T.BoxGeometry(0.024, 0.045, 0.03), mSkin, neck, 0, 0.135, 0.135).rotation.x = -0.25;
     for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.042, 0.01, 0.012), mHair, neck, sd * 0.042, 0.186, 0.127).rotation.z = -sd * 0.12;
     for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.035, 0.16, 0.06), mHair, neck, sd * 0.12, 0.13, -0.01);
+    if (o.helm === 'none') {
+      const cap = mk(new T.SphereGeometry(0.126, 12, 6, 0, PI * 2, 0, PI / 1.9), mHair, neck, 0, 0.165, -0.005); cap.rotation.x = -0.25;
+      if (o.bandage) { const bd = mk(new T.CylinderGeometry(0.124, 0.124, 0.05, SEG), M(0xd8d0bc), neck, 0, 0.215, 0.012); bd.rotation.set(0.1, 0, 0.16); }
+    } else {
     const dome = mk(new T.SphereGeometry(0.168, SEG, 8, 0, PI * 2, 0, PI / 2), mA, neck, 0, 0.215, -0.01); dome.scale.y = 0.85;
     const brim = mk(new T.CylinderGeometry(0.2, 0.235, 0.025, SEG), mA, neck, 0, 0.215, 0.015); brim.rotation.x = 0.16;
     mk(new T.CylinderGeometry(0.172, 0.172, 0.03, SEG), mT, neck, 0, 0.235, -0.01);
     mk(new T.BoxGeometry(0.02, 0.06, 0.24), mT, neck, 0, 0.36, -0.01);
     for (const sd of [-1, 1]) { const ck = mk(new T.BoxGeometry(0.03, 0.15, 0.13), mA, neck, sd * 0.155, 0.12, 0.02); ck.rotation.z = sd * 0.12; }
     mk(new T.BoxGeometry(0.26, 0.12, 0.05), mA, neck, 0, 0.13, -0.135);
+    }
   } else {
     mk(new T.CylinderGeometry(0.15, 0.16, 0.24, SEG), mA, neck, 0, 0.135, 0);
     const dome = mk(new T.SphereGeometry(0.15, SEG, 8, 0, PI * 2, 0, PI / 2), mA, neck, 0, 0.255, 0); dome.scale.y = 0.75;
@@ -156,9 +161,11 @@ export function buildHumanoid(o) {
   leg(1, 'thL', 'knL', 'anL'); leg(-1, 'thR', 'knR', 'anR');
   // weapon: blade along +Z of the hand, edge in the YZ plane
   const w = joint(haR, 0, -0.05, 0), len = o.blade || 0.92;
-  mk(new T.CylinderGeometry(0.02, 0.02, 0.24, 8), mD, w, 0, 0, -0.01).rotation.x = PI / 2;
-  mk(ball(0.036), mT, w, 0, 0, -0.14);
-  for (const z of [-0.07, 0.0]) mk(new T.CylinderGeometry(0.024, 0.024, 0.012, 8), mT, w, 0, 0, z).rotation.x = PI / 2; // grip bindings
+  if (o.weapon !== 'none') {
+    mk(new T.CylinderGeometry(0.02, 0.02, 0.24, 8), mD, w, 0, 0, -0.01).rotation.x = PI / 2;
+    mk(ball(0.036), mT, w, 0, 0, -0.14);
+    for (const z of [-0.07, 0.0]) mk(new T.CylinderGeometry(0.024, 0.024, 0.012, 8), mT, w, 0, 0, z).rotation.x = PI / 2; // grip bindings
+  }
   if (o.weapon === 'none') { /* unarmed */ } else if (o.weapon === 'maul') {
     mk(new T.CylinderGeometry(0.028, 0.028, len, 8), mD, w, 0, 0, len / 2).rotation.x = PI / 2;
     mk(new T.BoxGeometry(0.12, 0.46, 0.3), mS, w, 0, 0, len); mk(new T.BoxGeometry(0.14, 0.1, 0.34), mT, w, 0, 0, len);
