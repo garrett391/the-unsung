@@ -6,8 +6,9 @@ export const I = { mx: 0, my: 0, block: false, heavy: false, touch: false };
 export const keys = {};
 export const coarse = matchMedia('(pointer:coarse)').matches;
 // Camera sensitivity, 0.25..2, kept between visits where storage allows.
-export const opts = { sens: 1 };
-try { const v = +localStorage.getItem('unsung.sens'); if (v >= 0.25 && v <= 2) opts.sens = v; } catch (_) { /* no storage */ }
+export const opts = { sens: 1, blood: true };
+try { const v = +localStorage.getItem('unsung.sens'); if (v >= 0.25 && v <= 2) opts.sens = v; if (localStorage.getItem('unsung.blood') === 'off') opts.blood = false; } catch (_) { /* no storage */ }
+export function setBlood(on) { opts.blood = on; try { localStorage.setItem('unsung.blood', on ? 'on' : 'off'); } catch (_) { /* no storage */ } }
 export function setSens(v) { opts.sens = v; try { localStorage.setItem('unsung.sens', String(v)); } catch (_) { /* no storage */ } }
 let stick = null, look = null, mBlock = false, tHeavy = false, mHeavy = false, touchT = -9;
 // Drop every held input. Called whenever the browser may have swallowed a release

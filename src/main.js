@@ -2,7 +2,7 @@ import * as T from 'three';
 import { G } from './core/game.js';
 import { PI, $ } from './core/util.js';
 import { initAudio, playMusic, stopMusic } from './core/audio.js';
-import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, releaseAll } from './core/input.js';
+import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, setBlood, releaseAll } from './core/input.js';
 import { initRenderer } from './gfx/renderer.js';
 import { initFx, updateFx } from './gfx/fx.js';
 import { buildLevel, confine } from './world/level.js';
@@ -116,6 +116,8 @@ if (saved) {
 }
 
 // pause menu
+const bloodBtn = $('pblood'), bloodLabel = () => (bloodBtn.textContent = `BLOOD: ${opts.blood ? 'ON' : 'OFF'}`);
+bloodLabel(); bloodBtn.addEventListener('click', () => { setBlood(!opts.blood); bloodLabel(); });
 const sens = $('psens'); sens.value = opts.sens; sens.addEventListener('input', () => setSens(+sens.value));
 G.pause = (on) => {
   if (!G.running || on === !!G.paused) return;

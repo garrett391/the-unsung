@@ -5,7 +5,7 @@ import { PI, clamp, lerp, sstep, wrap, damp, rnd } from '../core/util.js';
 import { Char } from './char.js';
 import { CL } from './anim.js';
 import { TYPES } from './data.js';
-import { FX, Trail, shock } from '../gfx/fx.js';
+import { FX, Trail, shock, blood } from '../gfx/fx.js';
 import { pickLock } from './player.js';
 import { steer } from '../world/level.js';
 
@@ -49,6 +49,7 @@ export class Enemy extends Char {
     FX.sparks.emit(hp, a.crit ? 34 : a.heavy ? 20 : 11, a.crit ? 8 : 5.5, a.crit ? 0xffe890 : 0xfff4d0, 0.32, { vx: dir.x * 3, vz: dir.z * 3, up: 1, boost: 1.6 });
     G.hitstop = Math.max(G.hitstop, a.stop || 0.05); G.shake = Math.max(G.shake, a.crit ? 0.5 : a.heavy ? 0.35 : 0.16); if (a.crit) G.slow = 0.4;
     this.vel.copy(dir).multiplyScalar((a.knock || 2) / (this.scale * this.scale));
+    blood(hp, dir, a.crit ? 3 : a.heavy ? 2 : 1, this.hp <= 0);
     if (this.hp <= 0) { this.die(); if (a.launch) { this.yv = a.launch * 0.7; this.yoff = 0.01; } return 'kill'; }
     if (a.launch && !this.type.heavy) { this.set('air'); this.yv = a.launch; this.yoff = 0.02; this.play(CL.air, 0.08); this.open = false; this.trailOn = false; return 'hit'; }
     if (this.state === 'air') { this.yv = Math.max(this.yv, 3.5); return 'hit'; }
