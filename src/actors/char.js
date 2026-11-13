@@ -59,7 +59,7 @@ export class Char {
     this.shadow.position.set(this.pos.x, 0.045, this.pos.z); this.shadow.scale.setScalar(ss); this.shadow.visible = this.yoff > -0.5 && this.root.visible;
   }
   apply(time) {
-    const J = this.rig.J, c = this.cur;
+    const J = this.rig.J, c = this.layer ? this.layer(this.cur) : this.cur;
     for (let i = 0; i < NJ; i++) J[JN[i]].rotation.set(c[i * 3], c[i * 3 + 1], c[i * 3 + 2]);
     J.hips.position.set(c[NJ * 3], HIP + c[NJ * 3 + 1], c[NJ * 3 + 2]);
     const cp = this.rig.cape;

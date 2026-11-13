@@ -58,10 +58,13 @@ export function buildHumanoid(o) {
   }
   if (o.horns) for (const s of [-1, 1]) mk(new T.ConeGeometry(0.045, 0.26, 8), mT, neck, s * 0.2, 0.3, 0).rotation.z = -s * 1.0;
   if (o.crown) for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.5; mk(new T.ConeGeometry(0.03, 0.16 + (i === 2 ? 0.08 : 0), 6), mT, neck, Math.sin(a) * 0.15, 0.36, Math.cos(a) * 0.15); }
+  // o.legs thickens the leg armor and o.pads scales the pauldrons: proportions that put the
+  // visual weight lower on the body.
+  const LG = o.legs || 1, PD = o.pads || 1;
   const arm = (s, a, b, c) => {
     const sh = (J[a] = joint(chest, s * 0.3, 0.3, 0));
-    mk(ball(0.135), mA, sh, s * 0.02, 0.03, 0).scale.set(1.12, 0.85, 1.15);
-    mk(ball(0.1), mA, sh, s * 0.05, -0.07, 0).scale.set(1, 0.7, 1.15);
+    mk(ball(0.135), mA, sh, s * 0.02, 0.03, 0).scale.set(1.12 * PD, 0.85 * PD, 1.15 * PD);
+    mk(ball(0.1), mA, sh, s * 0.05, -0.07, 0).scale.set(PD, 0.7 * PD, 1.15 * PD);
     mk(limb(0.07, 0.06, 0.27), mU, sh);
     mk(new T.CylinderGeometry(0.078, 0.078, 0.03, SEG), mT, sh, 0, -0.15, 0);
     const el = (J[b] = joint(sh, 0, -0.27, 0));
@@ -74,12 +77,12 @@ export function buildHumanoid(o) {
   arm(1, 'shL', 'elL', 'haL'); const haR = arm(-1, 'shR', 'elR', 'haR');
   const leg = (s, a, b, c) => {
     const th = (J[a] = joint(hips, s * 0.105, -0.03, 0));
-    mk(limb(0.095, 0.075, 0.42), mU, th); mk(new T.BoxGeometry(0.14, 0.22, 0.07), mA, th, 0, -0.16, 0.06);
+    mk(limb(0.095 * LG, 0.075 * LG, 0.42), mU, th); mk(new T.BoxGeometry(0.14 * LG, 0.22, 0.07 * LG), mA, th, 0, -0.16, 0.06 * LG);
     const kn = (J[b] = joint(th, 0, -0.42, 0));
-    mk(ball(0.072), mT, kn, 0, 0, 0.035); mk(limb(0.078, 0.06, 0.38), mA, kn);
-    mk(new T.BoxGeometry(0.03, 0.3, 0.03), mT, kn, 0, -0.2, 0.062);
+    mk(ball(0.072 * LG), mT, kn, 0, 0, 0.035 * LG); mk(limb(0.078 * LG, 0.06 * LG, 0.38), mA, kn);
+    mk(new T.BoxGeometry(0.03, 0.3, 0.03), mT, kn, 0, -0.2, 0.062 * LG);
     const an = (J[c] = joint(kn, 0, -0.38, 0));
-    mk(new T.BoxGeometry(0.115, 0.09, 0.27), mD, an, 0, -0.025, 0.055); mk(new T.BoxGeometry(0.12, 0.06, 0.09), mT, an, 0, -0.04, 0.16);
+    mk(new T.BoxGeometry(0.115 * LG, 0.09 * LG, 0.27 * LG), mD, an, 0, -0.025, 0.055); mk(new T.BoxGeometry(0.12 * LG, 0.06 * LG, 0.09), mT, an, 0, -0.04, 0.16 * LG);
   };
   leg(1, 'thL', 'knL', 'anL'); leg(-1, 'thR', 'knR', 'anR');
   // weapon: blade along +Z of the hand, edge in the YZ plane

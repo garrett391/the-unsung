@@ -1,8 +1,9 @@
 import * as T from 'three';
 import { G } from '../core/game.js';
-import { I } from '../core/input.js';
+import { I, opts } from '../core/input.js';
 import { SFX } from '../core/audio.js';
 import { PI, clamp, lerp, wrap, damp } from '../core/util.js';
+import { JI, NJ, PL } from './rig.js';
 import { Char } from './char.js';
 import { CL } from './anim.js';
 import { ATK } from './data.js';
@@ -10,17 +11,51 @@ import { FX, Trail, shock } from '../gfx/fx.js';
 import { cam } from '../world/camera.js';
 
 const tmpA = new T.Vector3(), tmpB = new T.Vector3();
+const LEGS = [[JI.thL, JI.knL, JI.anL, 1], [JI.thR, JI.knR, JI.anR, -1]];
 const RUN = 6.3;
 
 export class Player extends Char {
   constructor() {
-    super({ armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, cape: 0x27355e, shield: 0, rim: 0x2c3f86 });
+    super({ armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, cape: 0x27355e, shield: 0, rim: 0x2c3f86, legs: 1.22, pads: 0.88 });
     this.trail = new Trail(0xffe9b0); this.flashCol = [1, 0.15, 0.1]; this.rollDir = new T.Vector3(); this.reset(0, 0, 0);
   }
   reset(x, z, face) {
     this.hp = 100; this.st = 100; this.stDelay = 0; this.state = 'loco'; this.aT = 0; this.at = null; this.hitSet = new Set(); this.buf = { a: '', t: -9 }; this.inv = 0; this.lock = null;
     this.blockT = -9; this.charge = 0; this.runT = 0; this.dead = false; this.clip = null; this.blend = 1; this.hitDur = 0.4; this.wasBlock = false; this.sideT = -9;
-    this.controlEnabled = true; this.place(x, z, face);
+    this.controlEnabled = true; this.place(x, z, face); this.stW = 1; this.leadW = 0;
+  }
+  // Body layer over every pose (clips and locomotion), so the weight sits in the legs and hips:
+  // a lower, wider base; swings that turn from the hips with the torso following; and more
+  // pelvis turn and contact dip when running. Off when opts.stance is false (pause menu).
+  layer(src) {
+    if (!opts.stance) return src;
+    const o = this._lay || (this._lay = new Float32Array(PL)); o.set(src);
+    const w = this.stW, hp = NJ * 3;
+    if (w > 0.001) {
+      let drop = 0;
+      for (const [th, kn, an, sd] of LEGS) {
+        // Bend less where the pose already bends deep, so lunges don't fold in half.
+        const a = 0.33 * w * clamp(1 - o[kn * 3] / 1.5, 0.25, 1);
+        o[th * 3] -= a; o[kn * 3] += 2 * a; o[an * 3] -= a; o[th * 3 + 2] += sd * 0.08 * w;
+        drop = Math.max(drop, 0.8 * (1 - Math.cos(a)));
+      }
+      o[hp + 1] -= drop + 0.012 * w; o[JI.spine * 3] += 0.07 * w; o[JI.neck * 3] -= 0.05 * w;
+    }
+    // Swings: move a share of the torso's yaw down into the hips; the legs counter-turn so the feet stay put.
+    const lw = this.leadW;
+    if (lw > 0.001) {
+      const ty = o[JI.spine * 3 + 1] + o[JI.chest * 3 + 1], d = 0.38 * ty * lw;
+      o[JI.hips * 3 + 1] += d; o[JI.spine * 3 + 1] -= d * 0.6; o[JI.chest * 3 + 1] -= d * 0.4;
+      o[JI.thL * 3 + 1] -= d; o[JI.thR * 3 + 1] -= d;
+    }
+    // Running: the pelvis turns with each stride against the shoulders, and dips as a foot lands.
+    if (!this.clip && w > 0.001) {
+      const run = clamp(this.speedN, 0, 1) * w, sn = Math.sin(this.phase), r = sn * 0.13 * run;
+      o[JI.hips * 3 + 1] += r; o[JI.spine * 3 + 1] -= r * 0.8; o[JI.thL * 3 + 1] -= r; o[JI.thR * 3 + 1] -= r;
+      o[JI.hips * 3 + 2] += Math.cos(this.phase) * 0.05 * run;
+      o[hp + 1] -= Math.max(0, Math.cos(this.phase * 2)) * 0.03 * run;
+    }
+    return o;
   }
   take(a, win) { if (this.buf.a === a && G.time - this.buf.t < (win || 0.3)) { this.buf.a = ''; return true; } return false; }
   // Camera-relative stick as a world direction; returns its strength.
@@ -103,6 +138,8 @@ export class Player extends Char {
     const sd = tmpB, mag = this.stick(sd); this.trailOn = false;
     let near = false; for (const e of G.targets()) if (!e.dead && this.dist(e) < 9) { near = true; break; }
     const S_ = this.state;
+    this.stW = damp(this.stW, S_ === 'roll' || S_ === 'back' || S_ === 'dead' ? 0 : 1, 14, dt);
+    this.leadW = damp(this.leadW, S_ === 'atk' || S_ === 'wind' || S_ === 'parry' ? 1 : 0, 10, dt);
     if (S_ === 'loco') {
       if (blockHeld && !this.wasBlock) this.blockT = now; this.wasBlock = blockHeld;
       const maxSp = blockHeld ? 2.4 : this.lock ? 4.7 : RUN;
