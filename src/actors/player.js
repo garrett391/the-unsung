@@ -5,7 +5,7 @@ import { SFX } from '../core/audio.js';
 import { PI, clamp, lerp, wrap, damp } from '../core/util.js';
 import { JI, NJ, PL } from './rig.js';
 import { Char } from './char.js';
-import { CL } from './anim.js';
+import { CL, stride } from './anim.js';
 import { ATK } from './data.js';
 import { FX, Trail, shock } from '../gfx/fx.js';
 import { cam } from '../world/camera.js';
@@ -51,15 +51,28 @@ export class Player extends Char {
       o[JI.hips * 3 + 1] += d; o[JI.spine * 3 + 1] -= d * 0.6; o[JI.chest * 3 + 1] -= d * 0.4;
       o[JI.thL * 3 + 1] -= d; o[JI.thR * 3 + 1] -= d;
     }
-    // Running: the pelvis turns with each stride against the shoulders, and dips as a foot lands.
+    // Running. Locomotion's own twist is reversed for the captain (twistK), so each hip leads
+    // with its leg and the shoulders counter it. On top of that:
     if (!this.clip && w > 0.001) {
-      const run = clamp(this.speedN, 0, 1) * w, sn = Math.sin(this.phase), r = sn * 0.13 * run;
-      o[JI.hips * 3 + 1] += r; o[JI.spine * 3 + 1] -= r * 0.8; // legs swing with the pelvis
-      o[JI.hips * 3 + 2] += Math.cos(this.phase) * 0.05 * run;
-      o[hp + 1] -= Math.max(0, Math.cos(this.phase * 2)) * 0.03 * run;
+      const s = this.speedN, run = clamp(s, 0, 1) * w, A = stride(s), sn = Math.sin(this.phase), cs = Math.cos(this.phase);
+      // a run is lowest over the planted foot and highest in flight (the walk bob is the reverse),
+      o[hp + 1] -= Math.cos(this.phase * 2) * (0.045 * A + 0.028) * run;
+      // a more upright trunk, with the head held steady against the shoulder turn,
+      o[JI.hips * 3] -= 0.06 * run; o[JI.spine * 3] -= 0.04 * run; o[JI.neck * 3 + 1] -= sn * 0.1 * A * run;
+      // the sword arm pumps a little less now that the shoulders carry part of the swing,
+      o[JI.shR * 3] += sn * 0.14 * A * run;
+      const yaw = sn * 0.14 * A * this.twistK;
+      for (const [th, kn, an, sd] of LEGS) {
+        // the planted leg gives at the knee to take the weight, its foot flat and close under the body,
+        const st = run * Math.max(0, -sd * cs), a = 0.19 * st;
+        o[th * 3] -= a; o[kn * 3] += 2 * a; o[an * 3] -= a + 0.12 * st; o[th * 3 + 2] -= sd * 0.04 * run;
+        // and the feet stay pointed down the line of travel, a touch toe-out, whatever the pelvis does.
+        o[an * 3 + 1] += sd * 0.07 * run - yaw * run;
+      }
     }
     return o;
   }
+  get twistK() { return opts.stance ? -0.6 : 1; }
   take(a, win) { if (this.buf.a === a && G.time - this.buf.t < (win || 0.3)) { this.buf.a = ''; return true; } return false; }
   // Camera-relative stick as a world direction; returns its strength.
   stick(out) {

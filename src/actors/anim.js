@@ -92,16 +92,20 @@ export function eClip(style,w,rec){
   const W=style==='over'?PZ.hw:style==='thrust'?PZ.thw:PZ.l1w,Sx=style==='over'?PZ.hs:style==='thrust'?PZ.ths:PZ.l1s;
   return C(w+.3+rec,[w*.5,W],[w,W],[w+.1,Sx,'i'],[w+.34,Sx],[w+.3+rec*.8,PZ.guard]);}
 
+// Stride amplitude for a normalized speed.
+export const stride=s=>Math.min(1,s*3.5)*(.34+.6*clamp(s,0,1));
+// c.twistK scales the stride twist of pelvis, torso and head (default 1). A negative value
+// reverses it, so the hip leads with its own leg and the shoulders turn against the pelvis.
 export function locoPose(o,c,t){
   o.fill(0);
-  const s=c.speedN,run=clamp(s,0,1),A=Math.min(1,s*3.5)*(.34+.6*run),idle=1-Math.min(1,s*3);
+  const s=c.speedN,run=clamp(s,0,1),A=stride(s),idle=1-Math.min(1,s*3),tk=c.twistK==null?1:c.twistK;
   const sn=Math.sin(c.phase),cs=Math.cos(c.phase),ly=c.strafeS,sa=c.strafe,br=Math.sin(t*1.9+c.seed);
   const lean=.2*run,c2=Math.cos(c.phase*2+.6),sw=Math.sin(t*.8+c.seed),sw2=Math.sin(t*1.15+c.seed*2);
-  S(o,'hips',lean*Math.cos(sa),ly+sn*.14*A,-lean*Math.sin(sa)+c.turnLean-cs*.04*A);
+  S(o,'hips',lean*Math.cos(sa),ly+sn*.14*A*tk,-lean*Math.sin(sa)+c.turnLean-cs*.04*A);
   const pi=NJ*3;o[pi+1]=-.02+Math.cos(c.phase*2)*.045*A+br*.012*idle;
-  S(o,'spine',.05+.06*run-c.recoil*.35+c.accF,-ly-sn*.3*A+c.twist+sw*.05*idle,cs*.06*A-c.accS+sw2*.03*idle);
-  S(o,'chest',br*.045*idle+c2*.05*A+c.accF*.5,-sn*.22*A+c.twist*.5,cs*.04*A-c.accS*.5);
-  S(o,'neck',-.14*run+br*.015-c2*.04*A,sn*.16*A-c.twist*.8-sw*.04*idle,-cs*.05*A);
+  S(o,'spine',.05+.06*run-c.recoil*.35+c.accF,-ly-sn*.3*A*tk+c.twist+sw*.05*idle,cs*.06*A-c.accS+sw2*.03*idle);
+  S(o,'chest',br*.045*idle+c2*.05*A+c.accF*.5,-sn*.22*A*tk+c.twist*.5,cs*.04*A-c.accS*.5);
+  S(o,'neck',-.14*run+br*.015-c2*.04*A,sn*.16*A*tk-c.twist*.8-sw*.04*idle,-cs*.05*A);
   S(o,'thL',-sn*A-.14*run,0,.05);S(o,'thR',sn*A-.14*run,0,-.05);
   S(o,'knL',.08+A*1.6*Math.max(0,cs)+.12*run);S(o,'knR',.08+A*1.6*Math.max(0,-cs)+.12*run);
   S(o,'anL',-.06+.28*sn*A);S(o,'anR',-.06-.28*sn*A);
