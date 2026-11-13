@@ -33,33 +33,24 @@ async function glance(d, x, z, o = {}) {
 }
 
 // Prologue: the climax nobody saw. The Glass Door dressing turns the end of the Narrows into
-// the vault. It is the first thing the player does, before any lesson, so the Usurper is
-// gentle (see TYPES.usurper) and the hint names the three buttons that matter.
+// the vault. It opens on the end of the fight with no cards, no hints and nothing explained
+// (owner's note: don't spell the theme out, don't sneak a tutorial in): the Usurper is already
+// beaten (TYPES.usurper), and all that is left is to put him behind the glass.
 const VAULT = -14.5; // the captain can't back out of the vault: its wall is at the canyon mouth
 stage('door', {
   checkpoint: true,
   setup() { G.resetWorld({ player: [0, -17, PI], corin: null, gate: 'door' }); },
   async run(d) {
     const P = G.player; G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
-    const U = G.spawn('usurper', 0, -24, { spare: true }); G.boss = U; U.face = 0;
-    cam.shot([1.2, 1.5, -15.5], [0, 2.6, -27.8]);
-    if (!G.seenDoor) { // not again on a retry
-      G.seenDoor = true;
-      await d.chronicle('Prologue', [
-        'Before the war, the Usurper tried to take the realm.',
-        'One man stopped him, alone, in a vault under the desert ruins.',
-        '<em>Nobody saw it.</em>',
-      ], TAP);
-      ui.chronClose();
-    }
-    ui.fade(0, 1.6); cam.shot([2.2, 2.0, -18.6], [0, 1.9, -24], 2.6);
-    await d.wait(2.4);
-    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; U.cd = 1.4;
-    ui.objective('Drive the Usurper back to the Glass Door'); ui.hint('Strike: {l}. Guard: hold {b}. Dodge: {d}.');
+    const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.face = 0; U.hp = U.maxHp * 0.36; // most of the fight is behind them
+    cam.shot([-1.1, 1.25, -21.6], [0.3, 1.75, -23.2]); // on him first: bent over, breathing hard, the Door at his back
+    await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 4.2);
+    await d.wait(4);
+    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = U; U.cd = 2.4;
     const keep = d.every(() => { if (P.pos.z > VAULT) P.pos.z = VAULT; if (U.pos.z > VAULT + 1) U.pos.z = VAULT + 1; });
     await d.until(() => U.hp <= 1);
     // the sealing
-    keep(); ui.objective(''); ui.hint(''); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
+    keep(); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
     U.stagDur = 99; U.open = false; U.set('stagger'); U.play(CL.stun, 0.08); U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; G.slow = 1.0; G.shake = 0.4;
     cam.shot([P.pos.x * 0.5 + 1.9, 1.7, Math.min(-19, U.pos.z + 5)], [0, 2.4, -27.6], 1.1);
     const x0 = U.pos.x, z0 = U.pos.z; U.face = 0;
@@ -82,7 +73,7 @@ stage('road', {
     G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); // behind a black screen: the camp, ready for the intro
     G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false; G.freezeAI = false;
     await d.chronicle('The road', [
-      'He walked out into a world where nothing had happened. No crowds, no thanks.',
+      'He walked out into a world where nothing had happened.',
       'A caravan passed him on the road. No one looked twice.',
       'For years he took labouring work where he found it. He could not settle, and he did not fit.',
       "Then raiders came out of the desert and hit the waystation where he worked. He took up a fallen guard's sword.",
@@ -273,7 +264,6 @@ stage('dawn', {
       'The Narrows held. Every stretcher reached the sanctum.',
       "The Witches' Hand was driven off at the mouth of the pass, and withdrew into the dunes at first light.",
       'Credited: the Third Company.',
-      '<em>The report does not say who held the mouth.</em>',
       'End of the first night. More to come.',
     ], TAP);
     location.reload();

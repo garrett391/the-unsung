@@ -49,11 +49,11 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
 }, { sec, o });
 const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
-await page.evaluate((from) => { G.auto = true; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.runFrom(from); } else G.begin(); }, only);
+await page.evaluate((from) => { G.auto = true; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.runFrom(from); } else { G.begin(); G.auto = false; } }, only); // real timing through the prologue, so the shots catch it
 if (!only) {
-  log('door opens', await play(4, {})); await shot('00a-door');
-  log('usurper', await play(60, { bot: true, god: true, until: "G.boss&&G.boss.hp<=70" })); await shot('00b-usurper');
-  await page.evaluate(() => { G.auto = false; }); // real timing for the sealing, so the shots catch it
+  await play(2.6); await shot('00a-door');
+  log('door opens', await play(2.6, {})); await shot('00b-usurper');
+  log('usurper', await play(8, { bot: true, god: true, until: "G.boss&&G.boss.state==='wind'" })); await play(0.9); await shot('00b2-swing');
   log('sealing', await play(60, { bot: true, god: true, until: "G.level.flare>0" })); await play(0.25); await shot('00c-sealing');
   await play(3.2); await shot('00d-sealed'); await page.evaluate(() => { G.auto = true; });
   log('road', await play(8, { until: "G.STAGES[G.stage].name==='spar'" }));

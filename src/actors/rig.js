@@ -23,6 +23,8 @@ export function buildHumanoid(o) {
   const M = (c, x) => { const m = toon(c, { rim: o.rim == null ? 0x1c2a55 : o.rim, ...(x || {}) }); mats.push(m); return m; };
   const mA = M(o.armor, { map: plateTex }), mT = M(o.trim), mU = M(o.under, { map: mailTex }), mUF = M(o.under, { map: mailTex, side: T.DoubleSide }), mD = M(o.dark || 0x24252d), mS = M(o.steel || 0xdfe3ea);
   const mEye = new T.MeshBasicMaterial({ color: o.eye || 0x08080c });
+  // The Usurper's glass (crown, growths, blade): unlit and just bright enough to bloom. The blade has its own material because blood tints it.
+  const glass = () => new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) }), mGl = o.glass ? glass() : null, mBlade = o.glass ? glass() : mS;
   const root = new T.Group(), J = {};
   const hips = (J.hips = joint(root, 0, HIP, 0));
   mk(new T.BoxGeometry(0.33, 0.18, 0.22), mU, hips, 0, -0.03, 0);
@@ -115,7 +117,12 @@ export function buildHumanoid(o) {
     mk(new T.BoxGeometry(0.045, 0.26, 0.09), mP, neck, 0, 0.15, -0.29).rotation.x = -0.2;
   }
   if (o.horns) for (const s of [-1, 1]) mk(new T.ConeGeometry(0.045, 0.26, 8), mT, neck, s * 0.2, 0.3, 0).rotation.z = -s * 1.0;
-  if (o.crown) for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.5; mk(new T.ConeGeometry(0.03, 0.16 + (i === 2 ? 0.08 : 0), 6), mT, neck, Math.sin(a) * 0.15, 0.36, Math.cos(a) * 0.15); }
+  if (o.crown === 'glass') { // a ring of glass shards on an iron band, some broken short
+    mk(new T.CylinderGeometry(0.164, 0.164, 0.045, SEG), mT, neck, 0, 0.3, 0);
+    [0.3, 0.1, 0.22, 0.16, 0.06, 0.2, 0.26, 0.12, 0.34].forEach((h, i, hs) => {
+      const a = (i / hs.length) * PI * 2 - 0.35, m = mk(new T.ConeGeometry(0.024, h * 1.15, 4), mGl, neck, Math.sin(a) * 0.155, 0.31 + h / 2, Math.cos(a) * 0.155); m.rotation.set(Math.cos(a) * 0.07, 0, -Math.sin(a) * 0.07);
+    });
+  } else if (o.crown) for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.5; mk(new T.ConeGeometry(0.03, 0.16 + (i === 2 ? 0.08 : 0), 6), mT, neck, Math.sin(a) * 0.15, 0.36, Math.cos(a) * 0.15); }
   // o.legs thickens the leg armor and o.pads scales the pauldrons: proportions that put the
   // visual weight lower on the body.
   const LG = o.legs || 1, PD = o.pads || 1;
@@ -141,6 +148,14 @@ export function buildHumanoid(o) {
     return ha;
   };
   arm(1, 'shL', 'elL', 'haL'); const haR = arm(-1, 'shR', 'elR', 'haR');
+  if (o.glass) { // glass growing out of the left shoulder and the back, and a wound across the breastplate
+    for (const [x, y, z, h, rx, rz] of [[0.05, 0.17, 0, 0.3, 0, -0.3], [0.1, 0.1, 0.04, 0.17, 0.3, -0.75], [0.03, 0.12, -0.07, 0.2, -0.45, -0.15]]) mk(new T.ConeGeometry(h * 0.16, h, 4), mGl, J.shL, x, y, z).rotation.set(rx, 0, rz);
+    const mW = M(0x3d0a0d); mk(new T.BoxGeometry(0.26, 0.035, 0.02), mW, chest, -0.02, 0.2, 0.222).rotation.set(0.18, 0, 0.75); mk(new T.BoxGeometry(0.05, 0.12, 0.02), mW, chest, -0.09, 0.08, 0.2).rotation.z = 0.2;
+  }
+  if (o.skirt) { // long cloth panels hanging from the belt, front and back
+    const mK = M(o.skirt, { side: T.DoubleSide, map: clothTex });
+    for (const sd of [1, -1]) { mk(new T.BoxGeometry(0.26, 0.52, 0.016), mK, hips, 0, -0.38, sd * 0.235).rotation.x = -sd * 0.1; mk(new T.BoxGeometry(0.27, 0.03, 0.02), mT, hips, 0, -0.63, sd * 0.262); }
+  }
   const leg = (s, a, b, c) => {
     const th = (J[a] = joint(hips, s * 0.105, -0.03, 0));
     mk(limb(0.095 * LG, 0.075 * LG, 0.42), mU, th); mk(new T.BoxGeometry(0.14 * LG, 0.22, 0.07 * LG), mA, th, 0, -0.16, 0.06 * LG);
@@ -177,9 +192,9 @@ export function buildHumanoid(o) {
   } else {
     mk(new T.BoxGeometry(0.04, 0.26, 0.045), mT, w, 0, 0, 0.115);
     mk(ball(0.032), mT, w, 0, 0.14, 0.115); mk(ball(0.032), mT, w, 0, -0.14, 0.115);
-    mk(new T.BoxGeometry(0.018, 0.062, len), mS, w, 0, 0, 0.13 + len / 2);
+    mk(new T.BoxGeometry(0.018, 0.062, len), mBlade, w, 0, 0, 0.13 + len / 2);
     mk(new T.BoxGeometry(0.022, 0.02, len * 0.62), mD, w, 0, 0, 0.15 + len * 0.31);
-    const tp = mk(new T.CylinderGeometry(0, 0.031, 0.11, 4), mS, w, 0, 0, 0.13 + len + 0.055); tp.rotation.x = PI / 2; tp.scale.set(0.3, 1, 1);
+    const tp = mk(new T.CylinderGeometry(0, 0.031, 0.11, 4), mBlade, w, 0, 0, 0.13 + len + 0.055); tp.rotation.x = PI / 2; tp.scale.set(0.3, 1, 1);
   }
   const reach = o.weapon === 'glaive' ? len + 0.7 : 0.13 + len + 0.1;
   const wBase = joint(w, 0, 0, o.weapon === 'glaive' ? len - 0.3 : 0.2), wTip = joint(w, 0, 0, reach);
@@ -203,10 +218,13 @@ export function buildHumanoid(o) {
   if (o.cape) {
     const mC = M(o.cape, { side: T.DoubleSide, map: clothTex }); cape = [];
     let p = joint(chest, 0, 0.33, -0.15); mk(new T.BoxGeometry(0.4, 0.04, 0.03), mT, p, 0, -0.01, 0);
-    for (let i = 0; i < 3; i++) {
-      const wd = 0.44 + i * 0.04; mk(new T.BoxGeometry(wd, 0.3, 0.02), mC, p, 0, -0.15, 0); cape.push(p);
-      if (i === 2) mk(new T.BoxGeometry(wd, 0.035, 0.024), mT, p, 0, -0.285, 0); else p = joint(p, 0, -0.3, 0);
+    const n = o.capeLen || 3; // o.tatter: the last length hangs in torn strips, with no hem
+    for (let i = 0; i < n; i++) {
+      const wd = 0.44 + Math.min(i, 3) * 0.04, last = i === n - 1; cape.push(p);
+      if (last && o.tatter) [0.3, 0.12, 0.24, 0.07, 0.2].forEach((h, k) => mk(new T.BoxGeometry(wd / 5 - 0.01, h, 0.02), mC, p, (k - 2) * (wd / 5), -h / 2, 0));
+      else mk(new T.BoxGeometry(wd, 0.3, 0.02), mC, p, 0, -0.15, 0);
+      if (last) { if (!o.tatter) mk(new T.BoxGeometry(wd, 0.035, 0.024), mT, p, 0, -0.285, 0); } else p = joint(p, 0, -0.3, 0);
     }
   }
-  return { root, J, mats, wBase, wTip, bladeMat: mS, cape, eye: mEye };
+  return { root, J, mats, wBase, wTip, bladeMat: o.weapon ? mS : mBlade, cape, eye: mEye };
 }

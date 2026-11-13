@@ -3,6 +3,8 @@ import { G } from '../core/game.js';
 import { SFX } from '../core/audio.js';
 import { PI, clamp, lerp, sstep, wrap, damp, rnd } from '../core/util.js';
 import { Char } from './char.js';
+import { NJ, PL, JI } from './rig.js';
+import { drip } from '../gfx/fx.js';
 import { CL } from './anim.js';
 import { TYPES } from './data.js';
 import { FX, Trail, shock, blood } from '../gfx/fx.js';
@@ -22,9 +24,23 @@ export class Enemy extends Char {
     this.spare = !!o.spare; // a spared foe can't be killed: the stage script ends the fight when hp reaches 1
     this.trail = new Trail(t.trail ? t.trail : t.boss ? 0xb48cff : t.heavy ? 0xff6a40 : 0xffb070); this.trail.life = 0.12;
     this.face = Math.atan2(G.player.pos.x - x, G.player.pos.z - z); this.eyeBase = new T.Color(t.look.eye);
+    if (t.hurt) this.layer = this.hurtLayer;
     this.animate(0, G.time); // place the figure now: it is created after this frame's animation pass, and would be drawn once at the world origin
   }
   set(s) { this.state = s; this.st = 0; }
+  // A beaten fighter, laid over every pose: bent over a wound with the off hand pressed to it,
+  // head hanging, knees soft, the whole trunk heaving with each breath. It eases off while he swings.
+  hurtLayer(src) {
+    const o = this._lay || (this._lay = new Float32Array(PL)); o.set(src);
+    const sw = this.state === 'wind' || this.state === 'strike'; this.hurtW = this.hurtW == null ? 1 : this.hurtW + ((sw ? 0.35 : 1) - this.hurtW) * 0.08;
+    const w = this.hurtW, b = Math.sin(G.time * 4.6), b2 = Math.sin(G.time * 4.6 - 0.9), J = (n) => JI[n] * 3, hp = NJ * 3;
+    o[J('hips')] += 0.05 * w; o[hp + 1] -= (0.1 + 0.012 * b) * w;
+    o[J('spine')] += (0.15 + 0.04 * b) * w; o[J('spine') + 2] += 0.1 * w; o[J('chest')] += (0.12 + 0.06 * b2) * w; o[J('neck')] += (0.16 - 0.05 * b2) * w;
+    o[J('shL')] = lerp(o[J('shL')], -0.5, w); o[J('shL') + 1] = lerp(o[J('shL') + 1], 0, w); o[J('shL') + 2] = lerp(o[J('shL') + 2], -0.35 + 0.03 * b, w); o[J('elL')] = lerp(o[J('elL')], -1.75, w); o[J('elL') + 1] = lerp(o[J('elL') + 1], 0, w); o[J('elL') + 2] = lerp(o[J('elL') + 2], 0, w);
+    if (!sw) { o[J('shR')] = lerp(o[J('shR')], 0.15, w * 0.8); o[J('shR') + 2] = lerp(o[J('shR') + 2], -0.12 - 0.03 * b, w * 0.8); o[J('elR')] = lerp(o[J('elR')], -0.25, w * 0.8); } // sword arm hangs
+    for (const s of ['L', 'R']) { o[J('th' + s)] -= 0.16 * w; o[J('kn' + s)] += 0.34 * w; o[J('an' + s)] -= 0.16 * w; }
+    return o;
+  }
   parried() { this.set('parried'); this.open = true; this.play(CL.stun, 0.06); this.vel.set(0, 0, 0); this.trailOn = false; this.yoff = 0; }
   die() {
     this.dead = true; this.open = false; this.set('dead'); this.play(CL.death, 0.08); this.trailOn = false; G.kills++; SFX.die();
@@ -79,6 +95,7 @@ export class Enemy extends Char {
     this.st += dt; const t = this.type, P_ = G.player, m = this.mv;
     const dx = P_.pos.x - this.pos.x, dz = P_.pos.z - this.pos.z, d = Math.hypot(dx, dz) || 0.001, ang = Math.atan2(dx, dz), f = this.fwd(tmpA);
     const brake = (k) => this.vel.multiplyScalar(Math.exp(-k * dt)); let eye = 1;
+    if (t.hurt && Math.random() < dt * 2.2) drip(tmpB.set(this.pos.x + rnd(-0.12, 0.12), 1.1 * this.scale, this.pos.z + rnd(-0.12, 0.12)));
     const speed = t.speed + (this.phase2 ? 0.8 : 0);
     if (G.freezeAI && ['chase', 'circle', 'wind', 'strike', 'recover'].includes(this.state)) { brake(8); this.trailOn = false; this.setLoco(4, dt); return; }
     switch (this.state) {

@@ -52,6 +52,7 @@ npm run build && npm test
 CHROME=/path/to/chrome npm test     # if Chrome is somewhere else
 FROM=raid npm test                  # start at a stage (door, spar, raid, fallback, hold, vessa)
 node test/playtest.mjs phone        # phone-sized touch layout
+node test/look.mjs                  # close-up turnaround of the opening foe
 ```
 
 ## Layout

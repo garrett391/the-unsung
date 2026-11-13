@@ -74,7 +74,8 @@ export class Char {
       const s = Math.min(1.2, this.speedN), lean = c[0];
       cp[0].rotation.x = clamp(0.1 + s * 0.6 - lean * 0.6 + Math.sin(time * 3.1) * 0.04 * (1 + s * 2), -0.2, 1.4);
       cp[1].rotation.x = 0.08 + s * 0.3 + Math.sin(time * 3.1 - 1.1) * 0.06 * (1 + s * 2);
-      cp[2].rotation.x = 0.06 + s * 0.22 + Math.sin(time * 3.1 - 2.2) * 0.08 * (1 + s * 2);
+      const droop = cp.length > 3 ? Math.max(0, c[0] + c[3] + c[6]) * 0.55 : 0; // a long cape on a bent back lies along it, then falls from the hips
+      for (let k = 2; k < cp.length; k++) cp[k].rotation.x = 0.06 + s * 0.22 + Math.sin(time * 3.1 - 1.1 * k) * 0.08 * (1 + s * 2) - (k > 2 ? droop : 0);
     }
   }
   fwd(v) { return (v || new T.Vector3()).set(Math.sin(this.face), 0, Math.cos(this.face)); }

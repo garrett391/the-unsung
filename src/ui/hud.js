@@ -16,7 +16,7 @@ export const ui = {
     const p = G.player;
     if (p.hp !== lastHp) { lastHp = p.hp; bar('hp', p.hp / 100); }
     const s = Math.round(p.st); if (s !== lastSt) { lastSt = s; bar('st', s / 100); }
-    const t = G.boss && !G.boss.dead ? G.boss : p.lock;
+    const t = G.talking || G.cinematic ? null : G.boss && !G.boss.dead ? G.boss : p.lock; // no target bar under dialogue or a cutscene
     if (t !== lastT) { lastT = t; const el = $('tgt'); el.style.opacity = t ? 1 : 0; el.classList.toggle('boss', !!(t && t === G.boss)); if (t) $('tname').textContent = t.type.name; lastThp = -1; }
     if (t) { const h = t.hp / t.maxHp; if (h !== lastThp) { lastThp = h; bar('thp', h); } }
     if (G.hold) bar('holdp', G.hold.progress);
