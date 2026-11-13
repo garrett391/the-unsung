@@ -33,10 +33,13 @@ export class Player extends Char {
     const w = this.stW, hp = NJ * 3;
     if (w > 0.001) {
       let drop = 0;
+      // The wide, low base is for standing and stepping; it fades out at a run, where a spread
+      // stance bows the knees out and turns the toes in.
+      const rk = this.clip ? 0 : clamp((this.speedN - 0.25) / 0.6, 0, 1);
       for (const [th, kn, an, sd] of LEGS) {
         // Bend less where the pose already bends deep, so lunges don't fold in half.
-        const a = 0.33 * w * clamp(1 - o[kn * 3] / 1.5, 0.25, 1);
-        o[th * 3] -= a; o[kn * 3] += 2 * a; o[an * 3] -= a; o[th * 3 + 2] += sd * 0.08 * w;
+        const a = 0.33 * w * (1 - 0.6 * rk) * clamp(1 - o[kn * 3] / 1.5, 0.25, 1);
+        o[th * 3] -= a; o[kn * 3] += 2 * a; o[an * 3] -= a; o[th * 3 + 2] += sd * 0.08 * w * (1 - rk);
         drop = Math.max(drop, 0.8 * (1 - Math.cos(a)));
       }
       o[hp + 1] -= drop + 0.012 * w; o[JI.spine * 3] += 0.07 * w; o[JI.neck * 3] -= 0.05 * w;
@@ -51,7 +54,7 @@ export class Player extends Char {
     // Running: the pelvis turns with each stride against the shoulders, and dips as a foot lands.
     if (!this.clip && w > 0.001) {
       const run = clamp(this.speedN, 0, 1) * w, sn = Math.sin(this.phase), r = sn * 0.13 * run;
-      o[JI.hips * 3 + 1] += r; o[JI.spine * 3 + 1] -= r * 0.8; o[JI.thL * 3 + 1] -= r; o[JI.thR * 3 + 1] -= r;
+      o[JI.hips * 3 + 1] += r; o[JI.spine * 3 + 1] -= r * 0.8; // legs swing with the pelvis
       o[JI.hips * 3 + 2] += Math.cos(this.phase) * 0.05 * run;
       o[hp + 1] -= Math.max(0, Math.cos(this.phase * 2)) * 0.03 * run;
     }
