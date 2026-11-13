@@ -23,11 +23,13 @@ A third-person sword-combat game for the browser, in three.js. Read `README.md` 
 - Combat numbers live in `src/actors/data.js` (`ATK` for the player, `TYPES` for enemies). Tune there first.
 - Poses are flat `Float32Array`s (3 Euler angles per joint in `JN` order, then a hip offset). `P({...}, base)` builds one; `C(dur, [t, pose, ease], ...)` builds a clip.
 - Stages are async scripts driven by `Director` (`src/story/director.js`): `talk`, `wait`, `until`, `tween`, `every`. `setup()` only runs when a stage is started directly (first load or retry from a checkpoint), so it must build the whole world state for that stage.
+- Input: mouse buttons use `mousedown`/`mouseup` (pointer events drop chorded buttons), and Shift/heavy state is resynced from every event, because a lost release once left the guard stuck up. `releaseAll()` clears held input on blur, pause and pointer-lock loss. `G.talking` is true during dialogue: clicks and keys then only advance it.
+- `G.paused` freezes `step()` entirely (sim, director, `G.clock`). Losing pointer lock pauses on desktop.
 - `G.auto = true` makes dialogue and waits skip; the playtest uses it. `G.step(dt, true)` advances one frame without rendering.
 
 ## Next up (owner's call on order)
 
-- Owner's playthrough feedback.
+- Owner's playthrough feedback (Nov 2026), still open: captain feels top-heavy (more leg and oblique/hip twist, lower stance; change in small steps); Corin reads as a 'blue power ranger' (redesign); flames and tents need an art pass; allied soldiers who fight; enemy variety, including more shield-bearers; a full story (the owner has the arc; ask for it before writing any). The owner is unsure about the struck-out captain name but it stays for now.
 - The two cutscenes not yet built: Corin's last stand (the Still Draw) during the hold, and the captain's eye wound mid-Vessa fight, which leaves him blind on the right side for phase two.
 - Art pass (tents and crates are weakest), music, gamepad, saved progress.
 

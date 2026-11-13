@@ -25,6 +25,7 @@ Still to come: the two big cutscenes (Corin's last stand, the captain's wound), 
 | Guard (tap just before a hit to parry) | L or Shift | GUARD |
 | Dodge (roll, side roll, backstep) | Space | DODGE |
 | Lock on | F or Tab | LOCK |
+| Pause (camera sensitivity is in here) | Esc or P | II, top right |
 
 Combos: Strike, Heavy is a shield bash that breaks guards. Strike, Strike, Heavy is a rising cut that launches. Strike after a parry is a riposte. Strike after half a second of running is a leaping slash.
 
@@ -60,6 +61,7 @@ node test/playtest.mjs phone        # phone-sized touch layout
 | `src/world/` | Level geometry, collision, sky and lighting; camera |
 | `src/story/director.js` | Awaitable waits, tweens and dialogue for stage scripts |
 | `src/story/mission.js` | The stages, written as straight-line scripts |
+| `src/story/stretchers.js` | The stretcher bearers crossing the Narrows during the hold |
 | `src/ui/hud.js`, `index.html` | HUD, dialogue and the chronicle screens |
 
 Development happens on `main`. The earlier proof of concept is kept on the `proof-of-concept` branch.

@@ -2,7 +2,7 @@ import * as T from 'three';
 import { G } from './core/game.js';
 import { PI, $ } from './core/util.js';
 import { initAudio } from './core/audio.js';
-import { I, keys, press, initInput, pollInput, coarse, showTouch } from './core/input.js';
+import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, releaseAll } from './core/input.js';
 import { initRenderer } from './gfx/renderer.js';
 import { initFx, updateFx } from './gfx/fx.js';
 import { buildLevel, confine } from './world/level.js';
@@ -34,7 +34,7 @@ G.spawn = (kind, x, z, o) => { const e = new Enemy(kind, x, z, o); G.enemies.pus
 G.clearEnemies = () => { for (const e of G.enemies) e.dispose(); G.enemies.length = 0; };
 // Put the world in a known state for the start of a stage.
 G.resetWorld = (o) => {
-  G.clearEnemies(); player.reset(...o.player); G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = 0;
+  G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.reset(...o.player); G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = 0;
   ui.holdBar(false); ui.objective(''); ui.hint(''); ui.hideDialogue(); ui.cinematic(false); level.marker(null); level.setDawn(0);
   if (o.corin) { corin.setVisible(true); corin.place(o.corin[0], o.corin[1], o.corin[2]); corin.setMode(o.corin[3]); } else corin.setVisible(false);
 };
@@ -56,6 +56,7 @@ G.on((kind) => {
 });
 
 function step(rdt, noRender) {
+  if (G.paused) { if (!noRender) G.composer.render(); return; }
   G.rdt = rdt; G.clock += rdt; pollInput(cam);
   let dt = rdt * G.timeScale;
   if (G.hitstop > 0) { G.hitstop -= rdt; dt = 0; } else if (G.slow > 0) { G.slow -= rdt; dt *= 0.3; }
@@ -92,13 +93,28 @@ function step(rdt, noRender) {
 const rows = coarse
   ? [['Left thumb', 'Move'], ['Drag right side', 'Camera'], ['STRIKE', 'Tap up to three times'], ['HEAVY', 'Hold to charge, or finish a combo'], ['GUARD', 'Hold to block; tap late to parry'], ['DODGE', 'Roll, side roll, backstep'], ['LOCK', 'Target an enemy']]
   : [['W A S D', 'Move'], ['J / Click', 'Strike, up to three'], ['K / Right-click', 'Heavy: hold to charge, or finish a combo'], ['L / Shift', 'Guard: tap late to parry'], ['Space', 'Dodge: roll, side roll, backstep'], ['F / Tab', 'Lock on'], ['Q E / Mouse', 'Camera']];
-$('thelp').innerHTML = rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
-$('tgo').textContent = coarse ? 'TAP TO BEGIN' : 'CLICK TO BEGIN';
+const help = rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('') + (coarse ? '' : '<dt>Esc / P</dt><dd>Pause</dd>');
+$('thelp').innerHTML = $('phelp').innerHTML = help;
+$('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
 function begin() {
-  if (G.running) return; initAudio(); $('title').style.display = 'none'; if (coarse) showTouch();
+  if (G.running) return; initAudio(); $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
   G.running = true; G.confirm = false; G.runFrom(0);
+  if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
 }
-$('title').addEventListener('click', begin);
+$('tplay').addEventListener('click', begin);
+
+// pause menu
+const sens = $('psens'); sens.value = opts.sens; sens.addEventListener('input', () => setSens(+sens.value));
+G.pause = (on) => {
+  if (!G.running || on === !!G.paused) return;
+  G.paused = on; releaseAll(); $('pause').style.display = on ? 'flex' : 'none'; G.confirm = false;
+  if (on) { if (document.pointerLockElement) document.exitPointerLock(); }
+  else { last = performance.now(); if (!I.touch && !coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } } }
+};
+G.togglePause = () => G.pause(!G.paused);
+$('presume').addEventListener('click', () => G.pause(false));
+$('pretry').addEventListener('click', () => { G.pause(false); ui.fade(1, 0.3); setTimeout(() => G.runFrom(G.checkpoint), 350); });
+$('pquit').addEventListener('click', () => location.reload());
 G.resetWorld({ player: [0.6, 12.5, PI], corin: [0, 4.5, 0, 'guard'] });
 cam.shot([6, 3.4, 20], [0, 1.5, 8]); ui.fade(0, 1.5);
 

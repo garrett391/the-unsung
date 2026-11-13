@@ -8,6 +8,9 @@ const bar = (id, v) => { $(id).style.transform = `scaleX(${Math.max(0, Math.min(
 // "{l}" in a hint becomes the right button name for this device.
 const fill = (s) => s.replace(/\{(\w+)\}/g, (_, a) => `<b>${label(a)}</b>`);
 
+// A refused dodge or heavy (not enough stamina) flashes the stamina bar.
+G.on((k) => { if (k !== 'tired') return; const b = $('st').parentNode; b.classList.remove('tired'); void b.offsetWidth; b.classList.add('tired'); });
+
 export const ui = {
   frame() {
     const p = G.player;
@@ -33,8 +36,12 @@ export const ui = {
   },
   completeLine() { clearInterval(typing); $('dtxt').textContent = ui._full; ui.lineDone = true; },
   hideDialogue() { $('dlg').style.display = 'none'; $('hint').style.visibility = 'visible'; clearInterval(typing); },
-  // chronicle: full-screen text between scenes
-  chronOpen(head, tap) { $('chead').textContent = head; $('clines').innerHTML = ''; $('ctap').textContent = tap; $('chron').style.display = 'flex'; },
-  chronLine(html) { const p = document.createElement('p'); p.innerHTML = html; $('clines').appendChild(p); requestAnimationFrame(() => p.classList.add('on')); return p; },
+  // chronicle: full-screen text between scenes. Every entry is laid out up front and
+  // revealed in turn, so nothing on the page moves as new lines appear.
+  chronOpen(head, lines, tap) {
+    $('chead').textContent = head; const box = $('clines'); box.innerHTML = ''; $('ctap').textContent = tap; $('ctap').style.visibility = 'hidden'; $('chron').style.display = 'flex';
+    return lines.map((html) => { const p = document.createElement('p'); p.innerHTML = html; box.appendChild(p); return p; });
+  },
+  chronShow(el) { el.classList.add('on'); $('ctap').style.visibility = 'visible'; },
   chronClose() { $('chron').style.display = 'none'; },
 };

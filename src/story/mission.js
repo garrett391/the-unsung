@@ -7,13 +7,14 @@ import { cam } from '../world/camera.js';
 import { MOUTH, RING } from '../world/level.js';
 import { FX, shock } from '../gfx/fx.js';
 import { coarse } from '../core/input.js';
+import { makeStretchers } from './stretchers.js';
 
 // The night raid, as a list of stages. A stage's run() is its script. setup() puts
 // the world in the state the stage expects and is only used when starting there
 // (first load, or retrying from a checkpoint).
 export const STAGES = [];
 const stage = (name, o) => STAGES.push({ name, ...o });
-const TAP = coarse ? 'TAP TO CONTINUE' : 'CLICK OR PRESS ENTER';
+const TAP = coarse ? 'TAP TO CONTINUE' : 'CLICK OR PRESS SPACE';
 const NAME = '<span class="strike">&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;</span>';
 const live = () => G.enemies.filter((e) => !e.dead).length;
 const breach = () => [rnd(-2.6, 2.6), rnd(27, 33)];
@@ -25,9 +26,9 @@ stage('intro', {
     G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); cam.shot([7, 5, 27], [0, 1.6, 8]);
     await d.chronicle('Register of the Western Watch', [
       '<em>He saved the realm twice. Nobody remembers either time.</em>',
-      'Third year of the Sealing. The Usurper outlived his own execution, and the wardens shut him behind the Glass Door in the desert ruins.',
-      'His loyalists, led by the Witches of the dunes, raid out of the sand to set him free.',
-      `Holding the Door: the Third Company of the Royal Guard, under Captain ${NAME}, of the forest.`,
+      'Year three of the Sealing. The Usurper could not be killed, so the wardens shut him behind the Glass Door, in the ruins of the desert.',
+      'His loyalists, the Witches of the dunes, raid out of the sand to set him free.',
+      `Guarding the Door: the Third Company of the Royal Guard, under Captain ${NAME}, of the forest.`,
     ], TAP);
     ui.chronClose(); ui.fade(0, 1.8); cam.shot([2.6, 3.2, 17.5], [0, 1.4, 8], 3.6);
     await d.wait(3.2);
@@ -119,10 +120,12 @@ stage('hold', {
   async run(d) {
     const P = G.player; G.maxAtk = 2; P.hp = 100;
     const H = (G.hold = { progress: 0, far: false }); ui.holdBar(true); let spawnT = 0.5, brute = false, total = 8;
+    const SX = (G.stretchers = makeStretchers(total));
     ui.hint("Stay close to the Narrows. The stretchers can't move without cover."); let hintT = 6;
     const stop = d.every((dt) => {
       const far = Math.hypot(P.pos.x - MOUTH.x, P.pos.z - MOUTH.z) > 11;
       if (!far && !P.dead) H.progress = Math.min(1, H.progress + dt / 75);
+      SX.update(H.progress, G.paused ? 0 : dt);
       if (far !== H.far) { H.far = far; ui.hint(far ? 'Get back to the Narrows!' : ''); hintT = 0; }
       if (hintT > 0 && (hintT -= dt) <= 0 && !far) ui.hint('');
       ui.objective(`Hold the Narrows: ${Math.floor(H.progress * total)}/${total} stretchers through`);
@@ -134,7 +137,7 @@ stage('hold', {
       }
     });
     await d.until(() => H.progress >= 1);
-    stop(); ui.holdBar(false); G.hold = null; ui.hint('');
+    stop(); ui.holdBar(false); G.hold = null; ui.hint(''); SX.dispose(); G.stretchers = null;
   },
 });
 

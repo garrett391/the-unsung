@@ -105,7 +105,8 @@ export function locoPose(o,c,t){
   S(o,'thL',-sn*A-.14*run,0,.05);S(o,'thR',sn*A-.14*run,0,-.05);
   S(o,'knL',.08+A*1.6*Math.max(0,cs)+.12*run);S(o,'knR',.08+A*1.6*Math.max(0,-cs)+.12*run);
   S(o,'anL',-.06+.28*sn*A);S(o,'anR',-.06-.28*sn*A);
-  S(o,'shL',sn*.6*A+.05,0,.14);S(o,'elL',-.3-.7*run);
+  S(o,'shL',sn*.6*A+.05,0,.14);S(o,'elL',-.3-.7*run);S(o,'shield',-1.35-.3*run);
+  // (the shield hangs point-down at rest; guard poses zero this so it turns point-down across the raised forearm)
   S(o,'shR',-sn*.42*A+.1+.2*run,0,-.2-.12*run);S(o,'elR',-.4-.5*run);S(o,'haR',.5-.2*run);
   const g=c.guard;
   if(g>0){const gw=g*(1-.6*run);mix(o,PZ.guard,gw,ARMS);addJ(o,PZ.guard,gw,TORSO);mix(o,PZ.guard,g*idle,LOW);

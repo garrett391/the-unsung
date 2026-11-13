@@ -116,9 +116,9 @@ export class Player extends Char {
       this.runT = this.speedN > 0.9 && !this.lock && !blockHeld ? this.runT + dt : 0;
       this.guard = damp(this.guard, this.lock || blockHeld || near ? 1 : 0, 7, dt); this.blockW = damp(this.blockW, blockHeld ? 1 : 0, 24, dt);
       if (this.speedN > 0.75 && Math.sin(this.phase) * Math.sin(this.phase - dt * 11) < 0) FX.dust.emit(this.pos, 1, 0.5, 0xb8a37c, 0.35, { flat: 1, grav: -1.2, up: 0.3 });
-      if (this.take('d') && this.st >= 12) this.startDodge();
+      if (this.take('d')) { if (this.st >= 12) this.startDodge(); else G.emit('tired'); }
       else if (this.take('l')) { const r = this.ripTarget(); if (r) this.riposte(r); else this.startAtk(this.runT > 0.5 && this.st >= 10 ? 'sa' : 'l1'); }
-      else if (this.take('h')) { if (this.st >= 8) { this.state = 'wind'; this.aT = 0; this.charge = 0; this.fullCue = false; this.aim(); this.play(CL.hw, 0.22); } }
+      else if (this.take('h')) { if (this.st < 8) G.emit('tired'); else { this.state = 'wind'; this.aT = 0; this.charge = 0; this.fullCue = false; this.aim(); this.play(CL.hw, 0.22); } }
     } else if (S_ === 'atk') {
       const a = this.at, f = this.fwd(tmpA); let sp = this.aT >= a.move[0] && this.aT < a.move[1] ? a.move[2] : 0;
       // Don't drive through whoever is directly ahead.
@@ -134,7 +134,7 @@ export class Player extends Char {
       if (this.aT >= a.cancel) {
         if (a.next.l && this.take('l', 0.45)) this.startAtk(a.next.l);
         else if (a.next.h && this.take('h', 0.45)) this.startAtk(a.next.h);
-        else if (this.take('d', 0.3) && this.st >= 12) this.startDodge();
+        else if (this.take('d', 0.3)) { if (this.st >= 12) this.startDodge(); else G.emit('tired'); }
         else if (this.take('l', 0.2) && this.aT >= a.dur - 0.12) this.startAtk('l1');
       }
       if (this.state === 'atk' && this.aT >= a.dur) { this.state = 'loco'; this.stop(0.14); }
@@ -146,7 +146,7 @@ export class Player extends Char {
       if (this.charge > 0 && Math.random() < 0.5) FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpA), 1, 1.2, 0xffd070, 0.3, { grav: -2 });
       if (this.charge >= 1 && !this.fullCue) { this.fullCue = true; SFX.charged(); this.flashCol = [1, 0.8, 0.3]; this.flash = 0.7; FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpA), 14, 3, 0xfff0b0, 0.35, { boost: 2 }); }
       const held = I.heavy && this.controlEnabled;
-      if (this.take('d') && this.st >= 12) { this.flashCol = [1, 0.15, 0.1]; this.startDodge(); }
+      if (this.take('d')) { if (this.st >= 12) { this.flashCol = [1, 0.15, 0.1]; this.startDodge(); } else G.emit('tired'); }
       else if ((!held && this.aT >= 0.3) || this.aT > 2.2) { this.lastCharge = this.charge; this.flashCol = [1, 0.15, 0.1]; this.startAtk(this.charge >= 1 ? 'hc' : 'hs'); this.charge = 0; }
     } else if (S_ === 'roll') {
       const sp = this.aT < 0.36 ? 9.4 : lerp(9.4, 3, (this.aT - 0.36) / 0.2); this.vel.copy(this.rollDir).multiplyScalar(sp); this.speedN = 0;

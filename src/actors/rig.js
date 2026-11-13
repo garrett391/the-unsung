@@ -86,7 +86,7 @@ export function buildHumanoid(o) {
   const w = joint(haR, 0, -0.05, 0), len = o.blade || 0.92;
   mk(new T.CylinderGeometry(0.02, 0.02, 0.24, 8), mD, w, 0, 0, -0.01).rotation.x = PI / 2;
   mk(ball(0.036), mT, w, 0, 0, -0.14);
-  if (o.weapon === 'maul') {
+  if (o.weapon === 'none') { /* unarmed */ } else if (o.weapon === 'maul') {
     mk(new T.CylinderGeometry(0.028, 0.028, len, 8), mD, w, 0, 0, len / 2).rotation.x = PI / 2;
     mk(new T.BoxGeometry(0.12, 0.46, 0.3), mS, w, 0, 0, len); mk(new T.BoxGeometry(0.14, 0.1, 0.34), mT, w, 0, 0, len);
   } else if (o.weapon === 'glaive') {
@@ -108,7 +108,10 @@ export function buildHumanoid(o) {
   if (o.shield != null) {
     const sp = new T.Shape(); sp.moveTo(-0.22, 0.27); sp.lineTo(0.22, 0.27); sp.lineTo(0.22, -0.04); sp.lineTo(0, -0.35); sp.lineTo(-0.22, -0.04); sp.closePath();
     const sm = M(0xffffff, { map: shields[o.shield] });
-    mk(new T.ExtrudeGeometry(sp, { depth: 0.035, bevelEnabled: false }), sm, J.shield).rotation.y = PI / 2;
+    // Face out from the forearm, with the point running across the arm (not along it), so a
+    // raised guard holds the shield point-down in front of the body.
+    const sg = new T.ExtrudeGeometry(sp, { depth: 0.035, bevelEnabled: false }); sg.rotateY(PI / 2); sg.rotateX(PI / 2);
+    mk(sg, sm, J.shield);
   }
   // cape: a short chain that swings with speed
   let cape = null;

@@ -48,7 +48,7 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
 }, { sec, o });
 const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
-await page.evaluate((from) => { G.auto = true; if (from) { document.getElementById('title').style.display = 'none'; G.running = true; G.runFrom(from); } else G.begin(); }, only);
+await page.evaluate((from) => { G.auto = true; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.runFrom(from); } else G.begin(); }, only);
 if (!only) {
   log('intro', await play(6)); await shot('01-spar-start');
   log('lock+strike', await play(14, { bot: true, until: "G.corin.mode==='attack'" })); await shot('02-spar-strike');

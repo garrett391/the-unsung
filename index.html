@@ -14,7 +14,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #bars{position:absolute;left:16px;top:14px;width:min(44vw,260px)}
 .bar{height:8px;background:rgba(8,8,14,.6);border:1px solid rgba(239,230,210,.5);margin-bottom:5px;position:relative;border-radius:1px}
 .bar i{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left;transition:transform .12s linear}
-.bar.hp i{background:#c8322f}.bar.st{height:5px;width:80%}.bar.st i{background:#d9b24a}
+.bar.hp i{background:#c8322f}.bar.tired{animation:tired .5s}@keyframes tired{0%,60%{border-color:#ff5040;box-shadow:0 0 8px #ff5040}}.bar.st{height:5px;width:80%}.bar.st i{background:#d9b24a}
 #obj{position:absolute;left:16px;top:50px;max-width:min(92vw,520px);white-space:nowrap;font-size:16px;letter-spacing:.04em;text-shadow:0 1px 3px #000;opacity:0;transition:opacity .4s}
 #obj::before{content:"";display:inline-block;width:7px;height:7px;background:#d9b24a;transform:rotate(45deg);margin:0 9px 2px 2px}
 #hold{position:absolute;left:16px;top:80px;width:min(44vw,220px);display:none}
@@ -32,16 +32,19 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
   border-top:1px solid rgba(217,178,74,.7);display:none}
 #dlg .who{font-size:13px;letter-spacing:.26em;color:#e9c15a;margin-bottom:5px;text-transform:uppercase}
 #dlg .txt{font-size:20px;line-height:1.3;min-height:2.6em}
-#dlg .more{position:absolute;right:14px;bottom:6px;font-size:12px;opacity:.6;animation:pulse 1.4s ease-in-out infinite}
+#dlg .more{position:absolute;right:14px;bottom:6px;font-size:12px;letter-spacing:.14em;opacity:.65;animation:pulse 1.4s ease-in-out infinite}
+#dlg{cursor:pointer;pointer-events:auto}
 #fade{position:fixed;inset:0;background:#05060c;opacity:1;pointer-events:none;transition:opacity 1s}
-#chron{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;background:#05060c;cursor:pointer}
-#chron h2{font-size:13px;letter-spacing:.34em;font-weight:500;color:#e9c15a;margin-bottom:22px;text-transform:uppercase}
-#chron p{font-size:clamp(17px,4.4vw,23px);line-height:1.4;max-width:560px;margin-bottom:14px;opacity:0;transition:opacity 1.1s}
+#chron{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;background:#05060c;cursor:pointer}
+#chron .page{width:min(100%,560px)}
+#chron h2{font-size:13px;letter-spacing:.3em;font-weight:500;color:#e9c15a;padding-bottom:12px;margin-bottom:22px;text-transform:uppercase;border-bottom:1px solid rgba(217,178,74,.35)}
+#chron p{font-size:clamp(17px,4.4vw,22px);line-height:1.45;margin-bottom:16px;opacity:0;transition:opacity 1.1s}
 #chron p.on{opacity:1}
+#chron p em{display:block;text-align:center;margin-bottom:6px}
 #chron .strike{position:relative;white-space:nowrap}
 #chron .strike::after{content:"";position:absolute;left:-4px;right:-4px;top:52%;height:2px;background:#c8322f;transform:scaleX(0);transform-origin:left;transition:transform .9s}
 #chron .strike.done::after{transform:scaleX(1)}
-#chron .tap{margin-top:16px;font-size:12px;letter-spacing:.3em;opacity:.55;animation:pulse 1.6s ease-in-out infinite}
+#chron .tap{margin-top:10px;font-size:12px;letter-spacing:.3em;opacity:.55;text-align:center;animation:pulse 1.6s ease-in-out infinite}
 #touch{position:fixed;inset:0;pointer-events:none;display:none}
 #touch button{position:absolute;pointer-events:auto;border-radius:50%;border:1.5px solid rgba(239,230,210,.65);background:rgba(8,8,14,.4);
   color:#efe6d2;font:700 12px "Cormorant Garamond",Georgia,serif;letter-spacing:.1em;touch-action:none}
@@ -54,29 +57,43 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #stick,#knob{position:absolute;border-radius:50%;display:none;pointer-events:none}
 #stick{width:110px;height:110px;margin:-55px 0 0 -55px;border:1.5px solid rgba(239,230,210,.45);background:rgba(8,8,14,.25)}
 #knob{width:46px;height:46px;margin:-23px 0 0 -23px;background:rgba(239,230,210,.55)}
-#title{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;
-  background:radial-gradient(ellipse at center,rgba(7,9,19,.55),rgba(7,9,19,.95));cursor:pointer}
+#title,#pause{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;
+  background:radial-gradient(ellipse at center,rgba(7,9,19,.55),rgba(7,9,19,.95))}
+#pause{display:none;background:rgba(5,6,12,.94);overflow-y:auto}
+#pause h2{font-size:15px;letter-spacing:.4em;text-indent:.4em;font-weight:500;color:#e9c15a;margin-bottom:22px}
+.btn{font:700 17px "Cormorant Garamond",Georgia,serif;letter-spacing:.3em;text-indent:.3em;color:#efe6d2;background:rgba(8,8,14,.5);border:1.5px solid rgba(217,178,74,.75);
+  padding:12px 0;width:min(70vw,240px);margin:6px 0;cursor:pointer;border-radius:2px}
+.btn:hover,.btn:focus-visible{background:rgba(217,178,74,.25);outline:none}
+.btn.main{font-size:22px;padding:14px 0;margin-top:30px}
+.btn.small{font-size:13px;padding:9px 0}
+#pause label{display:block;margin:18px 0 6px;font-size:14px;letter-spacing:.14em}
+#pause input[type=range]{width:min(70vw,240px);accent-color:#d9b24a}
+#title details{margin-top:18px;font-size:14px;letter-spacing:.1em}
+#title summary{cursor:pointer;opacity:.75;list-style:none}#title summary::-webkit-details-marker{display:none}
+#pause dl{margin-top:20px;display:grid;grid-template-columns:auto auto;gap:4px 16px;font-size:14px;text-align:left}
+#pause dt{color:#e9c15a;text-align:right}
+#bP{top:12px;right:12px;width:40px;height:40px;font-size:15px;letter-spacing:0}
 #title h1{font-size:clamp(38px,11vw,84px);letter-spacing:.2em;text-indent:.2em;font-weight:700}
 #title p.sub{letter-spacing:.3em;font-size:13px;margin-top:8px;opacity:.75;font-style:italic}
-#title dl{margin-top:26px;display:grid;grid-template-columns:auto auto;gap:5px 16px;font-size:15px;text-align:left}
+#title dl{margin-top:12px;display:grid;grid-template-columns:auto auto;gap:5px 16px;font-size:15px;text-align:left}
 #title dt{color:#e9c15a;text-align:right}#title dd{opacity:.9}
-#title .go{margin-top:28px;font-size:15px;letter-spacing:.32em;animation:pulse 1.6s ease-in-out infinite}
+
 @keyframes pulse{50%{opacity:.3}}
-@media (prefers-reduced-motion:reduce){#title .go,#dlg .more,#chron .tap{animation:none}}
-@media (max-width:600px){#bars{width:40vw}#tgt{left:auto;right:12px;transform:none;width:42vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}}
+@media (prefers-reduced-motion:reduce){#dlg .more,#chron .tap{animation:none}}
+@media (max-width:600px){#bars{width:40vw}#tgt{left:auto;right:62px;transform:none;width:36vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}}
 @media (pointer:coarse){#hint{bottom:auto;top:108px}#dlg{bottom:auto;top:96px}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud">
+<div id="hud" style="visibility:hidden">
   <div id="bars"><div class="bar hp"><i id="hp"></i></div><div class="bar st"><i id="st"></i></div></div>
   <div id="obj"></div>
   <div id="hold"><div class="bar"><i id="holdp"></i></div></div>
   <div id="tgt"><span id="tname"></span><div class="bar"><i id="thp"></i></div></div>
   <div id="banner"></div>
   <div id="hint"></div>
-  <div id="dlg"><div class="who" id="dwho"></div><div class="txt" id="dtxt"></div><div class="more">&#9662;</div></div>
+  <div id="dlg"><div class="who" id="dwho"></div><div class="txt" id="dtxt"></div><div class="more" id="dmore"></div></div>
 </div>
 <div id="touch">
   <div id="stick"></div><div id="knob"></div>
@@ -85,14 +102,24 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
   <button id="bD" data-a="d">DODGE</button>
   <button id="bB" data-a="b">GUARD</button>
   <button id="bK" data-a="k">LOCK</button>
+  <button id="bP" data-a="p" aria-label="Pause">II</button>
 </div>
 <div id="fade"></div>
-<div id="chron"><h2 id="chead"></h2><div id="clines"></div><div class="tap" id="ctap"></div></div>
+<div id="chron"><div class="page"><h2 id="chead"></h2><div id="clines"></div><div class="tap" id="ctap"></div></div></div>
 <div id="title">
   <h1>THE UNSUNG</h1>
   <p class="sub">one night at the ruins</p>
-  <dl id="thelp"></dl>
-  <p class="go" id="tgo"></p>
+  <button class="btn main" id="tplay">PLAY</button>
+  <details><summary>Controls</summary><dl id="thelp"></dl></details>
+</div>
+<div id="pause">
+  <h2>PAUSED</h2>
+  <button class="btn" id="presume">RESUME</button>
+  <button class="btn small" id="pretry">RESTART CHECKPOINT</button>
+  <button class="btn small" id="pquit">QUIT TO TITLE</button>
+  <label for="psens">Camera sensitivity</label>
+  <input type="range" id="psens" min="0.25" max="2" step="0.05">
+  <dl id="phelp"></dl>
 </div>
 <script type="module" src="/src/main.js"></script>
 </body>
