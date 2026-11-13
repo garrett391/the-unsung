@@ -81,12 +81,12 @@ const BR = rng(41);
 function splatTex() {
   return canvasTex(128, (g, n) => {
     g.clearRect(0, 0, n, n); g.fillStyle = '#fff'; const c = n / 2, dot = (x, y, r) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
-    for (let i = 0; i < 9; i++) { const a = BR() * 7, d = BR() * 13; dot(c + Math.cos(a) * d, c + Math.sin(a) * d, 15 + BR() * 11); }
-    for (let i = 0, k = 6 + ((BR() * 5) | 0); i < k; i++) { // fingers thrown out of the pool, each ending in a bead
-      const a = (i / k) * PI * 2 + BR() * 0.6, l = 34 + BR() * 20, w = 3 + BR() * 4, x = c + Math.cos(a) * l, y = c + Math.sin(a) * l, px = -Math.sin(a) * w, py = Math.cos(a) * w;
+    for (let i = 0; i < 12; i++) { const a = BR() * 7, d = BR() * 20; dot(c + Math.cos(a) * d, c + Math.sin(a) * d, 9 + BR() * 13); } // an uneven pool, not a starburst
+    for (let i = 0, k = 2 + ((BR() * 3) | 0); i < k; i++) { // fingers thrown out of the pool, each ending in a bead
+      const a = BR() * PI * 2, l = 28 + BR() * 14, w = 2 + BR() * 2.5, x = c + Math.cos(a) * l, y = c + Math.sin(a) * l, px = -Math.sin(a) * w, py = Math.cos(a) * w;
       g.beginPath(); g.moveTo(c + px * 2.4, c + py * 2.4); g.lineTo(x + px * 0.3, y + py * 0.3); g.lineTo(x - px * 0.3, y - py * 0.3); g.lineTo(c - px * 2.4, c - py * 2.4); g.fill(); dot(x, y, w * (0.5 + BR() * 0.5));
     }
-    for (let i = 0; i < 12; i++) { const a = BR() * 7, d = 40 + BR() * 21; dot(c + Math.cos(a) * d, c + Math.sin(a) * d, 0.8 + BR() * 2.6); }
+    for (let i = 0; i < 7; i++) { const a = BR() * 7, d = 38 + BR() * 22; dot(c + Math.cos(a) * d, c + Math.sin(a) * d, 0.7 + BR() * 1.8); }
   });
 }
 function streakTex() {
@@ -96,7 +96,7 @@ function streakTex() {
     for (let i = 0; i < 9; i++) dot(c + (BR() - 0.5) * 60, 30 + BR() * 92, 1.5 + BR() * 4.5);
   });
 }
-const FRESH = new T.Color(0x720810), DRIED = new T.Color(0x30070a);
+const FRESH = new T.Color(0x54080b), DRIED = new T.Color(0x1e0607);
 // Blood on the ground: pooled flat decals. Each lands fresh and bright, darkens as it dries,
 // then fades out. A pool with `grow` spreads to its size over that many seconds.
 class Stains {
@@ -132,7 +132,7 @@ class Stains {
         const f = d.grow ? 0.25 + 0.75 * EASE_OUT(Math.min(1, a / d.grow)) : 0.5 + 0.5 * EASE_OUT(Math.min(1, a / 0.14));
         tmpM.makeRotationY(d.r).scale(tmpS.set(d.sx * f, 1, d.sz * f)).setPosition(d.x, s.y + k * 0.0002, d.z); s.mesh.setMatrixAt(k, tmpM);
         const dry = Math.min(1, a / (7 + d.grow * 2)); tmpC.copy(FRESH).lerp(DRIED, dry * dry * (3 - 2 * dry));
-        t[j] = tmpC.r; t[j + 1] = tmpC.g; t[j + 2] = tmpC.b; t[j + 3] = 0.92 * Math.min(1, (L - a) / 4);
+        t[j] = tmpC.r; t[j + 1] = tmpC.g; t[j + 2] = tmpC.b; t[j + 3] = 0.86 * Math.min(1, (L - a) / 4);
       }
       if (any) { s.mesh.instanceMatrix.needsUpdate = true; s.tint.needsUpdate = true; }
     }
@@ -145,13 +145,13 @@ export function initFx() {
   FX.sparks = new Parts(500, 0.22, true); FX.dust = new Parts(200, 0.5, false);
   // drops are small hard-edged beads, not soft glows, so they read as paint with the cel look
   const drop = canvasTex(32, (g, n) => { g.clearRect(0, 0, n, n); g.fillStyle = '#fff'; g.beginPath(); g.arc(16, 16, 13, 0, 7); g.fill(); });
-  FX.blood = new Parts(360, 0.085, false, 1, drop); FX.blood.pts.material.alphaTest = 0.5;
-  FX.gouts = new Parts(90, 0.15, false, 1, drop); FX.gouts.pts.material.alphaTest = 0.5;
+  FX.blood = new Parts(360, 0.065, false, 1, drop); FX.blood.pts.material.alphaTest = 0.5;
+  FX.gouts = new Parts(90, 0.11, false, 1, drop); FX.gouts.pts.material.alphaTest = 0.5;
   FX.stains = new Stains(40);
   FX.blood.onLand = (x, z) => { if (Math.random() < 0.7) FX.stains.add(x, z, rnd(0.04, 0.1)); };
   FX.gouts.onLand = (x, z) => FX.stains.add(x, z, rnd(0.1, 0.19), 26);
 }
-const BLOOD = 0x8e0d14, tmpD = new V3();
+const BLOOD = 0x5e0a0e, tmpD = new V3();
 // A cut that lands. `dir` is the way the blow travelled; `k` scales it (1 light, 2 heavy, 3
 // riposte or killing blow); `by` is whoever struck, whose blade comes away wet. Stylised:
 // flat dark red beads thrown along the cut, a few heavier gouts, splats where they land

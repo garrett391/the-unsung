@@ -6,7 +6,7 @@ import { sample, locoPose } from './anim.js';
 import { TEX } from '../gfx/materials.js';
 import { drip } from '../gfx/fx.js';
 
-const tmpA = new T.Vector3(), tmpB = new T.Vector3(), GORE = new T.Color(0x6e0a10);
+const tmpA = new T.Vector3(), tmpB = new T.Vector3(), GORE = new T.Color(0x470a0d);
 
 // Shared body: transform, pose blending, locomotion phase, trail and hit flash.
 export class Char {

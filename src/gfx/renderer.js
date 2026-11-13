@@ -18,7 +18,7 @@ const GradeShader = {
       c.rgb*=mix(mix(cool,vec3(1.),uWarm),warm,smoothstep(.15,.9,l));
       c.rgb=mix(vec3(l),c.rgb,1.12);c.rgb*=mix(.9,1.08,smoothstep(0.,.5,l));
       vec2 d=vUv-.5;float e=dot(d,d)*2.2;c.rgb*=1.-uVig*smoothstep(.25,.95,e);
-      c.rgb=mix(c.rgb,vec3(.5,.012,.02)*(.35+l),uHurt*.8*smoothstep(.1,.8,e));
+      c.rgb=mix(c.rgb,vec3(.34,.02,.025)*(.35+l),uHurt*.7*smoothstep(.1,.8,e));
       float n=fract(sin(dot(gl_FragCoord.xy+uTime*61.,vec2(12.9898,78.233)))*43758.5453)-.5;
       c.rgb=max(c.rgb+n*(.0012+.014*c.rgb),0.);
       gl_FragColor=c;}`,
