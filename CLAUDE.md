@@ -33,7 +33,8 @@ A third-person sword-combat game for the browser, in three.js. Read `README.md` 
 - Corin redesigned (owner's reference: a polished-steel royal guardsman): steel plate, white tabard with the Third Company badge, leather belt and strap, open-faced brimmed helm with a crimson crest, layered pauldrons, winged knee cops. Rig options `helm: 'open'`, `tabard`, `lames`, `knees`. The reference was another franchise's soldier: keep borrowing only generic armor features, never its crest or gear.
 - Owner's playthrough feedback (Nov 2026), still open: flames and tents need an art pass; allied soldiers who fight; enemy variety, including more shield-bearers; a full story (the owner has the arc; ask for it before writing any). The owner is unsure about the struck-out captain name but it stays for now.
 - The two cutscenes not yet built: Corin's last stand (the Still Draw) during the hold, and the captain's eye wound mid-Vessa fight, which leaves him blind on the right side for phase two.
-- Art pass (tents and crates are weakest), music, gamepad, saved progress.
+- Environment art pass done (Nov 2026): ridge tents with ropes and flaps, layered flames with halos and smoke, plank crates, barrels, spear rack, fluted columns, richer stone/sand/cloth textures, instanced rubble and grass, textured moon. Dressing uses its own `dr` rng in `buildLevel` so the layout rng (and obstacles) stay stable. Characters (`rig.js`) have not had the same pass yet.
+- Music, gamepad, saved progress.
 
 ## Working rules
 

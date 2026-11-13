@@ -3,6 +3,7 @@ import { G } from '../core/game.js';
 import { PI, clamp, lerp, rng } from '../core/util.js';
 import { toon, TEX } from '../gfx/materials.js';
 import { FX } from '../gfx/fx.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Layout (north = +z). A walled camp in front of a cliff. Raiders come through the
 // breach in the north wall and a gap in the east wall. South, a slot canyon
@@ -46,17 +47,22 @@ const DAWN = { zen: 0x35528e, hor: 0xf2a56c, fog: 0xc9907a, hemiS: 0xffd8b8, hem
 
 export function buildLevel() {
   const scene = G.scene, r = rng(1234), R = (a, b) => a + r() * (b - a);
+  const dr = rng(99), D = (a, b) => a + dr() * (b - a); // dressing only: keeps the layout's own sequence unchanged
   const W = { flames: [], fires: [], banners: [], dawn: 0 };
   const mBlock = toon(0xffffff, { map: TEX.block }), mRock = toon(0xffffff, { map: TEX.rock }), mStone = toon(0xb09a78), mDark = toon(0x4a3c30);
   const mWood = toon(0x5c4028), mCloth = toon(0x9c2428, { side: T.DoubleSide }), mGold = toon(0xd9b24a), mTent = toon(0xffffff, { map: TEX.canvas, side: T.DoubleSide });
+  const mCrate = toon(0xffffff, { map: TEX.crate }), mBarrel = toon(0xffffff, { map: TEX.barrel }), mCol = toon(0xffffff, { map: TEX.flute });
+  const mRope = toon(0x8a7650), mSack = toon(0xa89674), mSteel = toon(0x9aa0aa), mStraw = toon(0x9a8a58), mInside = new T.MeshBasicMaterial({ color: 0x0c0a09 });
+  const mBanner = toon(0xffffff, { map: TEX.banner, side: T.DoubleSide, alphaTest: 0.5 });
+  const V = (x, y, z) => new T.Vector3(x, y, z), UP = V(0, 1, 0);
+  const dune = (x, z) => { const dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - 26), d = Math.hypot(dx, dz); return Math.min(1, d / 14) * (Math.sin(x * 0.045 + z * 0.02) * 3 + Math.sin(z * 0.06 - x * 0.03) * 2.2 + Math.sin(x * 0.13) * 0.8) - (d > 0 ? 0.2 : 0); };
   const add = (geo, mat, x, y, z, ry) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); if (ry) m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
   const box = (w, h, d, mat, x, y, z, ry) => add(new T.BoxGeometry(w, h, d), mat, x, y, z, ry);
 
   // ground: flat where you can walk, dunes beyond
   const gg = new T.PlaneGeometry(520, 520, 120, 120); gg.rotateX(-PI / 2); const gp = gg.attributes.position;
   for (let i = 0; i < gp.count; i++) {
-    const x = gp.getX(i), z = gp.getZ(i), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - 26), d = Math.hypot(dx, dz);
-    gp.setY(i, Math.min(1, d / 14) * (Math.sin(x * 0.045 + z * 0.02) * 3 + Math.sin(z * 0.06 - x * 0.03) * 2.2 + Math.sin(x * 0.13) * 0.8) - (d > 0 ? 0.2 : 0));
+    gp.setY(i, dune(gp.getX(i), gp.getZ(i)));
   }
   gg.computeVertexNormals();
   const ground = new T.Mesh(gg, toon(0xffffff, { map: TEX.sand })); ground.receiveShadow = true; scene.add(ground);
@@ -96,39 +102,114 @@ export function buildLevel() {
 
   // columns, tents, crates, banners
   const column = (x, z, h, broken) => {
-    add(new T.CylinderGeometry(0.46, 0.54, h, 12), mStone, x, h / 2, z); box(1.3, 0.35, 1.3, mBlock, x, 0.18, z);
+    add(new T.CylinderGeometry(0.46, 0.54, h, 16), mCol, x, h / 2, z); box(1.3, 0.35, 1.3, mBlock, x, 0.18, z);
+    add(new T.CylinderGeometry(0.6, 0.64, 0.16, 16), mStone, x, 0.43, z); add(new T.TorusGeometry(0.56, 0.06, 6, 16), mStone, x, 0.56, z).rotation.x = PI / 2;
+    for (let y = 1.9; y < h - 0.6; y += 1.75) add(new T.CylinderGeometry(0.5 - 0.08 * (y / h) + 0.012, 0.5 - 0.08 * (y / h) + 0.012, 0.05, 16), mDark, x, y, z);
+    if (h > 5) { add(new T.TorusGeometry(0.49, 0.06, 6, 16), mStone, x, h - 0.2, z).rotation.x = PI / 2; add(new T.CylinderGeometry(0.66, 0.48, 0.2, 16), mStone, x, h - 0.06, z); }
+    else { const c = add(new T.DodecahedronGeometry(0.42, 0), mCol, x, h - 0.05, z); c.scale.y = 0.45; c.rotation.y = D(0, 3); for (let k = 0; k < 3; k++) { const s = D(0.14, 0.3), q = add(new T.DodecahedronGeometry(s, 0), mStone, x + D(-1.1, 1.1), s * 0.5, z + D(-1.1, 1.1)); q.rotation.set(D(0, 3), D(0, 3), 0); } }
     if (!broken) box(1.25, 0.32, 1.25, mBlock, x, h + 0.16, z);
-    else { const d = add(new T.CylinderGeometry(0.46, 0.46, 1.5, 12), mStone, x + R(-1.4, 1.4), 0.46, z + R(1.2, 1.9)); d.rotation.z = PI / 2; d.rotation.y = R(0, 3); }
+    else { const d = add(new T.CylinderGeometry(0.46, 0.46, 1.5, 16), mCol, x + R(-1.4, 1.4), 0.46, z + R(1.2, 1.9)); d.rotation.z = PI / 2; d.rotation.y = R(0, 3); }
     OBSTACLES.push({ x, z, r: 0.75 });
   };
   for (const z of [-4, 3, 10, 17]) { column(-15.2, z, r() < 0.4 ? R(1.6, 3) : 5.4, false); column(15.2, z + 2.5, r() < 0.5 ? R(1.6, 3) : 5.4, r() < 0.5); }
   const tent = (x, z, ry) => {
-    const t = add(new T.ConeGeometry(2.5, 2.9, 4, 1, true), mTent, x, 1.45, z, ry); t.castShadow = true;
-    add(new T.CylinderGeometry(0.06, 0.06, 3.3, 6), mWood, x, 1.65, z); OBSTACLES.push({ x, z, r: 2.0 });
+    // ridge tent: sagging slopes, a closed back, tied-back door flaps, poles, guy ropes and stakes
+    const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = Math.atan2(RING.x - x, RING.z - z) + ry - 0.5; scene.add(g);
+    const put = (m) => { m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+    const hw = 1.75, H = 2.35, L = 3.5, nu = 6, nv = 4, len = Math.hypot(H, hw), pos = [], uv = [], ix = [];
+    for (const s of [-1, 1]) {
+      const o = pos.length / 3;
+      for (let i = 0; i <= nu; i++) for (let j = 0; j <= nv; j++) {
+        const u = i / nu, v = j / nv, sag = Math.sin(PI * v) * (0.05 + 0.12 * Math.sin(u * PI));
+        pos.push(s * (v * hw - sag * H / len), H * (1 - v) - sag * hw / len, (u - 0.5) * L); uv.push(u * 1.5 + (s > 0 ? 0.5 : 0), (1 - v) * 0.86);
+      }
+      for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) { const a = o + i * (nv + 1) + j, b = a + 1, c = a + nv + 1; ix.push(a, b, c, b, c + 1, c); }
+    }
+    const tri = (z, ...p) => { const o = pos.length / 3; for (let k = 0; k < 6; k += 2) { pos.push(p[k], p[k + 1], z); uv.push(p[k] / (hw * 2) * 0.9 + 0.5, p[k + 1] / H * 0.86); } ix.push(o, o + 1, o + 2); };
+    tri(-L / 2, hw, 0, -hw, 0, 0, H); tri(L / 2, -hw, 0, -0.62, 0, 0, H); tri(L / 2, 0.62, 0, hw, 0, 0, H); tri(L / 2, -0.24, H * 0.62, 0.24, H * 0.62, 0, H);
+    const tg = new T.BufferGeometry(); tg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); tg.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); tg.setIndex(ix); tg.computeVertexNormals();
+    put(new T.Mesh(tg, mTent));
+    const ig = new T.BufferGeometry(); ig.setAttribute('position', new T.Float32BufferAttribute([-0.7, 0, L / 2 - 0.05, 0.7, 0, L / 2 - 0.05, 0, H * 0.72, L / 2 - 0.05], 3)); g.add(new T.Mesh(ig, mInside));
+    const stick = (a, b, rad, mat) => { const m = put(new T.Mesh(new T.CylinderGeometry(rad, rad, a.distanceTo(b), 5), mat)); m.position.copy(a).lerp(b, 0.5); m.quaternion.setFromUnitVectors(UP, b.clone().sub(a).normalize()); return m; };
+    stick(V(0, H + 0.03, -L / 2 - 0.3), V(0, H + 0.03, L / 2 + 0.3), 0.045, mWood);
+    for (const s of [-1, 1]) {
+      stick(V(0, 0, s * (L / 2 + 0.02)), V(0, H + 0.22, s * (L / 2 + 0.02)), 0.05, mWood);
+      stick(V(0, H, s * (L / 2 + 0.25)), V(0, 0.08, s * (L / 2 + 0.95)), 0.016, mRope); stick(V(0, 0, s * (L / 2 + 1.0)), V(0, 0.3, s * (L / 2 + 0.88)), 0.03, mWood);
+      for (const e of [-1, 1]) { stick(V(e * hw * 0.98, 0.05, s * L * 0.42), V(e * (hw + 0.3), 0.02, s * L * 0.42), 0.016, mRope); stick(V(e * (hw + 0.32), 0, s * L * 0.42), V(e * (hw + 0.22), 0.26, s * L * 0.42), 0.03, mWood); }
+    }
+    // a bedroll and a sack by the door
+    const roll = put(new T.Mesh(new T.CylinderGeometry(0.15, 0.15, 0.8, 8), mCloth)); roll.rotation.z = PI / 2; roll.position.set(-1.0, 0.15, L / 2 + 0.3);
+    const sk = put(new T.Mesh(new T.SphereGeometry(0.28, 8, 6), mSack)); sk.scale.set(1, 0.75, 0.85); sk.position.set(1.05, 0.2, L / 2 + 0.25);
+    OBSTACLES.push({ x, z, r: 2.0 });
   };
   tent(-11.5, 13.5, 0.5); tent(11, 15.5, 0.9); tent(-11.5, -3.5, 0.2);
-  for (let i = 0; i < 9; i++) { const x = [-8.5, 12.5, 9.5][i % 3] + R(-1.3, 1.3), z = [10.5, 11.5, -6.5][i % 3] + R(-1.3, 1.3), s = R(0.55, 0.85); box(s, s, s, mWood, x, s / 2, z, R(0, 1.5)); OBSTACLES.push({ x, z, r: s * 0.7 }); }
+  for (let i = 0; i < 9; i++) { const x = [-8.5, 12.5, 9.5][i % 3] + R(-1.3, 1.3), z = [10.5, 11.5, -6.5][i % 3] + R(-1.3, 1.3), s = R(0.55, 0.85); box(s, s, s, mCrate, x, s / 2, z, R(0, 1.5)); OBSTACLES.push({ x, z, r: s * 0.7 });
+    if (dr() < 0.35) { const t = s * D(0.55, 0.7); box(t, t, t, mCrate, x + D(-0.06, 0.06), s + t / 2, z + D(-0.06, 0.06), D(0, 1.5)); }
+    else if (dr() < 0.4) { const sk = add(new T.SphereGeometry(s * 0.42, 8, 6), mSack, x, s + s * 0.2, z, D(0, 3)); sk.scale.set(1, 0.55, 0.8); } }
+  // barrels, sacks and a spear rack against the walls
+  const barrelG = new T.CylinderGeometry(0.33, 0.33, 0.9, 12, 4); { const p = barrelG.attributes.position; for (let i = 0; i < p.count; i++) { const f = 1 + 0.14 * Math.cos((p.getY(i) / 0.45) * PI / 2); p.setX(i, p.getX(i) * f); p.setZ(i, p.getZ(i) * f); } barrelG.computeVertexNormals(); }
+  for (const [x, z] of [[-16.3, 6.9], [-16.25, 7.75], [16.3, 14.6], [16.25, 15.5], [16.3, 2.2]]) { add(barrelG, mBarrel, x, 0.45, z, D(0, 3)); OBSTACLES.push({ x, z, r: 0.5 }); }
+  for (const [x, z] of [[-16.2, 8.5], [16.2, 16.3], [16.25, 3.0], [-15.9, 7.3]]) { const sk = add(new T.SphereGeometry(0.3, 8, 6), mSack, x, 0.19, z, D(0, 3)); sk.scale.set(1, 0.7, 0.8); }
+  { const x = -16.45, z = -0.4; for (const s of [-1, 1]) box(0.1, 1.5, 0.1, mWood, x, 0.75, z + s * 0.8); box(0.08, 0.08, 1.8, mWood, x, 1.35, z); box(0.08, 0.08, 1.8, mWood, x, 0.45, z);
+    for (let k = 0; k < 4; k++) { const sz = z - 0.54 + k * 0.36, sp = add(new T.CylinderGeometry(0.025, 0.025, 2.3, 5), mWood, x + 0.22, 1.12, sz); sp.rotation.z = -0.2; const tp = add(new T.ConeGeometry(0.06, 0.32, 4), mSteel, x - 0.03, 2.4, sz); tp.rotation.z = -0.2; }
+    OBSTACLES.push({ x: -16.4, z, r: 0.75 }); }
   const banner = (x, y, z, ry) => {
     const g = new T.Group(); g.position.set(x, y, z); g.rotation.y = ry; scene.add(g);
     const pole = new T.Mesh(new T.BoxGeometry(1.2, 0.08, 0.08), mWood); g.add(pole);
-    const cl = new T.Mesh(new T.PlaneGeometry(1.0, 2.6, 1, 6), mCloth); cl.position.y = -1.32; cl.castShadow = true; g.add(cl);
-    const dm = new T.Mesh(new T.BoxGeometry(0.34, 0.34, 0.03), mGold); dm.position.set(0, -1.0, 0.02); dm.rotation.z = PI / 4; g.add(dm);
+    const cl = new T.Mesh(new T.PlaneGeometry(1.0, 2.6, 1, 6), mBanner); cl.position.y = -1.32; cl.castShadow = true; g.add(cl);
+    for (const s of [-1, 1]) { const k = new T.Mesh(new T.SphereGeometry(0.07, 8, 6), mGold); k.position.x = s * 0.62; g.add(k); }
     W.banners.push(g);
   };
   banner(-16.9, 4.6, 6, PI / 2); banner(-16.9, 4.6, 13.5, PI / 2); banner(16.9, 4.6, 8, -PI / 2); banner(-3.7, 6.0, -9.45, 0); banner(3.7, 6.0, -9.45, 0);
 
   // fire: braziers and a campfire. Flames are unlit and bright so they bloom.
-  const mFlame = new T.MeshBasicMaterial({ color: new T.Color(1.9, 0.75, 0.2), transparent: true, opacity: 0.92, depthWrite: false, fog: false });
+  const mFlame = new T.MeshBasicMaterial({ color: new T.Color(1.7, 0.5, 0.11), transparent: true, opacity: 0.85, depthWrite: false, fog: false });
+  // Each fire: a ragged outer flame with two side tongues, a hotter body, a small bright core and a soft halo.
+  const mMid = new T.MeshBasicMaterial({ color: new T.Color(1.9, 1.0, 0.24), transparent: true, opacity: 0.9, depthWrite: false, fog: false });
+  const mCore = new T.MeshBasicMaterial({ color: new T.Color(2.1, 1.75, 0.9), transparent: true, opacity: 0.95, depthWrite: false, fog: false });
+  const mCoal = new T.MeshBasicMaterial({ color: new T.Color(1.25, 0.3, 0.06) });
+  const mHalo = new T.SpriteMaterial({ map: TEX.glow, color: new T.Color(1.0, 0.4, 0.1), blending: T.AdditiveBlending, transparent: true, opacity: 0.45, depthWrite: false, fog: false });
+  const flameG = new T.LatheGeometry([[0.5, 0], [0.92, 0.1], [1, 0.26], [0.84, 0.46], [0.52, 0.68], [0.22, 0.86], [0, 1]].map(([a, b]) => new T.Vector2(a, b)), 8);
+  const fire = (x, y, z, s) => {
+    const ph = dr() * 6;
+    const mk = (mat, w, h, ox, oz, p, order, spark) => { const f = new T.Mesh(flameG, mat); f.position.set(x + ox * s, y, z + oz * s); f.scale.set(w * s, h * s, w * s); f.renderOrder = order; f.userData = { w: w * s, h: h * s, ph: ph + p, spark }; scene.add(f); W.flames.push(f); };
+    mk(mFlame, 0.21, 0.66, 0, 0, 0, 1, true); mk(mFlame, 0.12, 0.42, 0.13, 0.05, 2, 1); mk(mFlame, 0.11, 0.36, -0.09, -0.11, 4, 1); mk(mFlame, 0.09, 0.3, -0.06, 0.13, 5, 1);
+    mk(mMid, 0.14, 0.46, 0, 0, 1, 2); mk(mCore, 0.075, 0.26, 0, 0, 3, 3);
+    const h = new T.Sprite(mHalo); h.position.set(x, y + 0.3 * s, z); h.scale.setScalar(2.3 * s); scene.add(h);
+  };
   const brazier = (x, z, lit) => {
     add(new T.CylinderGeometry(0.1, 0.2, 1.1, 8), mDark, x, 0.55, z); add(new T.CylinderGeometry(0.46, 0.24, 0.32, 10), mDark, x, 1.25, z);
-    const f = new T.Mesh(new T.ConeGeometry(0.19, 0.6, 7), mFlame); f.position.set(x, 1.7, z); scene.add(f); W.flames.push(f); OBSTACLES.push({ x, z, r: 0.5 });
+    add(new T.TorusGeometry(0.46, 0.04, 6, 14), mDark, x, 1.41, z).rotation.x = PI / 2; add(new T.CylinderGeometry(0.26, 0.3, 0.06, 10), mDark, x, 0.03, z);
+    for (let k = 0; k < 3; k++) { const a = k * 2.094 + 0.5, lg = add(new T.CylinderGeometry(0.025, 0.035, 1.25, 5), mDark, x + Math.sin(a) * 0.22, 0.58, z + Math.cos(a) * 0.22); lg.rotation.set(Math.cos(a) * -0.3, 0, Math.sin(a) * 0.3); }
+    const co = new T.Mesh(new T.SphereGeometry(0.38, 10, 6), mCoal); co.scale.y = 0.22; co.position.set(x, 1.36, z); scene.add(co);
+    fire(x, 1.36, z, 1); OBSTACLES.push({ x, z, r: 0.5 });
     if (lit) { const l = new T.PointLight(0xff8a3c, FIRE, 15, 2); l.position.set(x, 2.3, z); scene.add(l); W.fires.push(l); }
   };
   brazier(RING.x - 5.6, RING.z - 4.4, true); brazier(RING.x + 5.6, RING.z + 4.4, true); brazier(RING.x + 5.6, RING.z - 4.4, false); brazier(RING.x - 5.6, RING.z + 4.4, false);
   brazier(-4.9, -8.3, true); brazier(4.9, -8.3, false); brazier(-5.6, 20.6, false); brazier(5.6, 20.6, true);
   for (let i = 0; i < 5; i++) add(new T.CylinderGeometry(0.09, 0.09, 1.1, 6), mWood, 9 + Math.sin(i * 1.26) * 0.3, 0.18, -2.5 + Math.cos(i * 1.26) * 0.3).rotation.set(1.2, i * 1.26, 0);
-  const cf = new T.Mesh(new T.ConeGeometry(0.3, 0.8, 7), mFlame); cf.position.set(9, 0.65, -2.5); scene.add(cf); W.flames.push(cf); OBSTACLES.push({ x: 9, z: -2.5, r: 0.7 });
+  for (let i = 0; i < 9; i++) { const a = i * 0.7 + D(-0.1, 0.1), s = D(0.14, 0.2), st = add(new T.DodecahedronGeometry(s, 0), mRock, 9 + Math.sin(a) * 0.62, s * 0.5, -2.5 + Math.cos(a) * 0.62); st.rotation.set(D(0, 3), D(0, 3), 0); }
+  { const co = new T.Mesh(new T.SphereGeometry(0.42, 10, 6), mCoal); co.scale.y = 0.2; co.position.set(9, 0.1, -2.5); scene.add(co); }
+  fire(9, 0.14, -2.5, 1.45); OBSTACLES.push({ x: 9, z: -2.5, r: 0.7 });
   const cfl = new T.PointLight(0xff8a3c, FIRE, 15, 2); cfl.position.set(9, 1.6, -2.5); scene.add(cfl); W.fires.push(cfl);
+
+  // scatter: rubble at the wall feet, pebbles, dry grass. Instanced, so three draw calls in all.
+  { const M = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), sv = V(1, 1, 1), pv = V(0, 0, 0);
+    const edge = () => { const k = (dr() * 5) | 0, o = D(0.05, 0.75) ** 1.6; return k === 0 ? [D(-17, -4.5), 22 - o] : k === 1 ? [D(4.5, 17), 22 - o] : k === 2 ? [-17 + o, D(-9.5, 22)] : k === 3 ? [17 - o, D(0, 22)] : [D(4, 17) * (dr() < 0.5 ? -1 : 1), -10 + o]; };
+    const out = () => { for (;;) { const x = D(-44, 50), z = D(-8, 58); if (!inAny(x, z, -1.6) && !(Math.abs(x) < 19.5 && z < 24.4 && z > -11)) return [x, z]; } };
+    const stones = new T.InstancedMesh(new T.DodecahedronGeometry(1, 0), mRock, 340); stones.receiveShadow = true;
+    for (let i = 0; i < 340; i++) {
+      const far = i >= 230, [x, z] = far ? out() : i < 170 ? edge() : [D(-16, 16), D(-9, 21)], s = far ? D(0.1, 0.55) : i < 170 ? D(0.05, 0.2) : D(0.03, 0.07);
+      pv.set(x, (far ? dune(x, z) : 0.02) + s * 0.3, z); q.setFromEuler(e.set(D(0, 3), D(0, 3), D(0, 3))); sv.set(s, s * D(0.5, 0.8), s * D(0.7, 1.2)); stones.setMatrixAt(i, M.compose(pv, q, sv));
+    }
+    scene.add(stones);
+    const blades = []; for (let k = 0; k < 6; k++) { const b = new T.ConeGeometry(0.035, 0.55, 3); b.translate(0, 0.27, 0); b.rotateZ(0.25 + k * 0.07); b.rotateY(k * 1.05); blades.push(b); }
+    const tufts = new T.InstancedMesh(mergeGeometries(blades), mStraw, 190); tufts.receiveShadow = true;
+    for (let i = 0; i < 190; i++) {
+      const far = i >= 80, [x, z] = far ? out() : edge(), s = far ? D(0.8, 1.8) : D(0.5, 1.0);
+      pv.set(x, far ? dune(x, z) - 0.03 : 0.02, z); q.setFromEuler(e.set(0, D(0, 6), 0)); sv.set(s, s * D(0.7, 1.3), s); tufts.setMatrixAt(i, M.compose(pv, q, sv));
+    }
+    scene.add(tufts); }
 
   // far silhouettes
   const mFar = toon(0x2a2a40);
@@ -141,7 +222,12 @@ export function buildLevel() {
   for (let i = 0; i < 1100; i++) { const a = r() * PI * 2, e = Math.asin(r() * 0.96 + 0.03); sp[i * 3] = Math.cos(e) * Math.sin(a) * 650; sp[i * 3 + 1] = Math.sin(e) * 650; sp[i * 3 + 2] = Math.cos(e) * Math.cos(a) * 650; }
   const stg = new T.BufferGeometry(); stg.setAttribute('position', new T.BufferAttribute(sp, 3));
   const stars = new T.Points(stg, new T.PointsMaterial({ color: 0xdfe6ff, size: 2.2, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false })); scene.add(stars);
-  const moon = new T.Mesh(new T.CircleGeometry(26, 32), new T.MeshBasicMaterial({ color: new T.Color(1.5, 1.6, 1.9), fog: false, transparent: true })); scene.add(moon);
+  const bp = new Float32Array(70 * 3);
+  for (let i = 0; i < 70; i++) { const a = dr() * PI * 2, e = Math.asin(dr() * 0.9 + 0.06); bp[i * 3] = Math.cos(e) * Math.sin(a) * 645; bp[i * 3 + 1] = Math.sin(e) * 645; bp[i * 3 + 2] = Math.cos(e) * Math.cos(a) * 645; }
+  const bsg = new T.BufferGeometry(); bsg.setAttribute('position', new T.BufferAttribute(bp, 3));
+  const bright = new T.Points(bsg, new T.PointsMaterial({ color: new T.Color(1.3, 1.35, 1.6), size: 7, map: TEX.glow, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); scene.add(bright);
+  const moon = new T.Mesh(new T.CircleGeometry(26, 40), new T.MeshBasicMaterial({ color: new T.Color(1.5, 1.6, 1.9), map: TEX.moon, fog: false, transparent: true })); scene.add(moon);
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: TEX.glow, color: 0x7f9cff, transparent: true, opacity: 0.3, depthWrite: false, fog: false, blending: T.AdditiveBlending })); halo.scale.setScalar(210); scene.add(halo);
 
   const hemi = new T.HemisphereLight(NIGHT.hemiS, NIGHT.hemiG, NIGHT.hemiI); scene.add(hemi);
   const sun = new T.DirectionalLight(NIGHT.sun, NIGHT.sunI); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
@@ -161,16 +247,22 @@ export function buildLevel() {
     hemi.color.copy(mixC(NIGHT.hemiS, DAWN.hemiS, u)); hemi.groundColor.copy(mixC(NIGHT.hemiG, DAWN.hemiG, u)); hemi.intensity = lerp(NIGHT.hemiI, DAWN.hemiI, u);
     sun.color.copy(mixC(NIGHT.sun, DAWN.sun, u)); sun.intensity = lerp(NIGHT.sunI, DAWN.sunI, u);
     sun.position.set(lerp(NIGHT.sunP[0], DAWN.sunP[0], u), lerp(NIGHT.sunP[1], DAWN.sunP[1], u), lerp(NIGHT.sunP[2], DAWN.sunP[2], u)).multiplyScalar(1.6);
-    stars.material.opacity = 1 - u; moon.material.opacity = 1 - u * 0.85;
-    moon.position.set(NIGHT.sunP[0], NIGHT.sunP[1], NIGHT.sunP[2]).normalize().multiplyScalar(620); moon.lookAt(0, 0, 0);
+    stars.material.opacity = bright.material.opacity = 1 - u; moon.material.opacity = 1 - u * 0.85; halo.material.opacity = 0.3 * (1 - u); mHalo.opacity = 0.45 - u * 0.2;
+    moon.position.set(NIGHT.sunP[0], NIGHT.sunP[1], NIGHT.sunP[2]).normalize().multiplyScalar(620); moon.lookAt(0, 0, 0); halo.position.copy(moon.position).multiplyScalar(1.03);
     if (G.grade) G.grade.uniforms.uWarm.value = u;
     for (const l of W.fires) l.userData.base = FIRE * (1 - u * 0.7);
   };
   W.setDawn(0);
+  const tmp = V(0, 0, 0);
   W.update = (dt, t) => {
     for (let i = 0; i < W.flames.length; i++) {
-      const f = W.flames[i]; f.scale.set(1 + Math.sin(t * 13 + i) * 0.16, 1 + Math.sin(t * 17 + i * 2) * 0.28, 1 + Math.cos(t * 11 + i) * 0.16); f.rotation.y += dt * 3;
-      if (Math.random() < dt * 5) FX.sparks.emit(f.position, 1, 0.6, 0xff9a40, 1.1, { grav: -1.6, spread: 0.12, up: 0.6 });
+      const f = W.flames[i], q = f.userData, p = q.ph;
+      f.scale.set(q.w * (1 + Math.sin(t * 13 + p) * 0.16), q.h * (1 + Math.sin(t * 17 + p * 2) * 0.24 + Math.sin(t * 31 + p) * 0.08), q.w * (1 + Math.cos(t * 11 + p) * 0.16));
+      f.rotation.y += dt * 3; f.rotation.z = Math.sin(t * 6.3 + p) * 0.11; f.rotation.x = Math.cos(t * 5.1 + p * 1.7) * 0.09;
+      if (!q.spark) continue;
+      tmp.copy(f.position).y += q.h * 0.6;
+      if (Math.random() < dt * 5) FX.sparks.emit(tmp, 1, 0.6, 0xff9a40, 1.1, { grav: -1.6, spread: 0.12, up: 0.6 });
+      if (Math.random() < dt * 1.5) { tmp.y += q.h * 0.5; FX.dust.emit(tmp, 1, 0.25, 0x2c2826, 1.8, { grav: -1.1, spread: 0.08, up: 0.7 }); }
     }
     for (let i = 0; i < W.fires.length; i++) W.fires[i].intensity = (W.fires[i].userData.base || FIRE) * (0.86 + Math.sin(t * 9 + i * 3) * 0.08 + Math.sin(t * 23 + i) * 0.06);
     for (let i = 0; i < W.banners.length; i++) W.banners[i].rotation.x = Math.sin(t * 1.3 + i * 1.7) * 0.06 + Math.sin(t * 2.9 + i) * 0.02;
