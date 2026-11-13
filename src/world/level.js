@@ -160,6 +160,10 @@ export function buildLevel() {
     for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2; flat(new T.PlaneGeometry(0.06, 0.5), Math.sin(a) * 1.58, -24 + Math.cos(a) * 1.58, -a); }
     flat(new T.RingGeometry(0.32, 0.44, 4), 0, -24, PI / 4);
     W.ward = mWard;
+    // The Door stands in a vault under the ruins, not in the Narrows: a roof and a paved floor
+    // close the canyon in, and glass veins the walls on the way up to it.
+    box(8, 0.6, 22, mDark, 0, 9.4, -19).castShadow = false; box(5.8, 0.06, 19, mDark, 0, 0.0, -18.2);
+    for (let i = 0; i < 14; i++) { const sd = i % 2 ? 1 : -1, h = Q(0.4, 1.1); shard(sd * Q(2.6, 3.0), Q(0.3, 5.5), Q(-26.5, -20), h, Q(-0.4, 0.4), -sd * Q(0.7, 1.3)); }
     for (const m of scene.children.slice(n0)) doorG.add(m);
   }
   {
@@ -178,7 +182,7 @@ export function buildLevel() {
     for (const s of [-1, 1]) { box(0.3, 0.06, 0.3, mIron, s * 1.95, 3.3, -27.0); box(0.16, 0.26, 0.16, mLamp, s * 1.95, 3.1, -27.0); box(0.22, 0.05, 0.22, mIron, s * 1.95, 2.95, -27.0); box(0.05, 0.05, 0.3, mIron, s * 1.95, 3.34, -27.1); }
     for (const m of scene.children.slice(n0)) sanctumG.add(m);
   }
-  W.setGate = (kind) => { const door = kind === 'door'; doorG.visible = door; sanctumG.visible = !door; gateL.color.setHex(door ? 0x7fe0d0 : 0xffb070); gateL.intensity = door ? 12 : 9; };
+  W.setGate = (kind) => { const door = kind === 'door'; doorG.visible = door; sanctumG.visible = !door; W.doorMode = door; if (W.applyGate) W.applyGate(); gateL.color.setHex(door ? 0x7fe0d0 : 0xffb070); gateL.intensity = door ? 12 : 9; };
   W.setGate('sanctum');
 
   // columns, tents, crates, banners
@@ -243,6 +247,7 @@ export function buildLevel() {
   };
   banner(-16.9, 4.6, 6, PI / 2); banner(-16.9, 4.6, 13.5, PI / 2); banner(16.9, 4.6, 8, -PI / 2); banner(-3.7, 6.0, -9.45, 0); banner(3.7, 6.0, -9.45, 0);
   banner(-2.5, 6.3, -27.14, 0); banner(2.5, 6.3, -27.14, 0);
+  const gateBanners = W.banners.slice(-2); // the company's colours hang at the sanctum, not at the Door
 
   // fire: braziers and a campfire. Flames are unlit and bright so they bloom.
   const mFlame = new T.MeshBasicMaterial({ color: new T.Color(1.7, 0.5, 0.11), transparent: true, opacity: 0.85, depthWrite: false, fog: false });
@@ -334,6 +339,8 @@ export function buildLevel() {
     if (G.grade) G.grade.uniforms.uWarm.value = u;
     for (const l of W.fires) l.userData.base = FIRE * (1 - u * 0.7);
   };
+  W.applyGate = () => { for (const b of gateBanners) b.visible = !W.doorMode; mRock.color.setHex(W.doorMode ? 0x6f86b8 : 0xffffff); }; // colder, darker rock in the vault
+  W.applyGate();
   W.setDawn(0);
   const tmp = V(0, 0, 0);
   W.update = (dt, t) => {
