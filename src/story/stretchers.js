@@ -6,8 +6,9 @@ import { buildHumanoid } from '../actors/rig.js';
 import { toon, clothTex } from '../gfx/materials.js';
 
 // The wounded being carried from the west tent, past the mouth, down the Narrows to the
-// sanctum. Each stretcher is two bearers and a litter. They only move while the hold
-// progresses, so they visibly stop when the captain leaves the mouth.
+// sanctum. Each stretcher is two bearers and a litter. One sets off as the hold's progress
+// reaches its slot; once on the way it walks straight through at a steady pace, even if the
+// captain leaves the mouth and the hold stalls. Only the ones still waiting are held back.
 // The route bends twice into the Narrows and keeps clear of the rocks along its west wall.
 const PATH = [[-9.2, -1.4], [-3.4, -7.0], [-1.1, -10.6], [-1.1, -27]];
 const SEG = PATH.slice(1).map((p, i) => Math.hypot(p[0] - PATH[i][0], p[1] - PATH[i][1]));
@@ -91,16 +92,21 @@ function litter() {
 export function makeStretchers(total) {
   // Stretchers two apart never share the route, so two parties serve all of them.
   const parties = [0, 1].map(() => ({ front: new Bearer(true), back: new Bearer(false), l: litter(), idx: -1, move: 0 })), pA = {}, pB = {};
+  const walk = new Float32Array(total).fill(-1); // slots walked by each stretcher since it set off; -1 while it waits
   const show = (s, on) => { s.front.setVisible(on); s.back.setVisible(on); s.l.g.visible = on; if (!on) { s.front.shadow.visible = s.back.shadow.visible = false; s.idx = -1; } };
   for (const s of parties) show(s, false);
   return {
     list: parties,
-    // progress 0..1 of the hold; dt for animation
-    update(progress, dt) {
+    // progress 0..1 of the hold; dt for animation; rate is slots per second at full pace
+    update(progress, dt, rate) {
       const slots = progress * total;
+      for (let j = 0; j < total; j++) {
+        const due = slots - (j + 1) + SPAN; // where an unbroken hold would have it
+        if (walk[j] >= 0) walk[j] = Math.max(walk[j] + dt * rate, due); else if (due > 0) walk[j] = due;
+      }
       for (let k = 0; k < parties.length; k++) {
         const s = parties[k]; let i = -1, u = 0;
-        for (let j = k; j < total; j += parties.length) { const v = (slots - (j + 1) + SPAN) / SPAN; if (v > 0 && v < 1) { i = j; u = v; break; } } // 0 as it sets off, 1 as it reaches the sanctum
+        for (let j = k; j < total; j += parties.length) { const v = walk[j] / SPAN; if (v > 0 && v < 1) { i = j; u = v; break; } } // 0 as it sets off, 1 as it reaches the sanctum
         if (i < 0) { if (s.idx >= 0) show(s, false); continue; }
         const d = u * (LEN + GAP) - GAP / 2, fresh = s.idx !== i;
         at(d + GAP / 2, pA); at(d - GAP / 2, pB);

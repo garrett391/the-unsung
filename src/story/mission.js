@@ -138,11 +138,11 @@ stage('hold', {
     const P = G.player; G.maxAtk = 2; P.hp = 100;
     const H = (G.hold = { progress: 0, far: false }); ui.holdBar(true); let spawnT = 0.5, brute = false, total = 8;
     const SX = (G.stretchers = makeStretchers(total));
-    ui.hint("Stay close to the Narrows. The stretchers can't move without cover."); let hintT = 6;
+    ui.hint('Stay close to the Narrows. No stretcher sets off without cover.'); let hintT = 6;
     const stop = d.every((dt) => {
       const far = Math.hypot(P.pos.x - MOUTH.x, P.pos.z - MOUTH.z) > 11;
-      if (!far && !P.dead) H.progress = Math.min(1, H.progress + dt / 75);
-      SX.update(H.progress, G.paused ? 0 : dt);
+      if (!far && !P.dead) H.progress = Math.min(1, H.progress + dt / 75); // 75 s of cover: also the stretchers' pace, below
+      SX.update(H.progress, G.paused ? 0 : dt, total / 75);
       if (far !== H.far) { H.far = far; ui.hint(far ? 'Get back to the Narrows!' : ''); hintT = 0; }
       if (hintT > 0 && (hintT -= dt) <= 0 && !far) ui.hint('');
       ui.objective(`Hold the Narrows: ${Math.floor(H.progress * total)}/${total} stretchers through`);
