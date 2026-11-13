@@ -39,11 +39,18 @@ G.resetWorld = (o) => {
   if (o.corin) { corin.setVisible(true); corin.place(o.corin[0], o.corin[1], o.corin[2]); corin.setMode(o.corin[3]); } else corin.setVisible(false);
 };
 
+// Saved progress: the furthest checkpoint reached, kept in this browser. The spar is
+// the first checkpoint, so only later ones are worth saving (Continue skips the tutorial).
+const SAVE = 'the-unsung.checkpoint';
+const loadSave = () => { try { const k = +localStorage.getItem(SAVE); return k > 1 && STAGES[k] && STAGES[k].checkpoint ? k : 0; } catch (_) { return 0; } };
+const writeSave = (k) => { try { localStorage.setItem(SAVE, String(k)); } catch (_) { /* storage blocked: play on without saving */ } };
+const LABEL = { raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
   director.abort(); const id = ++G.runId;
   for (let k = i; k < STAGES.length; k++) {
-    const s = STAGES[k]; G.stage = k; if (s.checkpoint) G.checkpoint = k;
+    const s = STAGES[k]; G.stage = k; if (s.checkpoint) { G.checkpoint = k; if (k > 1 && !G.auto) writeSave(k); }
     if (k === i && s.setup) s.setup();
     try { await s.run(director); } catch (e) { if (e === 'abort') return; throw e; }
     if (id !== G.runId) return;
@@ -96,12 +103,17 @@ const rows = coarse
 const help = rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('') + (coarse ? '' : '<dt>Esc / P</dt><dd>Pause</dd>');
 $('thelp').innerHTML = $('phelp').innerHTML = help;
 $('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
-function begin() {
+function begin(from = 0) {
   if (G.running) return; initAudio(); $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
-  G.running = true; G.confirm = false; G.runFrom(0);
+  G.running = true; G.confirm = false; G.runFrom(from);
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
 }
-$('tplay').addEventListener('click', begin);
+$('tplay').addEventListener('click', () => begin(0));
+const saved = loadSave();
+if (saved) {
+  const b = $('tcont'); b.style.display = ''; b.textContent = 'CONTINUE'; $('tcwhere').textContent = 'from ' + (LABEL[STAGES[saved].name] || STAGES[saved].name);
+  $('tplay').textContent = 'NEW GAME'; $('tplay').className = 'btn'; b.addEventListener('click', () => begin(saved));
+}
 
 // pause menu
 const stBtn = $('pstance'), stLabel = () => (stBtn.textContent = `CAPTAIN: ${opts.stance ? 'NEW' : 'OLD'} MOVEMENT`);

@@ -65,6 +65,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
   padding:12px 0;width:min(70vw,240px);margin:6px 0;cursor:pointer;border-radius:2px}
 .btn:hover,.btn:focus-visible{background:rgba(217,178,74,.25);outline:none}
 .btn.main{font-size:22px;padding:14px 0;margin-top:30px}
+#tcont+.sub+.btn{margin-top:22px}
 .btn.small{font-size:13px;padding:9px 0}
 #pause label{display:block;margin:18px 0 6px;font-size:14px;letter-spacing:.14em}
 #pause input[type=range]{width:min(70vw,240px);accent-color:#d9b24a}
@@ -109,6 +110,8 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 <div id="title">
   <h1>THE UNSUNG</h1>
   <p class="sub">one night at the ruins</p>
+  <button class="btn main" id="tcont" style="display:none"></button>
+  <p class="sub" id="tcwhere"></p>
   <button class="btn main" id="tplay">PLAY</button>
   <details><summary>Controls</summary><dl id="thelp"></dl></details>
 </div>
