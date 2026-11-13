@@ -165,6 +165,32 @@ export const TEX = {
     gr.addColorStop(0, 'rgba(0,0,0,.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, n, n);
   }),
 };
+// Character surfaces. Near-white, so they tint with the material color.
+// plate: brushed metal with a rolled, riveted edge and a few scratches.
+export const plateTex = canvasTex(128, (g, n) => {
+  speck(g, n, [236, 236, 236], 9, R0);
+  for (let i = 0; i < 40; i++) { g.fillStyle = R0() < 0.5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.025)'; g.fillRect(R0() * n, 0, 1 + R0() * 2, n); }
+  blotch(g, n, ['rgba(0,0,0,.05)', 'rgba(255,255,255,.07)'], 26, 6, 22);
+  for (const y of [0, n - 9]) { g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(0, y, n, 9); g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, y === 0 ? 8 : y, n, 1.5); g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(0, y === 0 ? 10 : y - 2, n, 1.5); }
+  for (let x = 8; x < n; x += 16) for (const y of [16, n - 16]) { g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.arc(x, y, 2.4, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.arc(x - 0.7, y - 0.7, 1, 0, 7); g.fill(); }
+  g.lineWidth = 1;
+  for (let k = 0; k < 16; k++) { const x = R0() * n, y = 22 + R0() * (n - 44), l = 6 + R0() * 18, a = R0() * 3; g.strokeStyle = R0() < 0.6 ? 'rgba(0,0,0,.2)' : 'rgba(255,255,255,.4)'; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+});
+// mail: offset rows of small rings.
+export const mailTex = canvasTex(32, (g, n) => {
+  g.fillStyle = '#b9b9b9'; g.fillRect(0, 0, n, n); g.lineWidth = 1.3;
+  for (let r = -1; r < 5; r++) for (let c = -1; c < 5; c++) {
+    const x = c * 8 + (r % 2 ? 4 : 0), y = r * 8 + 4;
+    g.strokeStyle = 'rgba(0,0,0,.5)'; g.beginPath(); g.arc(x, y, 3.2, 0, 7); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.65)'; g.beginPath(); g.arc(x, y, 3.2, 3.6, 5.4); g.stroke();
+  }
+}, 9, 7);
+// cloth: a fine weave with soft vertical folds.
+export const clothTex = canvasTex(64, (g, n) => {
+  speck(g, n, [232, 232, 232], 8, R0);
+  g.fillStyle = 'rgba(0,0,0,.05)'; for (let i = 0; i < n; i += 2) g.fillRect(0, i, n, 1);
+  for (const [x, w, a] of [[6, 9, 0.22], [24, 7, 0.16], [40, 10, 0.24], [56, 6, 0.14]]) { const gr = g.createLinearGradient(x - w, 0, x + w, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - w, 0, w * 2, n); g.fillStyle = 'rgba(255,255,255,.14)'; g.fillRect(x + w, 0, 2, n); }
+});
 // Heater-shield faces. 0: the captain's, 1: raider iron, 2: guard blue.
 export function shieldTex(kind) {
   const t = canvasTex(64, (g, n) => {
