@@ -12,7 +12,7 @@ A guard captain whose name has been struck from the record holds a ruined desert
 4. **Vessa, the Witches' Hand.**
 5. **Dawn**, and the Western Watch's report.
 
-Still to come: the two big cutscenes (Corin's last stand, the captain's wound), music, gamepad support and saved progress.
+Still to come: the two big cutscenes (Corin's last stand, the captain's wound), in-game music, gamepad support and saved progress.
 
 ## Controls
 
@@ -54,7 +54,8 @@ node test/playtest.mjs phone        # phone-sized touch layout
 | Path | What it holds |
 | --- | --- |
 | `src/main.js` | Boot, game loop, stage runner |
-| `src/core/` | Shared state (`game.js`), input, synthesized audio, helpers |
+| `src/core/` | Shared state (`game.js`), input, synthesized sound effects and title music, helpers |
+| `public/music/` | Music files, copied as-is into the build |
 | `src/gfx/` | Renderer and post-processing, toon materials and painted textures, particles and sword trails |
 | `src/actors/rig.js` | The procedural armored figure every character is built from |
 | `src/actors/anim.js` | Poses, attack clips and generated locomotion |

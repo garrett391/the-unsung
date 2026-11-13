@@ -9,9 +9,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..'), dist = join(root, 'dist'), shots = join(root, 'test/shots');
 const phone = process.argv[2] === 'phone', only = process.env.FROM ? +process.env.FROM : 0;
-const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css' };
+const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg' };
 const server = http.createServer(async (q, s) => {
-  try { const f = join(dist, q.url === '/' ? 'index.html' : q.url.split('?')[0]); s.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); s.end(await readFile(f)); }
+  try { const f = join(dist, q.url === '/' ? 'index.html' : q.url.split('?')[0]), d = await readFile(f); s.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); s.end(d); }
   catch { s.writeHead(404); s.end(); }
 }).listen(0);
 const port = server.address().port;

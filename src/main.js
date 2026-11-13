@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { G } from './core/game.js';
 import { PI, $ } from './core/util.js';
-import { initAudio } from './core/audio.js';
+import { initAudio, playMusic, stopMusic } from './core/audio.js';
 import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, releaseAll } from './core/input.js';
 import { initRenderer } from './gfx/renderer.js';
 import { initFx, updateFx } from './gfx/fx.js';
@@ -103,7 +103,7 @@ const help = rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('') + (coa
 $('thelp').innerHTML = $('phelp').innerHTML = help;
 $('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
 function begin(from = 0) {
-  if (G.running) return; initAudio(); $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
+  if (G.running) return; initAudio(); stopMusic(2.5); $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
   player.setVisible(true); G.running = true; G.confirm = false; G.runFrom(from);
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
 }
@@ -129,6 +129,10 @@ $('pquit').addEventListener('click', () => location.reload());
 // The title looks down the empty Narrows at the Glass Door, drifting closer; nobody is on stage yet.
 G.resetWorld({ player: [0.6, 12.5, PI], corin: null }); player.setVisible(false); player.shadow.visible = false;
 cam.shot([0.5, 1.5, -11.5], [0, 3.2, -27.8]); cam.shot([-0.3, 1.7, -18], [0, 3.3, -27.8], 70); ui.fade(0, 1.5);
+// Title music. Browsers keep sound off until the player first taps, clicks or presses a
+// key, so it is queued now and fades in on that first touch; PLAY / CONTINUE fade it out.
+playMusic(import.meta.env.BASE_URL + 'music/title.mp3');
+for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(ev, initAudio, { passive: true });
 
 // rdt is clamped at zero: the first frame can carry a timestamp earlier than this one.
 let last = performance.now();

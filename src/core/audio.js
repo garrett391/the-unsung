@@ -1,7 +1,14 @@
-// All sound is synthesized: no audio files to load.
+// Sound effects are synthesized; music is the one thing loaded from a file.
 let AC = null, master = null, nbuf = null;
 export function initAudio() {
-  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  if (AC) { if (AC.state === 'suspended') AC.resume().catch(() => {}); return; }
+  makeContext();
+  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
+}
+// Creating the context needs no gesture; it simply stays suspended (silent) until
+// initAudio() runs from a tap, click or key, which is when browsers allow sound.
+function makeContext() {
+  if (AC) return;
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     master = AC.createGain(); master.gain.value = 0.45; master.connect(AC.destination);
@@ -9,6 +16,35 @@ export function initAudio() {
     const d = nbuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   } catch (e) { AC = null; }
+}
+
+// Looping music. Played through Web Audio rather than an <audio> element so the loop
+// has no gap and it starts the moment the context is unlocked.
+const MUSIC_VOL = 0.55;
+let mus = null, musWant = false;
+export function playMusic(url) {
+  makeContext(); if (!AC || mus) return;
+  musWant = true;
+  fetch(url).then((r) => r.arrayBuffer())
+    .then((b) => new Promise((ok, no) => AC.decodeAudioData(b, ok, no)))
+    .then((buf) => {
+      if (!musWant || mus) return;
+      const src = AC.createBufferSource(), g = AC.createGain(), t = AC.currentTime;
+      src.buffer = buf; src.loop = true;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(MUSIC_VOL, t + 2.5);
+      src.connect(g); g.connect(AC.destination); src.start(t);
+      mus = { src, g };
+    })
+    .catch(() => { /* no music: the game plays on without it */ });
+}
+export function stopMusic(fade = 2.5) {
+  musWant = false;
+  if (!mus || !AC) return;
+  const { src, g } = mus, t = AC.currentTime; mus = null;
+  try {
+    g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t);
+    g.gain.linearRampToValueAtTime(0, t + fade); src.stop(t + fade + 0.05);
+  } catch (e) { /* ignore */ }
 }
 function tone(f, dur, type, vol, to, delay) {
   if (!AC) return;
