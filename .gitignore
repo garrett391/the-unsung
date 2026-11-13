@@ -1,5 +1,3 @@
 node_modules/
+dist/
 test/shots/
-test/phone/
-test/lineup/
-test/log-*.txt

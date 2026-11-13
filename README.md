@@ -1,55 +1,65 @@
 # The Unsung
 
-A fan-made vertical slice about the Hero of Time after Majora's Mask: one night as a captain of the Royal Guard, holding the ruins around the Mirror of Twilight against Twinrova's raiders. Built in Three.js to run in a browser on phones and computers.
+A third-person sword-combat game for the browser, built on three.js. This branch is a ground-up rebuild: an original setting, a new knight with a full combat system, and a cel-shaded night look.
 
-Fan-made and non-commercial. Not affiliated with or endorsed by Nintendo.
+## The first night
 
-## What's in the slice
+A guard captain whose name has been struck from the record holds a ruined desert camp for one night.
 
-- Sparring with Corin, the squire, who learns Shield Attack, Back Slice and Helm Splitter alongside the player
-- The raid, then holding the mouth of the Narrows while stretcher teams carry the wounded to the sanctum
-- Corin's Mortal Draw, and the moment after
-- Vessa, the Witches' Hand: the eye wound, the blind right side, the Ending Blow
-- Dawn, and the Western Watch's report that strikes the captain's name
+1. **Sparring** with Corin, the squire: strike, block, parry and riposte, shield bash, side roll.
+2. **The raid**: raiders come through the breach, then bronze shields.
+3. **Holding the Narrows** while the stretchers get through to the sanctum.
+4. **Vessa, the Witches' Hand.**
+5. **Dawn**, and the Western Watch's report.
+
+Still to come: the two big cutscenes (Corin's last stand, the captain's wound), music, gamepad support and saved progress.
 
 ## Controls
 
-| Action | Keyboard / mouse | Gamepad | Touch |
-| --- | --- | --- | --- |
-| Move | WASD or arrows | Left stick | Left thumb |
-| Sword (hold to charge a spin) | J or left click | B | Sword |
-| Shield (hold) | K or right click | RT | Shield |
-| Roll | Space | A | Roll |
-| Lock on | L or Tab | LT | Lock |
-| Pause | Esc | Start | II |
+| Action | Keyboard / mouse | Touch |
+| --- | --- | --- |
+| Move | W A S D | Left thumb |
+| Camera | Mouse, or Q / E | Drag the right side |
+| Strike (chain up to three) | J or left click | STRIKE |
+| Heavy (hold to charge; ends a combo) | K or right click | HEAVY |
+| Guard (tap just before a hit to parry) | L or Shift | GUARD |
+| Dodge (roll, side roll, backstep) | Space | DODGE |
+| Lock on | F or Tab | LOCK |
 
-## Build
+Combos: Strike, Heavy is a shield bash that breaks guards. Strike, Strike, Heavy is a rising cut that launches. Strike after a parry is a riposte. Strike after half a second of running is a leaping slash.
+
+## Run it
 
 ```sh
 npm install
-npm run build        # bundles src/ into dist/index.html (three.js loads from jsDelivr)
+npm run dev        # local server with hot reload
+npm run build      # static build in dist/, runs from any host or folder
 ```
-
-Open `dist/index.html` through any static server (module scripts don't run from `file://`).
 
 ## Test
 
-The playtest drives the whole slice in headless Chrome with simulated input, then saves screenshots to `test/shots/`.
+A bot plays every stage in headless Chrome and saves screenshots to `test/shots/`.
 
 ```sh
-CHROME=/path/to/chrome npm test
-npm run test:phone   # 844x390 touch layout
+npm run build && npm test
+CHROME=/path/to/chrome npm test     # if Chrome is somewhere else
+node test/playtest.mjs phone        # phone-sized touch layout
 ```
 
 ## Layout
 
 | Path | What it holds |
 | --- | --- |
-| `src/main.js` | Game object, loop, world control, screens |
-| `src/story.js` | Director (awaitable waits, tweens, dialogue) and the stages |
-| `src/actors.js` | Captain, Corin, raiders, Vessa, soldiers, stretchers |
-| `src/rig_build.js`, `src/models.js` | N64-style character models and painted textures |
-| `src/rig.js` | Procedural poses and animation |
-| `src/world.js` | Level geometry, collision, sky and lighting |
-| `src/camera.js`, `src/input.js`, `src/ui.js`, `src/minimap.js`, `src/audio.js`, `src/fx.js` | Camera, controls, HUD, minimap, synthesized audio, particles |
-| `template.html` | Page markup and styles; the build inlines the bundle here |
+| `src/main.js` | Boot, game loop, stage runner |
+| `src/core/` | Shared state (`game.js`), input, synthesized audio, helpers |
+| `src/gfx/` | Renderer and post-processing, toon materials and painted textures, particles and sword trails |
+| `src/actors/rig.js` | The procedural armored figure every character is built from |
+| `src/actors/anim.js` | Poses, attack clips and generated locomotion |
+| `src/actors/data.js` | Attack and enemy numbers: tune combat here |
+| `src/actors/player.js`, `enemy.js`, `ally.js` | The captain, raiders and Vessa, Corin |
+| `src/world/` | Level geometry, collision, sky and lighting; camera |
+| `src/story/director.js` | Awaitable waits, tweens and dialogue for stage scripts |
+| `src/story/mission.js` | The stages, written as straight-line scripts |
+| `src/ui/hud.js`, `index.html` | HUD, dialogue and the chronicle screens |
+
+The earlier proof of concept is on the `main` branch.

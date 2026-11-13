@@ -1,0 +1,100 @@
+import { G } from './game.js';
+import { clamp, $ } from './util.js';
+
+// I holds the live stick and held buttons; taps go into the player's input buffer.
+export const I = { mx: 0, my: 0, block: false, heavy: false, touch: false };
+export const keys = {};
+export const coarse = matchMedia('(pointer:coarse)').matches;
+let stick = null, look = null, mBlock = false;
+
+export function press(a) { if (G.player && G.running) G.player.buf = { a, t: G.time }; }
+export function toggleLock() { if (G.running && G.player.controlEnabled) G.player.toggleLock(); }
+export function showTouch() {
+  if (I.touch) return;
+  I.touch = true; $('touch').style.display = 'block';
+}
+// Label for an action in hints, matched to the device in use.
+export function label(a) {
+  const t = I.touch || coarse;
+  return { move: t ? 'the left thumb' : 'W A S D', l: t ? 'STRIKE' : 'J / click', h: t ? 'HEAVY' : 'K / right-click', b: t ? 'GUARD' : 'L / Shift',
+    d: t ? 'DODGE' : 'Space', k: t ? 'LOCK' : 'F' }[a];
+}
+
+export function initInput(canvas, cam) {
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Tab' || e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+    if (e.repeat) return;
+    if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyJ') G.confirm = true;
+    keys[e.code] = true;
+    if (e.code === 'KeyJ') press('l');
+    else if (e.code === 'KeyK') { I.heavy = true; press('h'); }
+    else if (e.code === 'Space') press('d');
+    else if (e.code === 'KeyF' || e.code === 'Tab') toggleLock();
+  });
+  addEventListener('keyup', (e) => { keys[e.code] = false; if (e.code === 'KeyK') I.heavy = false; });
+  addEventListener('blur', () => { for (const k in keys) keys[k] = false; I.heavy = false; });
+  document.addEventListener('pointerdown', () => { G.confirm = true; });
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  const elS = $('stick'), elK = $('knob');
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!G.running) return;
+    if (e.pointerType === 'mouse') {
+      if (e.button === 0) {
+        press('l');
+        if (document.pointerLockElement !== canvas) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
+      } else if (e.button === 2) { I.heavy = true; press('h'); }
+      else if (e.button === 1) { toggleLock(); e.preventDefault(); }
+      return;
+    }
+    showTouch();
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+    if (e.clientX < innerWidth * 0.45 && !stick) {
+      stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY };
+      elS.style.display = elK.style.display = 'block';
+      elS.style.left = elK.style.left = e.clientX + 'px'; elS.style.top = elK.style.top = e.clientY + 'px';
+    } else if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'mouse') {
+      if (document.pointerLockElement === canvas) { cam.yaw -= e.movementX * 0.0042; cam.pitch = clamp(cam.pitch + e.movementY * 0.003, 0.05, 1.1); cam.manualT = G.time; }
+      return;
+    }
+    if (stick && e.pointerId === stick.id) {
+      let dx = e.clientX - stick.ox, dy = e.clientY - stick.oy; const m = Math.hypot(dx, dy), R = 52;
+      if (m > R) { dx *= R / m; dy *= R / m; }
+      I.mx = dx / R; I.my = -dy / R; elK.style.left = stick.ox + dx + 'px'; elK.style.top = stick.oy + dy + 'px';
+    } else if (look && e.pointerId === look.id) {
+      cam.yaw -= (e.clientX - look.x) * 0.009; cam.pitch = clamp(cam.pitch + (e.clientY - look.y) * 0.005, 0.05, 1.1);
+      look.x = e.clientX; look.y = e.clientY; cam.manualT = G.time;
+    }
+  });
+  const pUp = (e) => {
+    if (e.pointerType === 'mouse') { if (e.button === 2) I.heavy = false; return; }
+    if (stick && e.pointerId === stick.id) { stick = null; I.mx = I.my = 0; elS.style.display = elK.style.display = 'none'; }
+    if (look && e.pointerId === look.id) look = null;
+  };
+  canvas.addEventListener('pointerup', pUp); canvas.addEventListener('pointercancel', pUp);
+  document.querySelectorAll('#touch button').forEach((b) => {
+    const a = b.dataset.a;
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+      b.classList.add('on');
+      if (a === 'l') press('l'); else if (a === 'h') { I.heavy = true; press('h'); } else if (a === 'd') press('d');
+      else if (a === 'b') mBlock = true; else if (a === 'k') toggleLock();
+    });
+    const up = () => { b.classList.remove('on'); if (a === 'h') I.heavy = false; if (a === 'b') mBlock = false; };
+    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+  });
+}
+
+export function pollInput(cam) {
+  if (!stick) {
+    const x = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0), y = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), m = Math.hypot(x, y) || 1;
+    I.mx = x / m; I.my = y / m;
+  }
+  I.block = mBlock || !!(keys.KeyL || keys.ShiftLeft || keys.ShiftRight);
+  const cy = (keys.KeyQ || keys.ArrowLeft ? 1 : 0) - (keys.KeyE || keys.ArrowRight ? 1 : 0);
+  if (cy) { cam.yaw += cy * 2.4 * G.rdt; cam.manualT = G.time; }
+  const cp = (keys.ArrowUp ? 1 : 0) - (keys.ArrowDown ? 1 : 0);
+  if (cp) cam.pitch = clamp(cam.pitch + cp * 1.2 * G.rdt, 0.05, 1.1);
+}
