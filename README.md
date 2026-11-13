@@ -1,6 +1,6 @@
 # The Unsung
 
-A third-person sword-combat game for the browser, built on three.js. This branch is a ground-up rebuild: an original setting, a new knight with a full combat system, and a cel-shaded night look.
+A third-person sword-combat game for the browser, built on three.js. This is a ground-up rebuild: an original setting, a new knight with a full combat system, and a cel-shaded night look.
 
 ## The first night
 
@@ -62,4 +62,4 @@ node test/playtest.mjs phone        # phone-sized touch layout
 | `src/story/mission.js` | The stages, written as straight-line scripts |
 | `src/ui/hud.js`, `index.html` | HUD, dialogue and the chronicle screens |
 
-The earlier proof of concept is on the `main` branch.
+Development happens on `main`. The earlier proof of concept is kept on the `proof-of-concept` branch.

@@ -4,7 +4,7 @@ A third-person sword-combat game for the browser, in three.js. Read `README.md` 
 
 ## Where things stand
 
-- Active branch: `rebuild`. `main` holds the old proof of concept; it will be tagged `poc` and replaced by `rebuild` after the owner's playthrough.
+- Work happens on `main` (the rebuild). The old proof of concept is preserved on the `proof-of-concept` branch; don't build on it.
 - First playable slice: one night at a ruined desert camp. Stages in `src/story/mission.js`: intro, spar (tutorial), raid, fallback, hold (the Narrows), vessa (boss), dawn.
 - Verified only by the headless bot (`npm run build && npm test`) with god mode on. Not yet hand-played. Difficulty, parry timing and the Vessa fight are untuned.
 
@@ -27,7 +27,7 @@ A third-person sword-combat game for the browser, in three.js. Read `README.md` 
 
 ## Next up (owner's call on order)
 
-- Owner's playthrough feedback, then merge `rebuild` into `main`.
+- Owner's playthrough feedback.
 - The two cutscenes not yet built: Corin's last stand (the Still Draw) during the hold, and the captain's eye wound mid-Vessa fight, which leaves him blind on the right side for phase two.
 - Art pass (tents and crates are weakest), music, gamepad, saved progress.
 
