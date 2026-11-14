@@ -8,7 +8,7 @@ import { extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..'), dist = join(root, 'dist'), shots = join(root, 'test/shots');
-const phone = process.argv[2] === 'phone', ORDER = ['halls', 'door', 'ascent', 'road', 'waystation', 'muster', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
+const phone = process.argv[2] === 'phone', ORDER = ['forecourt', 'halls', 'door', 'ascent', 'road', 'waystation', 'muster', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
 const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg' };
 const server = http.createServer(async (q, s) => {
   try { const f = join(dist, q.url === '/' ? 'index.html' : q.url.split('?')[0]), d = await readFile(f); s.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); s.end(d); }
@@ -53,9 +53,16 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
 const stageIs = (n) => `G.STAGES[G.stage].name==='${n}'`;
 const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
-await page.evaluate(([from, real]) => { G.manual = true; /* the game's own frame loop stops stepping: only play() advances it, so nothing happens during a screenshot */ G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['waystation', 'muster'].includes(ORDER[only])]);
+await page.evaluate(([from, real]) => { G.manual = true; /* the game's own frame loop stops stepping: only play() advances it, so nothing happens during a screenshot */ G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['halls', 'waystation', 'muster'].includes(ORDER[only])]);
 if (!only) {
   await play(0.3); await page.evaluate(() => { G.auto = false; }); // past the opening cards, then real timing through the prologue so the shots catch it
+  await play(3.4); await page.waitForTimeout(2500); await shot('0000a-forecourt'); /* the fade is a CSS transition, on the real clock */ await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('0000b-forecourt');
+  log('sentry', await play(60, { bot: true, god: true, until: "G.taughtStrike" })); await shot('0000c-lesson');
+  log('from the doors', await play(60, { bot: true, god: true, until: "G.cinematic" })); await play(2.2); await shot('0000d-doors');
+  log('court cleared', await play(120, { bot: true, god: true, until: "document.getElementById('obj').textContent.startsWith('Go in')" })); await shot('0000e-cleared');
+  log('in', await play(40, { bot: true, god: true, to: [-150, 44.6], until: stageIs('halls') }));
+}
+if (at('halls')) {
   await play(3.2); await page.waitForTimeout(2500); await shot('000a-gallery'); /* the fade is a CSS transition, on the real clock */ await play(30, { until: "G.enemies[0].clip" }); await play(1.1); await shot('000a2-finishing'); await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('000b-gallery');
   log('first guard', await play(60, { bot: true, god: true, until: "G.taughtDoor" })); await shot('000c-lesson');
   log('the knight', await play(90, { bot: true, god: true, until: "G.cinematic" })); await play(3.2); await shot('000d-knight');

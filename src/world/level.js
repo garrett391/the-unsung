@@ -7,6 +7,7 @@ import { FX } from '../gfx/fx.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildWaystation, roadOff } from './waystation.js';
 import { buildHalls, HALLS, GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W } from './halls.js';
+import { buildFore, FORE, FCOURT, FGATE, FDOOR } from './forecourt.js';
 
 // Layout (north = +z). A walled camp in front of a cliff. Raiders come through the
 // breach in the north wall and a gap in the east wall. South, a slot canyon
@@ -29,7 +30,8 @@ export const YARD = { x0: WAY.x - 10.9, x1: WAY.x + 10.9, z0: WAY.z - 12, z1: WA
 export const WSIDE = { x0: WAY.x - 14, x1: WAY.x + 14, z0: WAY.z + 15.0, z1: WAY.z + 21 }; // along the outside of the north wall: raiders come round to the gate from here, out of sight of the yard
 export const WROAD = { x0: WAY.x - 2.95, x1: WAY.x + 2.95, z0: WAY.z + 9.5, z1: WAY.z + 34 }; // through the gatehouse, between its leaves
 const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARROWS, BREACH, EAST], obs: [], sky: ['night', 'dawn'] }, way: { at: [WAY.x, WAY.z], player: [YARD], all: [YARD, WROAD, WSIDE], obs: [], sky: ['late', 'dusk'], shadow: 30 },
-  halls: { at: [HALLS.x, HALLS.z - 29], player: [GALLERY, ROTUNDA, DESCENT], all: [GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W], obs: [], sky: ['night', 'night'], indoor: true } }; // the halls above the vault (world/halls.js): under a roof, with their own light
+  halls: { at: [HALLS.x, HALLS.z - 29], player: [GALLERY, ROTUNDA, DESCENT], all: [GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W], obs: [], sky: ['night', 'night'], indoor: true }, // the halls above the vault (world/halls.js): under a roof, with their own light
+  fore: { at: [FORE.x, FORE.z], player: [FCOURT, FGATE, FDOOR], all: [FCOURT, FGATE, FDOOR], obs: [], sky: ['ember', 'ember'], shadow: 26, fogNear: 12 } }; // the forecourt before them (world/forecourt.js), where the game opens
 let PLAYER_AREA = SITES.ruins.player, ALL_AREA = SITES.ruins.all;
 export const OBSTACLES = []; // the current site's
 
@@ -80,6 +82,7 @@ export function route(p, t) {
     if (t.z < -10.2 && p.z > -9.4 && Math.abs(p.x) > 1.8) return [0, -8.4]; // he is in the Narrows: by its mouth, not into the cliff beside it
     return null;
   }
+  if (s === 'fore') return p.z < FORE.z - 12.9 && (t.z > FORE.z - 12.9 || Math.abs(t.x - FORE.x) > 1) ? [FORE.x, FORE.z - 11.9] : null; // out of the doorway by its middle before turning for him
   if (s !== 'halls') return null;
   // the halls: out of a side passage by its middle, and through the arches to the gallery and the descent by theirs, not along the wall beside them
   const x = p.x - HALLS.x, z = p.z - HALLS.z, tz = t.z - HALLS.z;
@@ -110,7 +113,10 @@ const MORN = { zen: 0x4f86c8, hor: 0xf1dcc0, fog: 0xdcccb4, hemiS: 0xf4f0ea, hem
 // light comes in through the gate as one bright path that lengthens toward the house as the sun drops. Warm sun,
 // cool shade from the sky, dust in the air (the fog is near and warm).
 const LATE = { zen: 0x3d5f9e, hor: 0xf3c68c, fog: 0xdcb48a, hemiS: 0xb7c6ee, hemiG: 0x94704e, hemiI: 1.55, sun: 0xffc488, sunI: 3.5, sunP: [-6, 15, 40], warm: 0.45, stars: 0, moon: 0, fire: 0.3, fogF: 100 };
-const SKIES = { night: NIGHT, dawn: DAWN, day: DAY, late: LATE, dusk: DUSK, morning: MORN };
+// The forecourt on the day the realm fell: a sky full of smoke, the sun red in the west, so its light rakes
+// across the front of the building and the west wall's shadow lies along that side of the court. Fires and the doorway do the rest.
+const EMBER = { zen: 0x1a1014, hor: 0xb5502e, fog: 0x5a3028, hemiS: 0xc89a8c, hemiG: 0x4c3a36, hemiI: 1.9, sun: 0xffa46a, sunI: 3.2, sunP: [-22, 24, 14], warm: 0.45, stars: 0, moon: 0, fire: 1, fogF: 88 };
+const SKIES = { ember: EMBER, night: NIGHT, dawn: DAWN, day: DAY, late: LATE, dusk: DUSK, morning: MORN };
 
 export function buildLevel() {
   const scene = G.scene, r = rng(1234), R = (a, b) => a + r() * (b - a);
@@ -123,7 +129,7 @@ export function buildLevel() {
   const mBanner = toon(0xffffff, { map: TEX.banner, side: T.DoubleSide, alphaTest: 0.5 });
   const V = (x, y, z) => new T.Vector3(x, y, z), UP = V(0, 1, 0);
   // The dunes start past the walls, except along the raiders' road north of the breach, which stays level.
-  const dune = (x, z) => { const road = 1 - clamp((Math.abs(x) - 5.5) / 6, 0, 1), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - lerp(26, 44, road * road * (3 - 2 * road))), d = Math.min(Math.hypot(dx, dz), Math.hypot(Math.max(WAY.x - 17 - x, 0, x - WAY.x - 17), Math.max(WAY.z - 19 - z, 0, z - WAY.z - 37)) /* the dunes come close in round the waystation's walls */); const rk = z > WAY.z + 30 ? clamp((roadOff(x - WAY.x, z - WAY.z) - 8) / 14, 0, 1) : 1; // level along the caravan road, too, out to where it is lost to sight
+  const dune = (x, z) => { const road = 1 - clamp((Math.abs(x) - 5.5) / 6, 0, 1), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - lerp(26, 44, road * road * (3 - 2 * road))), d = Math.min(Math.hypot(dx, dz), Math.hypot(Math.max(WAY.x - 17 - x, 0, x - WAY.x - 17), Math.max(WAY.z - 19 - z, 0, z - WAY.z - 37)) /* the dunes come close in round the waystation's walls */, Math.hypot(Math.max(FORE.x - 46 - x, 0, x - FORE.x - 46), Math.max(FORE.z - 60 - z, 0, z - FORE.z - 44)) /* and the forecourt and what stands round it are on the level */); const rk = z > WAY.z + 30 ? clamp((roadOff(x - WAY.x, z - WAY.z) - 8) / 14, 0, 1) : 1; // level along the caravan road, too, out to where it is lost to sight
     return rk * Math.min(1, d / 14) * (Math.sin(x * 0.045 + z * 0.02) * 3 + Math.sin(z * 0.06 - x * 0.03) * 2.2 + Math.sin(x * 0.13) * 0.8) - (d > 0 && rk > 0 ? 0.2 : 0); };
   const add = (geo, mat, x, y, z, ry) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); if (ry) m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
   const box = (w, h, d, mat, x, y, z, ry) => add(new T.BoxGeometry(w, h, d), mat, x, y, z, ry);
@@ -492,14 +498,17 @@ export function buildLevel() {
   W.kit.fire = fire; const hn0 = scene.children.length, halls = buildHalls(scene, W.kit), hallsG = new T.Group(); SITES.halls.obs = halls.obs;
   for (const m of scene.children.slice(hn0)) hallsG.add(m); scene.add(hallsG);
   const warG = new T.Group(); for (const m of halls.war) warG.add(m); hallsG.add(warG); // the war's traces: not there when he walks back up
+  // the forecourt before the halls, at its own site, gathered the same way
+  const fn0 = scene.children.length, fore = buildFore(scene, W.kit), foreG = new T.Group(); SITES.fore.obs = fore.obs;
+  for (const m of scene.children.slice(fn0)) foreG.add(m); scene.add(foreG);
   // the waystation, at its own site
   SITES.ruins.obs = OBSTACLES.slice();
   const way = buildWaystation(scene, WAY.x, WAY.z); SITES.way.obs = way.obs; W.banners.push(...way.banners);
 
   // far silhouettes
-  const mFar = toon(0x2a2a40);
+  const mFar = toon(0x2a2a40), farW = [];
   for (let i = 0; i < 16; i++) { const a = (i / 16) * PI * 2 + R(0, 0.3), d = R(170, 250), h = R(18, 46), rt = R(14, 30), rb = R(26, 44), ry = R(0, 3), x = Math.sin(a) * d, z = Math.cos(a) * d;
-    if (Math.hypot(x - WAY.x, z - WAY.z) > rb + 64) add(new T.CylinderGeometry(rt, rb, h, 7), mFar, x, h / 2 - 3, z, ry).castShadow = false; } // none on top of the waystation
+    if (Math.hypot(x - WAY.x, z - WAY.z) > rb + 64) { const m = add(new T.CylinderGeometry(rt, rb, h, 7), mFar, x, h / 2 - 3, z, ry); m.castShadow = false; if (Math.hypot(x - FORE.x, z - FORE.z) < rb + 110) farW.push(m); } } // none on top of the waystation; those that would loom over the forecourt are hidden while the game is there
 
   // sky, stars, moon
   const sg = new T.SphereGeometry(700, 24, 14); sg.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(sg.attributes.position.count * 3), 3));
@@ -551,7 +560,7 @@ export function buildLevel() {
     else if (W.setDawn) W.setDawn(W.dawn);
     // Under a roof (the halls): no ground or sky to light. The one strong light is the Door's, coming up
     // the stair at the far end and down the whole length of the halls, low, so columns and the dead throw long shadows toward him.
-    const ind = !!site.indoor; ground.visible = !ind; scene.fog.near = ind ? 9 : 26;
+    const ind = !!site.indoor; ground.visible = !ind; scene.fog.near = ind ? 9 : site.fogNear || 26;
     if (ind) {
       sun.color.setHex(0xbfe6e0); sun.intensity = 2.0; sun.position.set(site.at[0], 5.5, site.at[1] - 36); hemi.color.setHex(0x6878a0); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.85;
       scene.fog.color.setHex(0x0c131f); scene.fog.far = 62; // blue-grey and close enough to bite: the far end of a hall sinks into it
@@ -562,8 +571,8 @@ export function buildLevel() {
   // Which place the game is in: 'ruins' (the camp, the Narrows and the vault) or 'way' (the
   // waystation). o.sky overrides the site's pair of skies with one; o.muster adds the muster's dressing.
   W.setSite = (name, o = {}) => {
-    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls'; W.after = !!o.after; warG.visible = !W.after; // after: the halls as they are once the Usurper is sealed and his years never happened
-    halls.day.material.color.setRGB(...(W.after ? [1.7, 1.4, 1.0] : [0.047, 0.04, 0.035])); halls.glow.material.color.setRGB(...(W.after ? [0.02, 0.02, 0.025] : [0.2, 0.62, 0.56]));
+    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls'; foreG.visible = name === 'fore'; for (const m of farW) m.visible = name !== 'fore'; W.after = !!o.after; warG.visible = !W.after; // after: the halls as they are once the Usurper is sealed and his years never happened
+    halls.day.material.color.setRGB(...(W.after ? [2.2, 1.8, 1.3] : [0.62, 0.2, 0.09])); halls.stairL.color.setHex(W.after ? 0xffe2b8 : 0xff7a40); halls.stairL.intensity = W.after ? 12 : 16; // the head of the stair he came down: firelight from the forecourt, or daylight halls.glow.material.color.setRGB(...(W.after ? [0.02, 0.02, 0.025] : [0.2, 0.62, 0.56]));
     OBSTACLES.length = 0; OBSTACLES.push(...site.obs, ...(o.muster ? way.obsMuster : []));
     SA = SKIES[o.sky || site.sky[0]]; SB = SKIES[o.sky || site.sky[1]];
   };
@@ -589,7 +598,7 @@ export function buildLevel() {
       const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; gateL.intensity = 12 + fl * 30; sun.intensity = 2.3 + fl * 3;
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6); for (const l of W.vault.lights) l.intensity = l.userData.base * (0.85 + pulse * 0.3 + fl * 4);
     }
-    if (site.indoor) halls.update(t);
+    if (site.indoor) halls.update(t); if (site === SITES.fore) fore.update(t);
     if (site === SITES.way) way.update(t, SA === LATE ? W.dawn : SA === DUSK ? 1 : 0, sun.position.x - site.at[0], sun.position.y, sun.position.z - site.at[1]);
     if (site.indoor && W.after) { for (const m of W.vault.veined) m.emissiveIntensity = 0; }
     else if (site.indoor) { const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; sun.intensity = 2.0 + fl * 3;

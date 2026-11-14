@@ -60,7 +60,10 @@ export const TYPES = {
   brute: { name: 'BREAKER', hp: 200, speed: 2.3, poise: 6, scale: 1.4, heavy: true,
     look: { ...HELMED, armor: 0x3e3230, trim: 0x8b3a34, steel: 0x77706a, eye: 0xff5a30, weapon: 'maul', blade: 1.0, horns: 1 },
     moves: [{ style: 'over', wind: 1.0, rec: 1.2, dmg: 30, range: 3.1, lunge: 5, slam: 1.6 }] },
-  // The Usurper's guard, in the halls above the vault (prologue). The first of them is who the basics are taught on.
+  // The Usurper's guard, in the halls above the vault (prologue). The first of them is who the shield is taught on.
+  // The game's first foes, in the forecourt, where lock on and strike are taught: the least of them. Slow to swing, and it does not cost much.
+  glasssentry: { name: 'GLASS SENTRY', hp: 64, speed: 2.6, poise: 1, scale: 0.98, trail: 0x8fd8cc, look: { ...LOOKS.glass, pads: 0.8 },
+    moves: [{ style: 'slash', wind: 0.9, rec: 1.0, dmg: 8, range: 2.3, lunge: 5 }] },
   glassguard: { name: 'GLASS GUARD', hp: 60, speed: 3.3, poise: 1, scale: 1.02, trail: 0x8fd8cc, look: LOOKS.glass,
     moves: [{ style: 'slash', wind: 0.62, rec: 0.75, dmg: 14, range: 2.4, lunge: 6.5 }] },
   glassshield: { name: 'GLASS SHIELD', hp: 84, speed: 2.7, poise: 2, scale: 1.06, shield: true, trail: 0x8fd8cc, look: { ...LOOKS.glass, shield: 1 },

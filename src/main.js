@@ -47,7 +47,7 @@ G.resetWorld = (o) => {
 const SAVE = 'the-unsung.checkpoint', OLD = { 2: 'raid', 4: 'hold', 5: 'vessa' };
 const loadSave = () => { try { const v = localStorage.getItem(SAVE), k = STAGES.findIndex((s) => s.name === (OLD[v] || v)); return k > 0 && STAGES[k].checkpoint ? k : 0; } catch (_) { return 0; } };
 const writeSave = (k) => { try { localStorage.setItem(SAVE, STAGES[k].name); } catch (_) { /* storage blocked: play on without saving */ } };
-const LABEL = { door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+const LABEL = { halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
@@ -129,7 +129,8 @@ if (saved) {
   $('tplay').textContent = 'NEW GAME'; $('tplay').className = 'btn'; b.addEventListener('click', () => leave(saved));
 }
 
-// pause menu
+// pause menu: RESUME, RESTART CHECKPOINT and QUIT TO TITLE stay in view; everything else is in groups that open one at a time
+// (Options, Controls, Trials: index.html). A new setting goes in a group, not on the top level.
 const bloodBtn = $('pblood'), bloodLabel = () => (bloodBtn.textContent = `BLOOD: ${opts.blood ? 'ON' : 'OFF'}`);
 bloodLabel(); bloodBtn.addEventListener('click', () => { setBlood(!opts.blood); bloodLabel(); });
 // A trial of authored models (actors/model.js): the captain as a downloaded, textured knight
@@ -144,7 +145,7 @@ modelLabel(); modelBtn.addEventListener('click', () => G.setModel(!opts.model));
 const sens = $('psens'); sens.value = opts.sens; sens.addEventListener('input', () => setSens(+sens.value));
 G.pause = (on) => {
   if (!G.running || on === !!G.paused) return;
-  G.paused = on; releaseAll(); $('pause').style.display = on ? 'flex' : 'none'; G.confirm = false;
+  G.paused = on; releaseAll(); $('pause').style.display = on ? 'flex' : 'none'; G.confirm = false; if (on) for (const g of document.querySelectorAll('#pause details')) g.open = false;
   if (on) { if (document.pointerLockElement) document.exitPointerLock(); }
   else { last = performance.now(); if (!I.touch && !coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } } }
 };

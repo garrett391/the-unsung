@@ -6,6 +6,7 @@ import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
 import { MOUTH, RING, WAY } from '../world/level.js';
 import { HALLS } from '../world/halls.js';
+import { FORE } from '../world/forecourt.js';
 import { PZ, C, P as pose, eClip } from '../actors/anim.js';
 import { FX, shock, clearBlood, blood } from '../gfx/fx.js';
 import { coarse, opts } from '../core/input.js';
@@ -14,7 +15,7 @@ import { CL } from '../actors/anim.js';
 import { Extra } from '../actors/extra.js';
 import { LOOKS } from '../actors/data.js';
 
-// The campaign, as a list of stages: the prologue (the halls, the Glass Door, the road, the
+// The campaign, as a list of stages: the prologue (the forecourt, the halls, the Glass Door, the road, the
 // waystation, the muster), then the first night at the ruins (Act I). Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
 // the world in the state the stage expects and is only used when starting there
 // (first load, or retrying from a checkpoint).
@@ -55,9 +56,46 @@ function march(d, e, x, z, sp = 4.2) {
 }
 const settled = async (d, max = 1.5) => { const P = G.player, t0 = G.time; await d.until(() => P.state === 'loco' || G.time - t0 > max); P.state = 'loco'; P.stop(0.2); P.charge = 0; }; // let a swing play out before a scene takes him over
 
-// The halls above the vault (owner, Nov 2026): the game opens here. He comes down into a gallery
-// lined with the dead of both sides, the many who tried. The basics are taught on the first of
-// the Usurper's guard he meets (lock on, strike, shield: the lessons that used to be at the Door).
+// The forecourt (owner, Nov 2026): the game opens here, outside, before the building the halls are under.
+// The realm's last stand was made in this court and lost; the dead and the wreck of it are all that is
+// there, with one of the Usurper's sentries standing among them. Lock on and strike are taught on him,
+// and nothing else: two more come out of the doors, easy ones, and then he goes in. (A cutscene of him
+// fighting his way to the gate could open it; tabled.)
+const fx = (x, z) => [FORE.x + x, FORE.z + z], fx3 = (x, y, z) => [FORE.x + x, y, FORE.z + z];
+stage('forecourt', {
+  checkpoint: true,
+  async run(d) {
+    ui.fade(1, 0); G.resetWorld({ site: 'fore', player: [...fx(0, 17.6), PI], corin: null });
+    const P = G.player, L = G.level; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.maxAtk = 1; preloadMusic('blade', 'sealed');
+    const S = G.spawn('glasssentry', ...fx(0.5, 2.0), { spare: true }); S.hold = true; S.face = PI; // among the dead in the middle of the court, his back to the gate
+    if (!G.seenHalls) { G.seenHalls = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
+    // From outside the gate, low: he walks in under the arch, and the front of the place stands over the court.
+    cam.shot(fx3(0.9, 0.8, 21.4), fx3(0, 6.6, -13)); cam.shot(fx3(0.5, 1.4, 18.8), fx3(0, 5.6, -13), 7); ui.fade(0, 2.6);
+    await d.wait(1.2); await stroll(d, ...fx(0, 11.4), 1.5, 7); await d.wait(0.4);
+    G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; ui.objective('Reach the doors');
+    // The sentry turns when he is near. Two lessons, once (not again on a retry): he only stands there for them.
+    await d.until(() => P.dist(S) < 8 || S.hp < S.maxHp); turnTo(d, S, S.angleTo(P), 0.6).catch(() => {});
+    if (!G.taughtStrike) {
+      const beaten = () => S.hp <= 1; let n = 0, hp = S.hp; const hits = d.every(() => { if (S.hp < hp) n++; hp = S.hp; });
+      ui.hint('Lock on to the sentry with {k}'); await d.until(() => P.lock === S || n >= 3 || beaten()); // three blows without the lock: he has the idea
+      if (n < 3) { n = 0; ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); }
+      hits(); ui.hint(''); G.taughtStrike = true;
+    }
+    S.spare = false; S.hold = false; S.cd = 1.4;
+    await d.until(() => S.dead); await d.wait(0.9);
+    // Two more, out of the doors.
+    G.spawn('glasssentry', ...fx(-0.4, -15.2), { hpMul: 0.75 }); G.spawn('glasssentry', ...fx(0.4, -16.1), { hpMul: 0.75 });
+    await glance(d, ...fx(0, -13.2), { from: fx3(3.4, 2.3, -5.6), y: 1.5, hold: 2.3 });
+    await d.until(() => live() === 0);
+    ui.objective('Go in through the doors'); L.marker(...fx(0, -12.2));
+    await d.until(() => P.pos.z < FORE.z - 14.0 && Math.abs(P.pos.x - FORE.x) < 1.5);
+    L.marker(null); ui.objective(''); P.controlEnabled = false; ui.fade(1, 1.3); await d.wait(1.5);
+  },
+});
+
+// The halls above the vault (owner, Nov 2026). He comes down the stair from the forecourt into a gallery
+// lined with the dead of both sides, the many who tried. The shield is taught on the first of
+// the Usurper's guard he meets there (lock on and strike were taught outside; all three used to be taught at the Door).
 // One of the realm's knights is still alive, and tells him what they learned: the Usurper bleeds
 // and does not die, and the Door below is what he came for. Then the guard come up from the
 // rotunda in waves, and the last of them hold the head of the stair. Her lines are a draft.
@@ -74,7 +112,6 @@ stage('halls', {
     const stair = [G.spawn('glasswarden', ...hx(0, -55.0)), G.spawn('glassguard', ...hx(-1.4, -53.4)), G.spawn('glassguard', ...hx(1.4, -53.7))]; for (const e of stair) { e.hold = true; e.face = 0; } // and the last, at the head of the stair from the start: far off, against the Door's light
     const left = () => G.enemies.filter((e) => !e.dead && !e.hold).length, south = (z) => P.pos.z < HALLS.z + z;
     const loose = d.every(() => { if (stair[0].hold && south(-46.8)) { for (const e of stair) { e.hold = false; e.cd = rnd(1, 2); } G.boss = stair[0]; G.maxAtk = 2; } });
-    if (!G.seenHalls) { G.seenHalls = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
     // He comes down into the gallery, seen from the floor among the dead.
     cam.shot(hx3(1.9, 0.55, -8.6), hx3(-0.2, 1.5, -1.5)); cam.shot(hx3(1.5, 0.8, -7.6), hx3(-0.1, 1.45, -2.5), 6); ui.fade(0, 2.6);
     await d.wait(1.0); await stroll(d, ...hx(0, -3.8), 1.4, 6);
@@ -85,16 +122,15 @@ stage('halls', {
     { const at = new T.Vector3(V.pos.x, 0.35, V.pos.z), dir = new T.Vector3(V.pos.x - F.pos.x, 0, V.pos.z - F.pos.z).normalize(); SFX.big(); G.hitstop = 0.08; G.shake = 0.2; blood(at, dir, 2, true, F); V.flash = 0.8; V.play(C(0.5, [0.12, pose({ chest: [-0.3], neck: [-0.5] }, PZ.down), 'o'], [0.5, PZ.down]), 0.04); }
     await d.wait(1.5); F.stop(0.4); await d.wait(0.4);
     G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; ui.objective('Find the way down to the vault');
-    // The first guard turns from his work. The three basics, once (not again on a retry).
+    // The first guard turns from his work and comes on. The shield, once (not again on a retry): he can't be killed until two of his
+    // swings have been stopped, and then a tip says what stopping them costs.
     await d.until(() => P.dist(F) < 8.5 || F.hp < F.maxHp); turnTo(d, F, F.angleTo(P), 0.5).catch(() => {});
     const beaten = () => F.hp <= 1;
     if (!G.taughtDoor) {
-      let n = 0, hp = F.hp; const hits = d.every(() => { if (F.hp < hp) n++; hp = F.hp; });
-      ui.hint('Lock on to the guard with {k}'); await d.until(() => P.lock === F || n >= 3 || beaten());
-      if (n < 3) { n = 0; ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); }
-      hits(); n = 0; const off = G.on((k, e) => { if (k === 'struck' && (e.result === 'block' || e.result === 'parry')) n++; });
-      F.hold = false; F.cd = 1.0; ui.hint(beaten() ? '' : 'Hold {b} to raise your shield when he swings');
-      await d.until(() => n >= 2 || beaten()); off(); ui.hint(''); G.taughtDoor = true;
+      let n = 0; const off = G.on((k, e) => { if (k === 'struck' && (e.result === 'block' || e.result === 'parry')) n++; });
+      F.hold = false; F.cd = 1.0; ui.hint('Hold {b} to raise your shield when he swings');
+      await d.until(() => n >= 2 || beaten()); off(); G.taughtDoor = true;
+      const tip = 'Every blow your shield stops costs stamina'; ui.hint(n >= 2 ? tip : ''); d.wait(6).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); // (not shown if he was beaten down without a block)
     }
     F.hold = false; F.spare = false;
     await d.until(() => F.dead);
@@ -313,8 +349,10 @@ stage('ascent', {
     cam.shot(hx3(0.9, 1.5, -49.6), hx3(0, 1.4, -57)); cam.shot(hx3(1.4, 1.7, -48.2), hx3(-0.3, 2.2, -36), 6.5); ui.fade(0, 3); // from the dark stair where the light was, round to the empty halls
     await d.wait(1.6); P.face = 0; await d.wait(4.4);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true;
+    await d.until(() => P.pos.z > HALLS.z - 43.5); ui.thought('The glass is gone. ...And the dead.', 5); // as he comes out into the rotunda
     await d.until(() => P.pos.z > HALLS.z - 27.2);
-    await glance(d, ...hx(-2.95, -25.2), { from: hx3(0.9, 1.5, -22.0), y: 0.7, hold: 2.6 }); // where she sat: bare stone
+    ui.thought('She was here. ...She died here.', 5); // (owner, Nov 2026: a thought, so the look at an empty column has a reason; a draft)
+    await glance(d, ...hx(-2.95, -25.2), { from: hx3(0.9, 1.5, -22.0), y: 0.7, hold: 3.2 }); // where she sat: bare stone
     await d.until(() => P.pos.z > HALLS.z - 1.4);
     P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4); motes();
   },

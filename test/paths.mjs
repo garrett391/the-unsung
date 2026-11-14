@@ -1,5 +1,5 @@
 // Can every kind of raider get from where it spawns to the captain? Spawns each kind at each entrance
-// (the breach and the east gap at the camp; both flanks at the waystation), steps the game, and reports
+// (the breach and the east gap at the camp; both flanks at the waystation; the doors at the forecourt), steps the game, and reports
 // any that are still far from him.   npm run build && node test/paths.mjs
 import { chromium } from 'playwright-core';
 import http from 'node:http';
@@ -32,4 +32,5 @@ let bad = [];
 for (const at of [[0, 6], [0, -7.1], [-12, 16], [12, -6], [-1.8, -6.8], [9, 9], [-13, -6], [6, -8.5], [0, -20]]) bad = bad.concat(await run(`camp, captain at ${at}`, { player: [0, 8, 0], corin: null }, at, each([...BREACH, ...EAST])));
 const WAY = [[8, 135.6], [13, 139.6], [-8, 135.6], [-13, 139.6], [-8.5, 137.5], [10, 137]];
 for (const at of [[0, 120], [-9, 112], [10, 128], [0, 110.5]]) bad = bad.concat(await run(`yard, captain at ${at}`, { site: 'way', sky: 'day', player: [0, 120, 0], corin: null }, at, each(WAY)));
+for (const at of [[-150, 71], [-158, 66], [-141, 50], [-150, 62], [-144, 55.5]]) bad = bad.concat(await run(`forecourt, captain at ${at}`, { site: 'fore', player: [-150, 60, 0], corin: null }, at, [['glasssentry', [[-150.4, 44.8], [-149.6, 43.9]]]]));
 console.log(bad.length ? bad.join('\n') : 'every spawn reaches the captain'); await browser.close(); server.close(); process.exit(bad.length ? 1 : 0);

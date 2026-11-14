@@ -27,6 +27,34 @@ PZ.back2 = P({ thL: [-1.05, 0, 0.2], knL: [1.6], shL: [-0.55, 0, 0.35], elL: [-1
 PZ.crawl = P({ shL: [-2.9, 0, 0.25], elL: [-0.25], shR: [-0.5, 0, -0.8], elR: [-1.3], neck: [-0.45, -0.6, 0] }, PZ.prone); // face down, one arm reaching ahead: he was still going
 PZ.sitDead = P({ neck: [0.75, -0.2, 0.25], spine: [0.3], shL: [0.25, 0, 0.3], elL: [-0.3] }, PZ.sit); // and gone: the head down, the hand fallen from the wound
 
+// What a fight leaves on a floor: dropped arms, helms knocked off, blood, and the dead (figures posed once and
+// baked). Placed in a site's own coordinates through X and Z; `Q` is the site's dressing rng. Shared with the
+// forecourt (world/forecourt.js).
+export function wreckage(scene, X, Z, Q) {
+  const add = (geo, mat, x, y, z, ry) => { const m = new T.Mesh(geo, mat); m.position.set(X(x), y, Z(z)); if (ry) m.rotation.y = ry; m.castShadow = m.receiveShadow = !!mat.isMeshToonMaterial; scene.add(m); return m; };
+  const mSteel = toon(0xc9ccd2, { shine: 0.9 }), mGrip = toon(0x3a2c22), mGl = new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) });
+  const sword = (x, z, ry, glass, len = 0.95) => { const g = new T.Group(); g.position.set(X(x), 0.035, Z(z)); g.rotation.y = ry; scene.add(g); // len < 0.95: snapped; the rest of the blade lies somewhere near (`piece`)
+    const b = new T.Mesh(new T.BoxGeometry(0.06, 0.016, len), glass ? mGl : mSteel); b.position.z = 0.075 + len / 2; const c = new T.Mesh(new T.BoxGeometry(0.26, 0.03, 0.04), mGrip); c.position.z = 0.07; const h = new T.Mesh(new T.BoxGeometry(0.035, 0.03, 0.2), mGrip); h.position.z = -0.04; g.add(b, c, h); for (const m of [b, c, h]) m.castShadow = !glass; };
+  const piece = (x, z, ry, glass, len) => add(new T.BoxGeometry(0.06, 0.016, len), glass ? mGl : mSteel, x, 0.035, z, ry);
+  const spear = (x, z, ry, len, head = true) => { const g = new T.Group(); g.position.set(X(x), 0.03, Z(z)); g.rotation.y = ry; scene.add(g);
+    const sh = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, len, 6), mGrip); sh.rotation.x = PI / 2; sh.castShadow = true; g.add(sh);
+    if (head) { const h = new T.Mesh(new T.ConeGeometry(0.045, 0.32, 4), mSteel); h.rotation.x = PI / 2; h.position.z = len / 2 + 0.16; h.scale.x = 0.4; g.add(h); } };
+  const shieldG = (() => { const sp = new T.Shape(); sp.moveTo(-0.22, 0.27); sp.lineTo(0.22, 0.27); sp.lineTo(0.22, -0.04); sp.lineTo(0, -0.35); sp.lineTo(-0.22, -0.04); sp.closePath(); return new T.ExtrudeGeometry(sp, { depth: 0.035, bevelEnabled: false }); })();
+  const mShield = [0, 1, 2].map((k) => toon(0xffffff, { map: shieldTex(k) })); // 0 the knights', 1 the guard's iron, 2 the line's blue
+  const shield = (x, z, ry, kind, tip = 0) => add(shieldG, mShield[kind], x, 0.02 + 0.36 * Math.sin(Math.abs(tip)), z).rotation.set(-PI / 2 + tip, 0, ry); // face up; `tip` props one end on something
+  // a helm knocked off, on its side: the shell, the comb over its crown, the dark of the slit and of the inside
+  const helmG = (() => { const a = new T.CylinderGeometry(0.15, 0.16, 0.24, 16, 1, true), b = new T.SphereGeometry(0.15, 16, 8, 0, PI * 2, 0, PI / 2); a.translate(0, 0.12, 0); b.scale(1, 0.75, 1); b.translate(0, 0.24, 0); return mergeGeometries([a, b]); })();
+  const slitG = new T.CylinderGeometry(0.157, 0.157, 0.042, 10, 1, true, -0.95, 1.9), combG = new T.TorusGeometry(0.152, 0.013, 4, 10, PI), mHollow = new T.MeshBasicMaterial({ color: 0x08080c }), mHelm = new Map();
+  const helm = (x, z, ry, look) => { if (!mHelm.has(look)) mHelm.set(look, [toon(look.armor, { map: plateTex, shine: 0.55 }), toon(look.trim, { shine: 0.55 })]); const [mA, mT] = mHelm.get(look);
+    const g = new T.Group(), h = new T.Group(); g.position.set(X(x), 0.158, Z(z)); g.rotation.y = ry; h.rotation.set(-0.7, 0, PI / 2); g.add(h); scene.add(g);
+    const sh = new T.Mesh(helmG, mA), sl = new T.Mesh(slitG, mHollow), cb = new T.Mesh(combG, mT), bt = new T.Mesh(new T.CircleGeometry(0.158, 16), mHollow); sh.castShadow = true;
+    sl.position.y = 0.165; cb.position.y = 0.24; cb.rotation.y = PI / 2; cb.scale.y = 0.78; bt.rotation.x = PI / 2; bt.position.y = 0.004; h.add(sh, sl, cb, bt); };
+  const mBlood = new T.MeshBasicMaterial({ color: 0x2a0709, transparent: true, opacity: 0.86, depthWrite: false });
+  const pool = (x, z, s) => { for (let k = 0; k < 3; k++) { const m = new T.Mesh(new T.CircleGeometry(s * Q(0.35, 0.7), 14), mBlood); m.rotation.x = -PI / 2; m.scale.set(1, Q(0.6, 1), 1); m.rotation.z = Q(0, 3); m.position.set(X(x + (k ? Q(-0.5, 0.5) * s : 0)), 0.02 + k * 0.001, Z(z + (k ? Q(-0.5, 0.5) * s : 0))); m.renderOrder = 1; scene.add(m); } };
+  const body = (look, pose, x, z, face, o = {}) => { const f = bakeFigure(look, pose, o.scale || 1); f.position.set(X(x), 0, Z(z)); f.rotation.y = face; scene.add(f); if (!o.dry) pool(x + Math.sin(face) * 0.5, z + Math.cos(face) * 0.5, o.pool || 0.9); };
+  return { sword, piece, spear, shield, helm, pool, body };
+}
+
 export function buildHalls(scene, kit) {
   const obs = [], q = rng(57), Q = (a, b) => a + q() * (b - a), X = (x) => HALLS.x + x, Z = (z) => HALLS.z + z;
   const { tex, ashlar, paving, veinTex, vmat, cluster, shard, mVault, mVaultD, mInside, mIron, still } = kit;
@@ -71,11 +99,18 @@ export function buildHalls(scene, kit) {
   // ---- the gallery
   const GH = 3.6, GS = 4.6;
   hall(1.4, -30, GH, GS, { veins: 7, seed: 31, bays: [-2.5, -7.5, -12.5, -17.5, -22.5, -27.5] });
-  { // the north end: the stair he came down, dark
-    still(add(new T.PlaneGeometry(GH * 2, GS + GH + 0.4), toon(0xffffff, { map: tex(ashlar, 1.8, 3.2) }), 0, (GS + GH + 0.4) / 2, 1.4, PI));
-    const sp = new T.Shape(); sp.moveTo(-1.1, 0); sp.lineTo(1.1, 0); sp.lineTo(1.1, 2.4); sp.absarc(0, 2.4, 1.1, 0, PI); sp.lineTo(-1.1, 0);
-    day = new T.Mesh(new T.ShapeGeometry(sp, 16), new T.MeshBasicMaterial({ color: 0x0c0a09, fog: false })); day.position.set(X(0), 0.04, Z(1.37)); day.rotation.y = PI; scene.add(day);
-    still(add(new T.TorusGeometry(1.22, 0.17, 8, 22, PI), mVault, 0, 2.4, 1.35)); for (const sd of [-1, 1]) add(new T.CylinderGeometry(0.17, 0.17, 2.4, 12), mVault, sd * 1.22, 1.2, 1.35);
+  let stairL;
+  { // the north end: the stair he came down. The arch opens on a flight of steps climbing to the forecourt, lit from the top:
+    // by the fires outside while the war is on, by daylight afterwards (`day` is the opening at the head of it, `stairL` its light).
+    wall(GH * 2, GS + GH + 0.4, 1.1, 2.4, 0, 1.4, PI, mWall()); for (const sd of [-1, 1]) add(new T.CylinderGeometry(0.17, 0.17, 2.4, 12), mVault, sd * 1.22, 1.2, 1.35);
+    const N = 13, RISE = 0.22, RUN = 0.5, top = N * RISE, z1 = 1.4 + N * RUN, parts = [];
+    for (let k = 0; k < N; k++) { const g = new T.BoxGeometry(2.3, RISE * (k + 1), RUN); g.translate(X(0), RISE * (k + 1) / 2, Z(1.4 + RUN * (k + 0.5))); parts.push(g); }
+    { const m = new T.Mesh(mergeGeometries(parts), mVaultD); m.receiveShadow = true; scene.add(m); }
+    for (const sd of [-1, 1]) still(add(new T.PlaneGeometry(N * RUN, top + 3.6), mStoneD, sd * 1.12, (top + 3.6) / 2, (1.4 + z1) / 2, -sd * PI / 2));
+    { const l = Math.hypot(N * RUN, top), c = still(add(new T.PlaneGeometry(2.3, l), mStoneD, 0, top / 2 + 3.3, (1.4 + z1) / 2)); c.rotation.x = PI / 2 - Math.atan2(top, N * RUN); } // the roof of the flight, sloping with it
+    const sky = canvasTex(32, (g, n) => { const gr = g.createLinearGradient(0, 0, 0, n); gr.addColorStop(0, '#3a3a3a'); gr.addColorStop(0.55, '#c8c8c8'); gr.addColorStop(1, '#ffffff'); g.fillStyle = gr; g.fillRect(0, 0, n, n); }); // brightest low down, as a sky is
+    day = new T.Mesh(new T.PlaneGeometry(2.3, 3.5), new T.MeshBasicMaterial({ color: 0x0c0a09, map: sky, fog: false })); day.position.set(X(0), top + 1.7, Z(z1)); day.rotation.y = PI; scene.add(day);
+    stairL = new T.PointLight(0xff7a40, 5, 12, 2); stairL.position.set(X(0), top * 0.6 + 2.2, Z(1.4 + N * RUN * 0.6)); scene.add(stairL);
   }
   // ---- the rotunda: four walls with their openings, a ceiling with a dome let into it, four standing columns
   const RW = 8, RH = 8.9, RC = -38;
@@ -174,28 +209,9 @@ export function buildHalls(scene, kit) {
     for (let i = 0; i < 46; i++) { const z = -Q(1, 57), hw = (z > -30 ? GH : z > -46 ? RW : 2.6) - 0.3, x = (q() < 0.7 ? (q() < 0.5 ? -1 : 1) * (hw - Q(0, 0.8)) : Q(-hw, hw)), s = Q(0.06, 0.24), g = new T.DodecahedronGeometry(s, 0);
       g.applyMatrix4(M.makeRotationFromEuler(e.set(Q(0, 3), Q(0, 3), 0)).setPosition(X(x), s * 0.5, Z(z))); parts.push(g); }
     const m = new T.Mesh(mergeGeometries(parts), mVault); m.castShadow = m.receiveShadow = true; scene.add(m); }
-  const mSteel = toon(0xc9ccd2, { shine: 0.9 }), mGrip = toon(0x3a2c22), mGl = new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) });
-  const sword = (x, z, ry, glass, len = 0.95) => { const g = new T.Group(); g.position.set(X(x), 0.035, Z(z)); g.rotation.y = ry; scene.add(g); // len < 0.95: snapped; the rest of the blade lies somewhere near (`piece`)
-    const b = new T.Mesh(new T.BoxGeometry(0.06, 0.016, len), glass ? mGl : mSteel); b.position.z = 0.075 + len / 2; const c = new T.Mesh(new T.BoxGeometry(0.26, 0.03, 0.04), mGrip); c.position.z = 0.07; const h = new T.Mesh(new T.BoxGeometry(0.035, 0.03, 0.2), mGrip); h.position.z = -0.04; g.add(b, c, h); for (const m of [b, c, h]) m.castShadow = !glass; };
-  const piece = (x, z, ry, glass, len) => add(new T.BoxGeometry(0.06, 0.016, len), glass ? mGl : mSteel, x, 0.035, z, ry);
-  const spear = (x, z, ry, len, head = true) => { const g = new T.Group(); g.position.set(X(x), 0.03, Z(z)); g.rotation.y = ry; scene.add(g);
-    const sh = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, len, 6), mGrip); sh.rotation.x = PI / 2; sh.castShadow = true; g.add(sh);
-    if (head) { const h = new T.Mesh(new T.ConeGeometry(0.045, 0.32, 4), mSteel); h.rotation.x = PI / 2; h.position.z = len / 2 + 0.16; h.scale.x = 0.4; g.add(h); } };
-  const shieldG = (() => { const sp = new T.Shape(); sp.moveTo(-0.22, 0.27); sp.lineTo(0.22, 0.27); sp.lineTo(0.22, -0.04); sp.lineTo(0, -0.35); sp.lineTo(-0.22, -0.04); sp.closePath(); return new T.ExtrudeGeometry(sp, { depth: 0.035, bevelEnabled: false }); })();
-  const mShield = [0, 1, 2].map((k) => toon(0xffffff, { map: shieldTex(k) })); // 0 the knights', 1 the guard's iron, 2 the line's blue
-  const shield = (x, z, ry, kind, tip = 0) => add(shieldG, mShield[kind], x, 0.02 + 0.36 * Math.sin(Math.abs(tip)), z).rotation.set(-PI / 2 + tip, 0, ry); // face up; `tip` props one end on something
-  // a helm knocked off, on its side: the shell, the comb over its crown, the dark of the slit and of the inside
-  const helmG = (() => { const a = new T.CylinderGeometry(0.15, 0.16, 0.24, 16, 1, true), b = new T.SphereGeometry(0.15, 16, 8, 0, PI * 2, 0, PI / 2); a.translate(0, 0.12, 0); b.scale(1, 0.75, 1); b.translate(0, 0.24, 0); return mergeGeometries([a, b]); })();
-  const slitG = new T.CylinderGeometry(0.157, 0.157, 0.042, 10, 1, true, -0.95, 1.9), combG = new T.TorusGeometry(0.152, 0.013, 4, 10, PI), mHollow = new T.MeshBasicMaterial({ color: 0x08080c }), mHelm = new Map();
-  const helm = (x, z, ry, look) => { if (!mHelm.has(look)) mHelm.set(look, [toon(look.armor, { map: plateTex, shine: 0.55 }), toon(look.trim, { shine: 0.55 })]); const [mA, mT] = mHelm.get(look);
-    const g = new T.Group(), h = new T.Group(); g.position.set(X(x), 0.158, Z(z)); g.rotation.y = ry; h.rotation.set(-0.7, 0, PI / 2); g.add(h); scene.add(g);
-    const sh = new T.Mesh(helmG, mA), sl = new T.Mesh(slitG, mHollow), cb = new T.Mesh(combG, mT), bt = new T.Mesh(new T.CircleGeometry(0.158, 16), mHollow); sh.castShadow = true;
-    sl.position.y = 0.165; cb.position.y = 0.24; cb.rotation.y = PI / 2; cb.scale.y = 0.78; bt.rotation.x = PI / 2; bt.position.y = 0.004; h.add(sh, sl, cb, bt); };
-  const mBlood = new T.MeshBasicMaterial({ color: 0x2a0709, transparent: true, opacity: 0.86, depthWrite: false });
-  const pool = (x, z, s) => { for (let k = 0; k < 3; k++) { const m = new T.Mesh(new T.CircleGeometry(s * Q(0.35, 0.7), 14), mBlood); m.rotation.x = -PI / 2; m.scale.set(1, Q(0.6, 1), 1); m.rotation.z = Q(0, 3); m.position.set(X(x + (k ? Q(-0.5, 0.5) * s : 0)), 0.02 + k * 0.001, Z(z + (k ? Q(-0.5, 0.5) * s : 0))); m.renderOrder = 1; scene.add(m); } };
+  const { sword, piece, spear, shield, helm, body } = wreckage(scene, X, Z, Q);
   // Looks: the realm's knights wear what he wears (he is one of them); its line soldiers are in plain steel; the Usurper's guard in pale plate with glass in it.
   const KNIGHT = LOOKS.captain, LINE = LOOKS.line, GLASS = LOOKS.glass;
-  const body = (look, pose, x, z, face, o = {}) => { const f = bakeFigure(look, pose, o.scale || 1); f.position.set(X(x), 0, Z(z)); f.rotation.y = face; scene.add(f); if (!o.dry) pool(x + Math.sin(face) * 0.5, z + Math.cos(face) * 0.5, o.pool || 0.9); };
   const D = PZ.d2, B = PZ.down, PR = PZ.prone;
   [ [KNIGHT, D, -2.3, -3.6, 2.2], [GLASS, B, 1.9, -5.2, 0.6], [LINE, D, 2.6, -9.4, -1.9], [LINE, B, -2.6, -10.6, 1.1], [GLASS, PR, 0.9, -11.8, 2.8], [GLASS, D, -1.4, -15.8, -0.5],
     [KNIGHT, B, 2.5, -17.2, -2.4], [LINE, D, -2.7, -19.6, 0.4], [GLASS, B, 2.4, -22.0, 1.9], [GLASS, D, 0.4, -20.6, -2.9], [KNIGHT, PR, 1.7, -27.3, 3.0], [GLASS, D, -1.6, -28.8, 1.4],
@@ -213,5 +229,5 @@ export function buildHalls(scene, kit) {
   sword(-1.6, -9.3, 2.0, false, 0.4); piece(-0.8, -10.2, 0.5, false, 0.5); sword(2.6, -25.6, -0.7, true, 0.35); piece(1.9, -26.3, 1.9, true, 0.55); sword(5.6, -43.9, 1.2, false, 0.45); piece(4.7, -44.5, -0.4, false, 0.45); sword(-4.2, -42.9, 2.8, true);
   spear(-2.9, -12.0, 0.2, 2.3); spear(2.2, -30.2, 1.3, 1.0, false); spear(3.1, -31.2, 2.4, 1.1); spear(-6.6, -36.0, -0.3, 2.3); spear(1.6, -50.3, 0.15, 2.3);
   sword(-0.9, -4.6, 0.8); sword(2.1, -13.3, 2.6); sword(1.0, -6.6, 1.7, true); sword(-2.0, -17.0, -1.2, true); sword(-0.6, -24.6, 2.2); sword(3.4, -37.6, 0.3, true); sword(-3.9, -39.7, -2.0); sword(0.8, -51.0, 1.1);
-  return { obs, lights, cold, day, glow, update, war: scene.children.slice(w0) };
+  return { obs, lights, cold, day, glow, stairL, update, war: scene.children.slice(w0) };
 }
