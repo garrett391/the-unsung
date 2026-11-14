@@ -110,11 +110,20 @@ function begin(from = 0) {
   player.setVisible(true); G.running = true; G.confirm = false; G.runFrom(from);
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
 }
-$('tplay').addEventListener('click', () => begin(0));
+// NEW GAME and CONTINUE fade the title out to black before the game starts, so the first
+// card (or the checkpoint) comes up out of the dark instead of cutting in.
+let leaving = false;
+function leave(from) {
+  if (leaving || G.running) return; leaving = true; initAudio();
+  const t = $('title'); t.style.transition = 'opacity .9s'; t.style.opacity = 0; t.style.pointerEvents = 'none'; ui.fade(1, 0.9);
+  if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } } // asked for now, while the click still counts
+  setTimeout(() => begin(from), 1000);
+}
+$('tplay').addEventListener('click', () => leave(0));
 const saved = loadSave();
 if (saved) {
   const b = $('tcont'); b.style.display = ''; b.textContent = 'CONTINUE'; $('tcwhere').textContent = 'from ' + (LABEL[STAGES[saved].name] || STAGES[saved].name);
-  $('tplay').textContent = 'NEW GAME'; $('tplay').className = 'btn'; b.addEventListener('click', () => begin(saved));
+  $('tplay').textContent = 'NEW GAME'; $('tplay').className = 'btn'; b.addEventListener('click', () => leave(saved));
 }
 
 // pause menu

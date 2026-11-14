@@ -43,7 +43,7 @@ stage('door', {
   async run(d) {
     const P = G.player; G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
     const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.face = 0; U.hp = U.maxHp * 0.36; // most of the fight is behind them
-    if (!G.seenDoor) { G.seenDoor = true; await d.chronicle('Prologue', ['Before the war, the Usurper tried to take the realm.'], TAP); ui.chronClose(); } // one line of footing, once; not again on a retry
+    if (!G.seenDoor) { G.seenDoor = true; await d.chronicle('Prologue', ['Before the war, the Usurper tried to take the realm.', 'One man stopped him, in a vault under the desert ruins.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
     cam.shot([-1.1, 1.25, -21.6], [0.3, 1.75, -23.2]); // on him first: bent over, breathing hard, the Door at his back
     await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 4.2);
     await d.wait(4);
