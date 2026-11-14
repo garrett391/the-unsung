@@ -37,16 +37,17 @@ Owner's direction: melancholy over adventurous. Instrumental only, no singing.
 
 ## The waystation and the muster (Nov 2026)
 
-No track was made for these; they borrow, so that nothing is silent (owner's request). All unheard.
+Three tracks the owner made from the prompts below (Gemini), in the prompts' order. Each had about 2 s of silence at the end, cut so it loops (with a 60 ms fade against a click), and was re-encoded at 128 kbps. Their loudness already matched the others (about -12 LUFS), so the levels were left alone. All unheard: the owner's ear decides.
 
-- The raid on the yard: "The Weight of Granite" (owner: for variety; it used to be "A Blade For The Weary"). The horn sounds alone for about three seconds, then the track comes in low (`vol: 0.4`) under the guard being cut down, and `musicVol(1, 2.5)` brings it up to full when his hand closes on the sword.
-- After the yard fight, the officer's column: the title theme, "Nightfall Over Dunes", a little under full (`vol: 0.8`). It carries on into the muster.
-- The muster: the title theme under the talk; "A Blade For The Weary" for the bout (his own fighting music, which is what the officer wants the sergeant to see); the title theme again when the sergeant yields, through the clerk's table and on under the Act I cards, where "Beneath the Flagstones" takes over as before.
-- `musicVol(vol, dur)` in `audio.js` raises or lowers the playing track without restarting it.
+- "Twilight at the Well" (`well`, 62.4 s, looped): the yard. It comes in with the opening shot of the waystation, returns under the officer's column after the fight, and plays through the muster's talk and the clerk's table and on under the Act I cards, where "Beneath the Flagstones" takes over.
+- "Iron Hinges, Silent" (`hinges`, 57.5 s, looped): from about three seconds after the horn until his hand closes on the sword. The prompt asked for a slow tightening; the measured loudness is nearly flat (about -15 dB throughout, a little up past the halfway mark), so it is a held tension, not a build.
+- "The Measure of a Blade" (`measure`, 2 min 58.6 s, looped): the muster's bout. It has a quiet passage of about 10 s a little past the two-minute mark.
+- The raid itself, from the sword on: "The Weight of Granite" (owner: for variety; it used to be "A Blade For The Weary").
+- `musicVol(vol, dur)` in `audio.js` raises or lowers the playing track without restarting it (unused for now).
 
 ### Prompts for tracks of their own (for Gemini, or any music tool)
 
-Same palette and key as the rest. Each leads with "Instrumental, no vocals" and stays short, which is what has worked.
+These made the three tracks above. Same palette and key as the rest. Each leads with "Instrumental, no vocals" and stays short, which is what has worked.
 
 **The yard** (the waystation at the end of a working day; after the fight; the muster's talk and the clerk's table). Replaces the borrowed title theme. Loop, 60 to 90 s.
 
