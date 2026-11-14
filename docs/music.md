@@ -25,7 +25,12 @@ Owner's direction: melancholy over adventurous. Instrumental only, no singing.
 - File: `public/music/sealed.mp3` (the owner's track, whole, 128 kbps; 59 s, played once). `playMusic('sealed', { loop: false })`.
 - Starts when the Usurper is beaten the second time and is dragged to the Door. It opens very quietly and builds, so it carries the sealing, the parting line and the cards of the road; whatever is left fades as the spar begins.
 
-Tracks are named in `TRACKS` in `src/core/audio.js`; one plays at a time and a new one fades the old out under it. A decoded track is large (about 60 MB for the three-minute one): `forgetMusic()` drops the ones not playing, and a long track could be cut down to a loop if phones struggle.
+## Act I: "Beneath the Flagstones"
+
+- File: `public/music/flagstones.mp3` (the owner's track, 128 kbps; the 1.5 s of silence at the start and 2.1 s at the end were cut so it loops without a gap: 57.55 s, looped). `actOne()` in `src/story/mission.js` plays it.
+- Fades in over the Act I cards and loops through the whole first night, the Vessa fight and the dawn report included. Every Act I stage asks for it, so CONTINUE and retries from a checkpoint have it too.
+
+Tracks are named in `TRACKS` in `src/core/audio.js`; one plays at a time. A new one waits for the old one to fade out, then fades in. A decoded track is large (about 60 MB for the three-minute one): `forgetMusic()` drops the ones not playing, and a long track could be cut down to a loop if phones struggle.
 
 For new tracks (in-game music, stingers for the lesson, Corin's fall, dawn), keep the same palette and key so they sit together.
 

@@ -24,9 +24,9 @@ function makeContext() {
 // a source started while it is still suspended stutters as the context wakes. One track plays
 // at a time; asking for another fades the current one out first, and the new one fades in after it.
 const BASE = import.meta.env.BASE_URL, MUSIC_VOL = 0.55;
-export const TRACKS = { title: 'music/title.mp3', blade: 'music/blade.mp3', sealed: 'music/sealed.mp3' };
+export const TRACKS = { title: 'music/title.mp3', blade: 'music/blade.mp3', sealed: 'music/sealed.mp3', flagstones: 'music/flagstones.mp3' };
 const bufs = new Map(); // name -> AudioBuffer, or the promise of one
-let mus = null, want = null;
+let mus = null, want = null, quietAt = 0; // quietAt: when the last track faded out will be silent
 function loadTrack(name) {
   if (!bufs.has(name)) bufs.set(name, fetch(BASE + TRACKS[name]).then((r) => r.arrayBuffer())
     .then((b) => new Promise((ok, no) => AC.decodeAudioData(b, ok, no)))
@@ -45,14 +45,15 @@ function startMusic() {
   if (!w.loop) src.onended = () => { if (mus && mus.src === src) { mus = null; want = null; } };
 }
 function fadeOut(fade) { // returns when the track will be silent
-  if (!mus || !AC) return 0;
+  if (!mus || !AC) return quietAt;
   const { src, g } = mus, t = AC.currentTime; mus = null;
   try {
-    // Fade from wherever the volume is now, including part-way through the fade-in.
-    if (g.gain.cancelAndHoldAtTime) g.gain.cancelAndHoldAtTime(t); else { const v = g.gain.value; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(v, t); }
+    // Fade from wherever the volume is now, including part-way through the fade-in. Not
+    // cancelAndHoldAtTime: in Chrome it drops a finished fade-in to half volume at once.
+    const v = g.gain.value; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(v, t);
     g.gain.linearRampToValueAtTime(0, t + fade); src.stop(t + fade + 0.05);
   } catch (e) { /* ignore */ }
-  return t + fade;
+  return (quietAt = t + fade);
 }
 // playMusic('blade', { loop, fade: seconds to come in, cross: seconds for the old track to go out first, vol })
 export function playMusic(name, o = {}) {

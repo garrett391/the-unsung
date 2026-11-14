@@ -20,6 +20,9 @@ const TAP = coarse ? 'TAP TO CONTINUE' : 'CLICK OR PRESS SPACE';
 const live = () => G.enemies.filter((e) => !e.dead).length;
 const breach = () => [rnd(-2.6, 2.6), rnd(29, 36)]; // out on the raiders' road, beyond the wall
 const east = () => [rnd(22, 26), rnd(-4, -2)];
+// Act I's music ("Beneath the Flagstones"): whatever is playing fades out, then it fades in and loops
+// through the night. Every Act I stage asks for it, so a retry or CONTINUE has it too; asking while it plays does nothing.
+const actOne = () => playMusic('flagstones', { cross: 3, fade: 4 });
 // Turn the camera to something the player needs to know about (a wave coming in, where to go),
 // hold on it for a moment, then hand it back. The captain can't act or be hurt meanwhile.
 async function glance(d, x, z, o = {}) {
@@ -172,7 +175,7 @@ stage('door', {
 stage('road', {
   async run(d) {
     G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); // behind a black screen: the camp, ready for the intro
-    G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false; G.freezeAI = false;
+    G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false; G.freezeAI = false; preloadMusic('flagstones');
     await d.chronicle('The road', [
       'He walked out into a world where nothing had happened.',
       'A caravan passed him on the road. No one looked twice.',
@@ -189,7 +192,7 @@ stage('road', {
 stage('intro', {
   setup() { G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); },
   async run(d) {
-    G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); cam.shot([7, 5, 27], [0, 1.6, 8]);
+    G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); cam.shot([7, 5, 27], [0, 1.6, 8]); actOne(); // it comes in over the Act I cards
     G.player.controlEnabled = false; // nothing moves until the cards are read and Corin has spoken
     await d.chronicle('Act I: The Western Watch', [
       'He served on the frontier with the Third Company, and rose to captain, because he was the one who kept people alive.',
@@ -211,7 +214,7 @@ stage('spar', {
       n = 0; C.setMode(mode, want); const off = count(kind); const tick = d.every(() => ui.objective(need > 1 ? `${objective} (${Math.min(n, need)}/${need})` : objective));
       ui.hint(hint); await d.until(() => n >= need); off(); tick(); ui.hint(''); await d.wait(0.7);
     };
-    stopMusic(18); forgetMusic(); // whatever carried through the cards (the sealing's music, or the title theme on CONTINUE) dies away as the lesson begins
+    actOne(); forgetMusic(); // the earlier tracks are no longer needed
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; // talk() holds him still, then hands control back
     await d.talk([
       ['Corin', 'Captain! You promised me one lesson before the night watch.'],
@@ -251,7 +254,7 @@ stage('raid', {
   checkpoint: true,
   setup() { G.resetWorld({ player: [0.6, 8, 0], corin: [-1.4, 8.4, 0, 'battle'] }); cam.behind(); ui.fade(0, 0.6); },
   async run(d) {
-    const C = G.corin; G.spar = false; G.maxAtk = 1;
+    const C = G.corin; G.spar = false; G.maxAtk = 1; actOne();
     await d.talk([['Corin', 'Raiders at the breach!'], ['Captain', 'Corin. Guard my right side.'], ['Corin', 'Always, Captain.']]);
     C.setMode('battle'); ui.objective('Drive back the raiders'); ui.hint('Lock on with {k} to keep a raider in front of you');
     for (let i = 0; i < 3; i++) G.spawn('raider', ...breach());
@@ -289,7 +292,7 @@ stage('hold', {
   checkpoint: true,
   setup() { G.resetWorld({ player: [0, MOUTH.z + 1.5, 0], corin: [-1.8, MOUTH.z + 1.8, 0, 'battle'] }); cam.behind(); ui.fade(0, 0.6); },
   async run(d) {
-    const P = G.player; G.maxAtk = 2; P.hp = 100;
+    const P = G.player; G.maxAtk = 2; P.hp = 100; actOne();
     const H = (G.hold = { progress: 0, far: false }); ui.holdBar(true); let spawnT = 0.5, brute = false, total = 8;
     const SX = (G.stretchers = makeStretchers(total));
     ui.hint('Stay close to the Narrows. No stretcher sets off without cover.'); let hintT = 6;
@@ -316,7 +319,7 @@ stage('vessa', {
   checkpoint: true,
   setup() { G.resetWorld({ player: [0, MOUTH.z + 1.5, 0], corin: null }); cam.behind(); ui.fade(0, 0.6); },
   async run(d) {
-    const P = G.player, C = G.corin; ui.objective('');
+    const P = G.player, C = G.corin; ui.objective(''); actOne();
     for (const e of G.enemies) e.flee();
     if (C.root.visible) {
       await d.talk([['Soldier', 'The last stretcher is through! Captain, fall back!'], ['Captain', 'Corin. Go with them. Bar the gate behind you.'], ['Corin', 'Captain, I...'], ['Captain', 'That was not a request.']]);

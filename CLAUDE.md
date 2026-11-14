@@ -56,7 +56,8 @@ A third-person sword-combat game for the browser, in three.js. Read `README.md` 
 - Foes that the story needs alive are spawned with `{ spare: true }`: their hp stops at 1 and the stage script ends the fight (`until(() => V.hp <= 1)`). Vessa now withdraws at dawn instead of dying, so she can recur. The struck-out name is gone from the cards and the dawn report.
 - Saves store the stage's name, not its index (old numeric saves are mapped in `main.js`). Don't rename a checkpoint stage. Every checkpoint after the first is saved.
 - Playtest: `FROM=<stage name> npm test` starts at that stage; `TO=door npm test` stops after the prologue.
-- In-game music beyond the prologue (Act I has none yet), gamepad.
+- Act I music (Nov 2026): "Beneath the Flagstones" (`flagstones`) fades in over the Act I cards and loops through the night (`actOne()` in `mission.js`, called by every Act I stage). Music changes are sequential: the old track fades out, then the new one fades in (`playMusic`'s `cross`, then `fade`). Card screens fade in (header, then lines, then the prompt) and fade out as a whole.
+- Gamepad.
 
 ## Working rules
 
