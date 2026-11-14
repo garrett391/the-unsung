@@ -4,6 +4,9 @@ import { clamp, rng } from '../core/util.js';
 // Four-step ramp gives the cel-shaded bands.
 const ramp = new T.DataTexture(new Uint8Array([70, 135, 205, 255]), 4, 1, T.RedFormat);
 ramp.minFilter = ramp.magFilter = T.NearestFilter; ramp.needsUpdate = true;
+// A face exactly edge-on to a light sits on the boundary between two bands and flips between them
+// as the camera moves (the vault's light runs dead along its walls): nudge it into the darker one.
+T.ShaderChunk.gradientmap_pars_fragment = T.ShaderChunk.gradientmap_pars_fragment.replace('dotNL * 0.5 + 0.5', 'dotNL * 0.5 + 0.495');
 
 // Toon material with an optional fresnel rim, so figures read against a dark scene.
 export function toon(color, o = {}) {

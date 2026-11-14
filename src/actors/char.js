@@ -71,11 +71,23 @@ export class Char {
     J.hips.position.set(c[NJ * 3], HIP + c[NJ * 3 + 1], c[NJ * 3 + 2]);
     const cp = this.rig.cape;
     if (cp) {
-      const s = Math.min(1.2, this.speedN), lean = c[0];
-      cp[0].rotation.x = clamp(0.1 + s * 0.6 - lean * 0.6 + Math.sin(time * 3.1) * 0.04 * (1 + s * 2), -0.2, 1.4);
-      cp[1].rotation.x = 0.08 + s * 0.3 + Math.sin(time * 3.1 - 1.1) * 0.06 * (1 + s * 2);
-      const droop = cp.length > 3 ? Math.max(0, c[0] + c[3] + c[6]) * 0.55 : 0; // a long cape on a bent back lies along it, then falls from the hips
-      for (let k = 2; k < cp.length; k++) cp[k].rotation.x = 0.06 + s * 0.22 + Math.sin(time * 3.1 - 1.1 * k) * 0.08 * (1 + s * 2) - (k > 2 ? droop : 0);
+      const s = Math.min(1.2, this.speedN), lean = c[0], long = cp.length > 3, pitch = c[0] + c[3] + c[6];
+      const lie = long ? clamp((pitch - 0.9) / 0.5, 0, 1) : 0, up = 1 - lie; // face down on the floor: a long cape settles along the back and legs, and stops stirring
+      cp[0].rotation.x = clamp(0.1 * up + s * 0.6 - lean * 0.6 + Math.sin(time * 3.1) * 0.04 * (1 + s * 2) * up, -0.2 * up, 1.4);
+      cp[1].rotation.x = 0.08 * up + s * 0.3 + Math.sin(time * 3.1 - 1.1) * 0.06 * (1 + s * 2) * up;
+      const droop = long ? Math.max(0, pitch) * 0.55 * up : 0; // a long cape on a bent back lies along it, then falls from the hips
+      for (let k = 2; k < cp.length; k++) cp[k].rotation.x = 0.06 * up + s * 0.22 + Math.sin(time * 3.1 - 1.1 * k) * 0.08 * (1 + s * 2) * up - (k > 2 ? droop + lie * 0.12 : 0);
+      if (long) { // and it is kept off the floor: a length that would dip under it is bent back to trail along it (higher when he is down, over his own legs)
+        const ch = cp[0].parent, q = cp[0].position; ch.updateWorldMatrix(true, false);
+        const e = ch.matrixWorld.elements, uy = e[5], uz = e[9], R = Math.hypot(uy, uz), ph = Math.atan2(uz, uy), L = 0.3;
+        const fl = (0.05 + 0.15 * clamp(-c[NJ * 3 + 1] / 0.4, 0, 1)) * this.scale;
+        let h = e[1] * q.x + uy * q.y + uz * q.z + e[13], a = 0;
+        if (h > fl) for (let k = 0; k < cp.length; k++) {
+          a += cp[k].rotation.x; let dy = -(Math.cos(a) * uy + Math.sin(a) * uz) * L;
+          if (h + dy < fl) { let a2 = ph + Math.acos(clamp((h - fl) / (L * R), -1, 1)); a2 += PI * 2 * Math.ceil((a - a2) / (PI * 2)); cp[k].rotation.x += a2 - a; a = a2; dy = fl - h; }
+          h += dy;
+        }
+      }
     }
   }
   fwd(v) { return (v || new T.Vector3()).set(Math.sin(this.face), 0, Math.cos(this.face)); }

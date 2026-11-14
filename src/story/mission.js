@@ -150,11 +150,11 @@ stage('door', {
       const cx = hall(P.pos.x - ax * 2.1 - az * 0.9 * sd), cz = deep(P.pos.z - az * 2.1 + ax * 0.9 * sd); cam.shot([cx, 1.7, cz], [U.pos.x, 0.7, U.pos.z]); cam.shot([cx + ax * 0.5, 1.65, cz + az * 0.5], [U.pos.x, 1.7, U.pos.z], 3.2); }
     turn(P, P.angleTo(U), 0.8).catch(() => {});
     U.face = U.angleTo(P); U.play(CL.rise, 0.3);
-    await d.tween(2.4, (u) => { U.yoff = 0.34 * U.scale * Math.sin(Math.min(1, u / 0.85) * PI / 2); U.hp = Math.max(U.hp, U.maxHp * 0.36 * u); if (Math.random() < 0.5) FX.sparks.emit(new T.Vector3(U.pos.x + rnd(-0.9, 0.9), 0.1, U.pos.z + rnd(-0.9, 0.9)), 1, 0.6, 0x9ff0e0, 0.9, { grav: -3.5, spread: 0.1 }); });
+    await d.tween(2.4, (u) => { U.yoff = 0.34 * U.scale * Math.sin(Math.min(1, u / 0.85) * PI / 2); U.hp = Math.max(U.hp, U.maxHp * 0.6 * u); if (Math.random() < 0.5) FX.sparks.emit(new T.Vector3(U.pos.x + rnd(-0.9, 0.9), 0.1, U.pos.z + rnd(-0.9, 0.9)), 1, 0.6, 0x9ff0e0, 0.9, { grav: -3.5, spread: 0.1 }); });
     await d.tween(0.2, (u) => { U.yoff = 0.34 * U.scale * (1 - u * u); });
     U.yoff = 0; quake = 0; G.shake = 0.3; SFX.boom(); playMusic('blade', { fade: 0.4, cross: 0.2 }); shock(U.pos, 3.4, 0x9ff0e0); FX.dust.emit(U.pos, 16, 2.6, 0x8a93a6, 0.7, { flat: 1, grav: -1 }); G.level.flare = 0.7; // he lands
     await d.wait(0.75); rumble();
-    U.stop(0.3); U.set('circle'); U.hurtAmt = 0.55; U.eyeK = 1.5; U.phase2 = true; U.cd = 1.3; U.hp = Math.max(U.hp, U.maxHp * 0.36); // up again, straighter, and angrier
+    U.stop(0.3); U.set('circle'); U.hurtAmt = 0.55; U.eyeK = 1.5; U.phase2 = true; U.cd = 1.3; U.hp = Math.max(U.hp, U.maxHp * 0.6); // up again, straighter, and angrier
     P.face = P.angleTo(U); wall = Math.max(VAULT, P.pos.z + 0.05);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; P.inv = 0; G.freezeAI = false; G.boss = U;
     await d.until(() => U.hp <= 1);

@@ -126,7 +126,7 @@ export function buildLevel() {
   const mIron = toon(0x23262e);
   {
     for (const s of [-1, 1]) { // surround: jambs with a gold fillet, plinth and capital on each pillar
-      box(0.3, 6.5, 0.6, mStone, s * 2.05, 3.25, -27.45); box(0.1, 6.3, 0.05, mGold, s * 1.95, 3.25, -27.14);
+      box(0.3, 6.5, 0.6, mStone, s * 2.04, 3.25, -27.45); box(0.1, 6.3, 0.05, mGold, s * 1.96, 3.25, -27.14); // the jamb stands a finger proud of the pillar and the fillet clear of the jamb's edge: flush faces fight for the same depth and flicker
       box(1.5, 0.45, 1.5, mStone, s * 2.5, 0.22, -27.8); box(1.42, 0.14, 1.42, mDark, s * 2.5, 0.52, -27.8); box(1.5, 0.4, 1.5, mStone, s * 2.5, 6.75, -27.8);
     }
     box(4.4, 0.32, 0.6, mStone, 0, 6.62, -27.45); box(3.9, 0.1, 0.05, mGold, 0, 6.5, -27.14);
@@ -425,7 +425,8 @@ export function buildLevel() {
   W.applyGate = () => {
     const door = W.doorMode; for (const b of gateBanners) b.visible = !door; mRock.color.setHex(door ? 0x6f86b8 : 0xffffff); mBlock.color.setHex(door ? 0x8f9bb4 : 0xffffff); mStone.color.setHex(door ? 0x7c8698 : 0xb09a78); mGold.color.setHex(door ? 0x8f7a3c : 0xd9b24a); // and its gilding is old and dull, so the thin fillets don't sparkle as the camera moves // the Door's surround is the vault's cold stone, not the camp's sandstone
     endCliff.castShadow = !door; for (const l of W.fires) l.visible = !door;
-    const k = door ? 13 : 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? 0.3 : 2; sc.updateProjectionMatrix(); sun.target.position.set(0, 0, door ? -19 : 0);
+    for (const m of [mBlock, mStone, mGold, mDark, mIron]) m.shadowSide = door ? T.FrontSide : null; // the Door's surround is seen from its unlit side: cast its shadow from the faces toward the light, so the faces toward us lie well inside it (cast from themselves, they speckled)
+    const k = door ? 13 : 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : 2; /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(0, 0, door ? -19 : 0);
     if (door) { sun.color.setHex(0xd2efe9); sun.intensity = 2.3; sun.position.set(0, 4.14, -29.5); /* just behind the glass, so nothing outside the vault shadows it */ hemi.color.setHex(0x7284a8); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.95; }
     else if (W.setDawn) W.setDawn(W.dawn);
   };
