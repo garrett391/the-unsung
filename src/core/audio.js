@@ -63,6 +63,11 @@ export function playMusic(name, o = {}) {
   AC.removeEventListener('statechange', startMusic); AC.addEventListener('statechange', startMusic);
   loadTrack(name).then(startMusic);
 }
+// Raise or lower the track that is playing (or on its way in) without restarting it: vol is 0 to 1 of the music's level.
+export function musicVol(vol, dur = 2) {
+  if (want) want.vol = vol; if (!mus || !AC) return;
+  try { const g = mus.g.gain, t = AC.currentTime, v = g.value; g.cancelScheduledValues(t); g.setValueAtTime(v, t); g.linearRampToValueAtTime(MUSIC_VOL * vol, t + dur); } catch (e) { /* ignore */ }
+}
 export function preloadMusic(...names) { makeContext(); if (AC) for (const n of names) loadTrack(n); }
 export function stopMusic(fade = 2.5) { want = null; fadeOut(fade); }
 // Drop decoded tracks that are not playing (a few minutes of stereo is tens of megabytes).
@@ -76,7 +81,7 @@ function loadTakes() {
   for (const k in TAKES) { takes[k] = []; for (let i = 1; i <= TAKES[k]; i++) fetch(`${BASE}sfx/${k}${i}.wav`).then((r) => r.arrayBuffer()).then((b) => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then((buf) => takes[k].push(buf)).catch(() => {}); }
 }
 // Longer recorded effects that a scene starts and stops: SFX.quake() returns a stop(fade).
-const LONG = { quake: 'sfx/quake.mp3' }, longs = {};
+const LONG = { quake: 'sfx/quake.mp3', horn: 'sfx/horn.mp3' }, longs = {};
 function loadLongs() { for (const k in LONG) fetch(BASE + LONG[k]).then((r) => r.arrayBuffer()).then((b) => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then((buf) => { longs[k] = buf; }).catch(() => {}); }
 function long(name, vol) {
   const none = () => {}; if (!AC || !longs[name]) return none;
@@ -131,6 +136,7 @@ export const SFX = {
   tele: () => noise(0.16, 0.12, 380, 1100, 'bandpass', 0.9),
   charged: () => { noise(0.4, 0.14, 500, 2600, 'bandpass', 2); tone(220, 0.4, 'triangle', 0.1, 330); },
   quake: () => long('quake', 1.6), // the vault shaking; the file is normalized to -16 LUFS, quieter than the blows, so it is lifted here
+  horn: () => long('horn', 1.5), // a war horn, far off: one long call that dies away (docs/music.md). Normalized like the quake, so lifted the same way
   boom: () => { noise(0.55, 0.7, 500, 50, 'lowpass', 0.7); tone(74, 0.5, 'sine', 0.6, 30); },
   die: () => noise(0.7, 0.22, 2600, 160, 'bandpass', 0.5),
   cue: () => { tone(587, 0.3, 'sine', 0.05); tone(880, 0.45, 'sine', 0.04, null, 0.1); }, // a new objective or hint: two soft notes

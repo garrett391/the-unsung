@@ -99,6 +99,12 @@ export class Enemy extends Char {
     const speed = t.speed + (this.phase2 ? 0.8 : 0);
     if ((G.freezeAI || this.hold) && ['chase', 'circle', 'wind', 'strike', 'recover'].includes(this.state)) // hold: a stage script keeps this one out of the fight for now
       { brake(8); this.trailOn = false; this.setLoco(4, dt); return; }
+    if (this.post && (this.state === 'chase' || this.state === 'circle')) { // post: a stage script stands him in a gap ({ z, x0, x1 }). He keeps himself between it and the captain and swings when the captain comes in reach, but does not follow him.
+      const o = this.post, tx = clamp(P_.pos.x, o.x0, o.x1) - this.pos.x, tz = o.z - this.pos.z, l = Math.hypot(tx, tz) || 0.001, sp = Math.min(speed * 1.9, l * 5);
+      this.turnTo(ang, 7, dt); this.vel.x = damp(this.vel.x, (tx / l) * sp, 8, dt); this.vel.z = damp(this.vel.z, (tz / l) * sp, 8, dt);
+      this.cd -= dt; if (this.cd <= 0 && d < 3.3 * this.scale && !P_.dead && attackers() < G.maxAtk) this.startMove(this.pickMove(d));
+      this.setLoco(4, dt); return;
+    }
     switch (this.state) {
       case 'spawn':
         this.yoff = lerp(-1.9 * this.scale, 0, sstep(Math.min(1, this.st / 0.9)));
@@ -123,7 +129,7 @@ export class Enemy extends Char {
       case 'strike': {
         const sp = this.st < 0.15 ? m.lunge : 0; this.vel.x = damp(this.vel.x, f.x * sp, 25, dt); this.vel.z = damp(this.vel.z, f.z * sp, 25, dt); this.trailOn = this.st < 0.2; eye = 2.6;
         if (m.leap) this.yoff = Math.sin(PI * clamp((0.2 + this.st) / 0.42, 0, 1)) * 1.5;
-        if (!this.hitDone && this.st > 0.04 && this.st < 0.17 && d < m.range && Math.abs(wrap(ang - this.face)) < 0.95) { this.hitDone = true; G.emit('struck', { enemy: this, result: P_.receive(this, m.dmg) }); }
+        if (!this.hitDone && this.st > 0.04 && this.st < 0.17 && d < m.range && Math.abs(wrap(ang - this.face)) < 0.95) { this.hitDone = true; G.emit('struck', { enemy: this, result: P_.receive(this, m.dmg * (this.dmgK == null ? 1 : this.dmgK)) }); } // dmgK: a stage script can pull his blows (a lesson)
         if (m.slam && !this.slam && this.st > 0.1) {
           this.slam = true; const c = tmpB.copy(this.pos).addScaledVector(f, 1.6 * this.scale); shock(c, m.slam, t.boss ? 0xc79bff : 0xffe2a0); SFX.boom(); G.shake = Math.max(G.shake, 0.3);
           if (!this.hitDone && P_.pos.distanceTo(c) < m.slam + 0.3) { this.hitDone = true; P_.receive(this, m.dmg * 0.7); }

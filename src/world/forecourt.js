@@ -5,6 +5,7 @@ import { DECAL, decals } from '../gfx/decals.js';
 import { PZ } from '../actors/anim.js';
 import { LOOKS } from '../actors/data.js';
 import { wreckage } from './halls.js';
+import { lineOff } from './waystation.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // The forecourt (prologue; owner, Nov 2026): where the game opens, in front of the building whose
@@ -17,15 +18,23 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 export const FORE = { x: -150, z: 60 };
 const R = (x0, x1, z0, z1) => ({ x0: FORE.x + x0, x1: FORE.x + x1, z0: FORE.z + z0, z1: FORE.z + z1 });
 export const FCOURT = R(-10.9, 10.9, -13.05, 14.2), FGATE = R(-2.1, 2.1, 12.4, 20), FDOOR = R(-1.35, 1.35, -16.6, -11.4); // the court, the way in under the gate arch, the doorway
+// The road he came by, north from the gate (court coordinates): straight out, then round to the east and lost in
+// the smoke. The dunes are levelled along it (level.js).
+export const FROAD = [[0, 15.2], [0, 26], [0.8, 36], [4, 47], [11, 58], [23, 67], [40, 73], [62, 76], [92, 76]];
 
 export function buildFore(scene, kit) {
   const obs = [], q = rng(613), Q = (a, b) => a + q() * (b - a), X = (x) => FORE.x + x, Z = (z) => FORE.z + z;
   const { tex, ashlar, paving, veinTex, cluster, shard, mIron } = kit;
-  const block = (x, z, r) => obs.push({ x: X(x), z: Z(z), r });
+  // The court is seen twice: as the war left it, and whole (level.setSite's `after`: the seal has undone the
+  // Usurper's years, and he walks out into it in daylight). Most of it is in both; `only(war, ...)` and
+  // `only(whole, ...)` build what belongs to one of them, and each has its own obstacles.
+  const war = new T.Group(), whole = new T.Group(), obsWhole = []; let layer = null;
+  const only = (g, fn) => { const n = scene.children.length, was = layer; layer = g; fn(); layer = was; for (const m of scene.children.slice(n)) g.add(m); };
+  const block = (x, z, r) => { const o = { x: X(x), z: Z(z), r }; if (layer !== whole) obs.push(o); if (layer !== war) obsWhole.push(o); };
   const V = (x, y, z) => new T.Vector3(x, y, z), M = new T.Matrix4(), qt = new T.Quaternion(), eu = new T.Euler(), ONE = V(1, 1, 1);
   // Nothing here moves, so every piece is baked into place and merged: one mesh per material.
   const bins = new Map();
-  const put = (geo, mat, x, y, z, ry = 0, rx = 0, rz = 0) => { const g = geo.index ? geo.toNonIndexed() : geo; g.applyMatrix4(M.compose(V(X(x), y, Z(z)), qt.setFromEuler(eu.set(rx, ry, rz)), ONE)); if (!bins.has(mat)) bins.set(mat, []); bins.get(mat).push(g); };
+  const put = (geo, mat, x, y, z, ry = 0, rx = 0, rz = 0) => { const g = geo.index ? geo.toNonIndexed() : geo; g.applyMatrix4(M.compose(V(X(x), y, Z(z)), qt.setFromEuler(eu.set(rx, ry, rz)), ONE)); let b = bins.get(layer); if (!b) bins.set(layer, (b = new Map())); if (!b.has(mat)) b.set(mat, []); b.get(mat).push(g); };
   // boxes and drums whose texture coordinates are in metres, so stone courses are one size on everything
   const tbox = (w, h, d) => { const g = new T.BoxGeometry(w, h, d), uv = g.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]]; for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setXY(i, uv.getX(i) * dims[f][0], uv.getY(i) * dims[f][1]); } return g; };
   const tcyl = (rt, rb, h, n = 20) => { const g = new T.CylinderGeometry(rt, rb, h, n), uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 2 * PI * rb, uv.getY(i) * h); return g; };
@@ -38,24 +47,57 @@ export function buildFore(scene, kit) {
   // ---- ground: the court's paving, running out under the gate and in under the doors; a worn road outside
   const flat = (w, d, mat, x, y, z) => { const m = new T.Mesh(new T.PlaneGeometry(w, d), mat); m.rotation.x = -PI / 2; m.position.set(X(x), y, Z(z)); m.receiveShadow = true; scene.add(m); return m; };
   flat(24.6, 33.6, toon(new T.Color(1.35, 1.22, 1.1), { map: tex(paving, 24.6 / 2.9, 33.6 / 2.9) }), 0, 0.012, -1.6);
-  flat(5.2, 9, toon(0xb8aa9c, { map: tex(paving, 2, 3) }), 0, 0.012, 19.6);
+  // the road: a ribbon along FROAD that starts where the court's paving ends (the two used to overlap in one plane under the arch, and flickered)
+  { const cv = new T.CatmullRomCurve3(FROAD.map(([x, z]) => V(X(x), 0.012, Z(z)))), n = 80, pts = cv.getSpacedPoints(n), L = cv.getLength(), pos = [], uv = [], nor = [], idx = [];
+    for (let i = 0; i <= n; i++) { const p = pts[i], a = pts[Math.max(0, i - 1)], c = pts[Math.min(n, i + 1)], dx = c.x - a.x, dz = c.z - a.z, l = Math.hypot(dx, dz), w = (5.2 - 1.4 * Math.min(1, (i / n) * 3)) / 2;
+      pos.push(p.x - (dz / l) * w, p.y, p.z + (dx / l) * w, p.x + (dz / l) * w, p.y, p.z - (dx / l) * w); uv.push(0, (i / n) * L / 3, 2, (i / n) * L / 3); nor.push(0, 1, 0, 0, 1, 0);
+      if (i < n) { const k = i * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); } }
+    const rg = new T.BufferGeometry(); rg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); rg.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); rg.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); rg.setIndex(idx);
+    const m = new T.Mesh(rg, toon(0xb8aa9c, { map: tex(paving, 1, 1) })); m.receiveShadow = true; scene.add(m); }
+
+  // ---- the country the road crosses (owner, Nov 2026: it used to stop at nothing): Joshua trees, rock and dry scrub.
+  // Its own random numbers, so the court's stay as they were.
+  { const t = rng(771), TQ = (a, b) => a + t() * (b - a), UPV = V(0, 1, 0), mBark = toon(0x5c4a3a), mShag = toon(0x5a4c38), mLeaf = toon(0x56683a), mRock = toon(0x8c7c6c), mScrub = toon(0x8a8450);
+    const gy = (x, z) => kit.dune(X(x), Z(z));
+    const tilt = (dir, az, ang) => { const u = V(dir.z, 0, -dir.x); if (u.lengthSq() < 1e-4) u.set(1, 0, 0); u.normalize(); const v = V(0, 0, 0).crossVectors(dir, u); return dir.clone().multiplyScalar(Math.cos(ang)).addScaledVector(u, Math.cos(az) * Math.sin(ang)).addScaledVector(v, Math.sin(az) * Math.sin(ang)); }; // `ang` off `dir`, round it by `az`
+    const along = (g, dir) => g.applyQuaternion(qt.setFromUnitVectors(UPV, dir));
+    // a Joshua tree: a thick trunk that forks and forks again, each arm ending in a skirt of dead leaves and a ball of spikes
+    const limb = (p, dir, len, rad, depth) => {
+      const g = new T.CylinderGeometry(rad * 0.8, rad, len, 7); g.translate(0, len / 2, 0); put(along(g, dir), mBark, p.x, p.y, p.z);
+      const e = p.clone().addScaledVector(dir, len);
+      if (!depth) {
+        const sk = new T.CylinderGeometry(rad * 1.2, rad * 1.8, len * 0.4, 9, 1, true); sk.translate(0, len * 0.76, 0); put(along(sk, dir), mShag, p.x, p.y, p.z);
+        put(new T.IcosahedronGeometry(rad * 2.6, 0), mLeaf, e.x, e.y, e.z, TQ(0, 3));
+        for (let i = 0; i < 10; i++) { const L = TQ(0.4, 0.62), c = new T.ConeGeometry(0.05, L, 4); c.translate(0, L / 2, 0); put(along(c, tilt(dir, TQ(0, 6.3), TQ(0.15, 1.5))), mLeaf, e.x, e.y, e.z); }
+        return;
+      }
+      const n = depth > 1 && t() < 0.3 ? 3 : 2, a0 = TQ(0, 6.3);
+      for (let k = 0; k < n; k++) { const d2 = tilt(dir, a0 + (k / n) * 2 * PI + TQ(-0.5, 0.5), TQ(0.55, 0.95)); d2.y += 0.3; limb(e, d2.normalize(), len * TQ(0.6, 0.8), rad * 0.74, depth - 1); }
+    };
+    for (const [x, z, h] of [[-6.5, 22, 4.6], [7.5, 26, 5.6], [-9, 33, 6.4], [5.5, 38, 4.2], [-4, 44, 5.2], [12, 43, 6.0], [-1, 54, 6.6], [4, 63, 5.0], [-10, 60, 4.4], [17, 52, 4.8], [20, 76, 5.8], [30, 60, 5.2], [-16, 47, 5.6], [36, 82, 6.0], [48, 65, 5.0], [-24, 37, 4.8], [16, 30, 4.4], [-13, 20.5, 5.2]])
+      limb(V(x, gy(x, z) - 0.4, z), V(TQ(-0.12, 0.12), 1, TQ(-0.12, 0.12)).normalize(), h * 0.4 + 0.4, h * 0.05, h > 5 ? 3 : 2);
+    for (let i = 0; i < 70; i++) { const x = TQ(-34, 62), z = TQ(16.5, 86); if (lineOff(FROAD, x, z) < 3.6 || (z < 17.5 && Math.abs(x) < 14) || Math.hypot(x + 21, z - 24) < 5 || Math.hypot(x - 26, z - 18) < 5.5) continue;
+      if (i % 3) { const s = TQ(0.2, 0.85), g = new T.DodecahedronGeometry(s, 0); g.scale(1.25, 0.6, 1); put(g, mRock, x, gy(x, z) + s * 0.1, z, TQ(0, 3), TQ(-0.2, 0.2)); }
+      else for (let k = 0; k < 7; k++) { const L = TQ(0.35, 0.7), c = new T.ConeGeometry(0.035, L, 4); c.translate(0, L / 2, 0); put(along(c, tilt(UPV, TQ(0, 6.3), TQ(0.1, 0.9))), mScrub, x + TQ(-0.15, 0.15), gy(x, z) - 0.05, z + TQ(-0.15, 0.15)); } }
+  }
   flat(7.4, 4.4, toon(0xa89c94, { map: tex(paving, 3, 2) }), 0, 0.02, -11.3); // a darker apron before the doors
 
   // ---- the enclosing walls: dressed stone, a walk along the top behind what is left of the battlements
   const WH = 6.4, XW = 11.6, ZN = 14.9;
   const run = (x0, z0, x1, z1, bite) => { const len = Math.hypot(x1 - x0, z1 - z0), ry = Math.atan2(x1 - x0, z1 - z0) + PI / 2, ux = (x1 - x0) / len, uz = (z1 - z0) / len, mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
     box(len, WH, 1.2, mWall, mx, WH / 2, mz, ry); box(len, 0.9, 1.5, mKeep, mx, 0.45, mz, ry); box(len, 0.24, 1.5, mTrim, mx, WH + 0.12, mz, ry);
-    for (let s = 0.7; s < len - 0.6; s += 1.7) { if (q() < 0.22 || (bite && Math.abs(s - bite) < 2.6)) continue; box(0.9, 0.8, 0.5, mWall, x0 + ux * s, WH + 0.64, z0 + uz * s, ry); } }; // merlons, with gaps where they have been knocked off
+    for (let s = 0.7; s < len - 0.6; s += 1.7) { const m = () => box(0.9, 0.8, 0.5, mWall, x0 + ux * s, WH + 0.64, z0 + uz * s, ry); if (q() < 0.22 || (bite && Math.abs(s - bite) < 2.6)) only(whole, m); else m(); } }; // merlons, with gaps where they have been knocked off
   run(-XW, -13.4, -XW, ZN + 0.6); run(XW, -13.4, XW, ZN + 0.6, 17); run(-XW - 0.6, ZN, -3.4, ZN); run(3.4, ZN, XW + 0.6, ZN);
   for (const sd of [-1, 1]) for (const z of [-6.5, 0.5, 7.5]) { box(0.7, 4.6, 1.0, mWall, sd * (XW - 0.75), 2.3, z); box(0.7, 0.9, 1.0, mKeep, sd * (XW - 0.85), 4.75, z, 0, 0, sd * 0.5); } // buttresses
   // the east wall has taken something heavy: a bite out of its top, and what came down lying at its foot
-  { for (let i = 0; i < 16; i++) { const s = Q(0.3, 0.9); put(tbox(s * 1.5, s, s), mWall, XW - 1.2 - Q(0, 2.4), s * 0.4, 3.4 + Q(-2.6, 2.6), Q(0, 3), Q(-0.4, 0.4), Q(-0.4, 0.4)); } block(XW - 1.9, 3.4, 1.5); block(XW - 1.6, 1.6, 1.0); block(XW - 1.6, 5.2, 1.0); }
+  only(war, () => { for (let i = 0; i < 16; i++) { const s = Q(0.3, 0.9); put(tbox(s * 1.5, s, s), mWall, XW - 1.2 - Q(0, 2.4), s * 0.4, 3.4 + Q(-2.6, 2.6), Q(0, 3), Q(-0.4, 0.4), Q(-0.4, 0.4)); } block(XW - 1.9, 3.4, 1.5); block(XW - 1.6, 1.6, 1.0); block(XW - 1.6, 5.2, 1.0); });
   // the gate: two square towers and an arch between them; one leaf hangs from a hinge, the other lies in the court
-  for (const sd of [-1, 1]) { box(2.2, 8.4, 2.4, mWall, sd * 3.5, 4.2, ZN); box(2.5, 1.0, 2.7, mKeep, sd * 3.5, 0.5, ZN); box(2.5, 0.3, 2.7, mTrim, sd * 3.5, 8.55, ZN); for (const a of [-1, 1]) for (const b of [-1, 1]) if (!(sd > 0 && a > 0 && b < 0)) box(0.7, 0.7, 0.7, mWall, sd * 3.5 + a * 0.85, 9.05, ZN + b * 0.95); }
+  for (const sd of [-1, 1]) { box(2.2, 8.4, 2.4, mWall, sd * 3.5, 4.2, ZN); box(2.5, 1.0, 2.7, mKeep, sd * 3.5, 0.5, ZN); box(2.5, 0.3, 2.7, mTrim, sd * 3.5, 8.55, ZN); for (const a of [-1, 1]) for (const b of [-1, 1]) { const m = () => box(0.7, 0.7, 0.7, mWall, sd * 3.5 + a * 0.85, 9.05, ZN + b * 0.95); if (sd > 0 && a > 0 && b < 0) only(whole, m); else m(); } }
   { const sh = new T.Shape(); sh.moveTo(-2.4, 3.5); sh.absellipse(0, 3.5, 2.4, 1.5, PI, 0, true); sh.lineTo(2.4, 6.9); sh.lineTo(-2.4, 6.9); sh.lineTo(-2.4, 3.5);
     put(new T.ExtrudeGeometry(sh, { depth: 1.6, bevelEnabled: false, curveSegments: 18 }), mWall, 0, 0, ZN - 0.8); box(5.0, 0.26, 1.9, mTrim, 0, 7.03, ZN);
-    box(2.3, 4.4, 0.14, mWood, -2.55, 2.3, ZN - 1.5, -1.05, 0, 0.07); for (const y of [0.9, 2.3, 3.7]) box(2.34, 0.12, 0.17, mIron, -2.55, y, ZN - 1.5, -1.05, 0, 0.07); // hanging open, off true
-    box(2.3, 0.14, 4.4, mWood, 3.9, 0.1, 9.6, 0.5); for (const o of [-1.4, 0, 1.4]) box(2.34, 0.17, 0.12, mIron, 3.9 + Math.sin(0.5) * o, 0.12, 9.6 + Math.cos(0.5) * o, 0.5); } // torn off and thrown down
+    only(war, () => { box(2.3, 4.4, 0.14, mWood, -2.55, 2.3, ZN - 1.5, -1.05, 0, 0.07); for (const y of [0.9, 2.3, 3.7]) box(2.34, 0.12, 0.17, mIron, -2.55, y, ZN - 1.5, -1.05, 0, 0.07); // hanging open, off true
+      box(2.3, 0.14, 4.4, mWood, 3.9, 0.1, 9.6, 0.5); for (const o of [-1.4, 0, 1.4]) box(2.34, 0.17, 0.12, mIron, 3.9 + Math.sin(0.5) * o, 0.12, 9.6 + Math.cos(0.5) * o, 0.5); }); // torn off and thrown down
+    only(whole, () => { for (const sd of [-1, 1]) { box(2.3, 4.4, 0.14, mWood, sd * 3.62, 2.2, ZN - 1.5); for (const y of [0.9, 2.3, 3.7]) box(2.34, 0.12, 0.17, mIron, sd * 3.62, y, ZN - 1.5); } }); } // both leaves, swung back against the towers
 
   // ---- the south front: a tall middle tower with the doors in it, a wing either side, a round turret at each end
   const ZF = -13.4, TW = 7.2, TH = 16.5, DW = 1.5, DS = 2.9; // the tower's face; the doorway's half-width and springing
@@ -77,13 +119,14 @@ export function buildFore(scene, kit) {
   for (const sd of [-1, 1]) { box(0.13, 3.6, 1.5, mWood, sd * (DW - 0.14), 1.8, ZF - 1.5, sd * 0.12); for (const y of [0.7, 1.9, 3.1]) box(0.17, 0.12, 1.52, mIron, sd * (DW - 0.14), y, ZF - 1.5, sd * 0.12); }
   { const t = canvasTex(64, (g, n) => { const gr = g.createLinearGradient(0, 0, 0, n); gr.addColorStop(0, '#020303'); gr.addColorStop(0.45, '#061413'); gr.addColorStop(0.8, '#1c5a52'); gr.addColorStop(1, '#3f9a8c'); g.fillStyle = gr; g.fillRect(0, 0, n, n);
       g.fillStyle = 'rgba(2,3,3,.55)'; for (let k = 0; k < 4; k++) g.fillRect(0, n * (0.74 + k * 0.07), n, n * 0.016); }); // the first treads of the stair down, their edges dark against the light
-    const m = new T.Mesh(new T.PlaneGeometry(DW * 2, DS + DW), new T.MeshBasicMaterial({ map: t })); m.position.set(X(0), (DS + DW) / 2, Z(ZF - 3.3)); scene.add(m); }
-  const doorL = new T.PointLight(0x7fe0d0, 14, 15, 2); doorL.position.set(X(0), 1.6, Z(ZF - 1.2)); doorL.userData.base = 14; scene.add(doorL);
+    const m = new T.Mesh(new T.PlaneGeometry(DW * 2, DS + DW), new T.MeshBasicMaterial({ map: t })); m.position.set(X(0), (DS + DW) / 2, Z(ZF - 3.3)); war.add(m);
+    const d = new T.Mesh(new T.PlaneGeometry(DW * 2, DS + DW), mDark); d.position.copy(m.position); whole.add(d); } // afterwards it is only an unlit passage
+  const doorL = new T.PointLight(0x7fe0d0, 14, 15, 2); doorL.position.set(X(0), 1.6, Z(ZF - 1.2)); doorL.userData.base = 14; war.add(doorL);
   // the wings, with two tall windows each, and the body of the building behind
   const WGH = 9.8, ZW = -14.2;
   for (const sd of [-1, 1]) {
     box(7.0, WGH, 3.0, mKeep, sd * 7.1, WGH / 2, ZW - 1.5); box(7.0, 1.1, 0.8, mTrim, sd * 7.1, 0.55, ZW + 0.3); box(7.2, 0.3, 3.2, mTrim, sd * 7.1, WGH + 0.15, ZW - 1.5); box(7.0, 0.22, 0.3, mTrim, sd * 7.1, 6.4, ZW + 0.1);
-    for (let i = 0; i < 5; i++) if (!(sd < 0 && i > 2)) box(0.9, 0.8, 0.5, mKeep, sd * (4.2 + i * 1.45), WGH + 0.7, ZW - 0.3);
+    for (let i = 0; i < 5; i++) { const m = () => box(0.9, 0.8, 0.5, mKeep, sd * (4.2 + i * 1.45), WGH + 0.7, ZW - 0.3); if (sd < 0 && i > 2) only(whole, m); else m(); }
     for (const wx of [5.3, 8.6]) { const sp = new T.Shape(); sp.moveTo(-0.55, 0); sp.lineTo(0.55, 0); sp.lineTo(0.55, 2.6); sp.absarc(0, 2.6, 0.55, 0, PI); sp.lineTo(-0.55, 0);
       const m = new T.Mesh(new T.ShapeGeometry(sp, 12), mDark); m.position.set(X(sd * wx), 2.4, Z(ZW + 0.04)); scene.add(m);
       put(new T.TorusGeometry(0.66, 0.11, 6, 16, PI), mTrim, sd * wx, 5.0, ZW + 0.06); for (const k of [-1, 1]) put(new T.CylinderGeometry(0.11, 0.11, 2.6, 8), mTrim, sd * wx + k * 0.66, 3.7, ZW + 0.06); box(1.6, 0.16, 0.3, mTrim, sd * wx, 2.36, ZW + 0.1);
@@ -93,27 +136,31 @@ export function buildFore(scene, kit) {
   // the turrets: the east one whole under its cap; the west one's cap is gone and glass stands out of it against the sky
   for (const sd of [-1, 1]) { const x = sd * 11.7, z = -14.7, h = sd < 0 ? 11.2 : 12.6;
     put(tcyl(2.0, 2.15, h), mKeep, x, h / 2, z); put(tcyl(2.3, 2.3, 0.9, 20), mTrim, x, 0.45, z); put(new T.CylinderGeometry(2.25, 2.0, 0.5, 20), mTrim, x, h - 2.2, z);
-    if (sd > 0) { put(new T.CylinderGeometry(2.3, 2.05, 0.4, 20), mTrim, x, h + 0.2, z); put(new T.ConeGeometry(2.6, 5.2, 20), mSlate, x, h + 0.4 + 2.6, z); }
-    else { for (let i = 0; i < 9; i++) { const a = i * 0.7, hh = Q(0.3, 1.5); put(tbox(0.9, hh, 0.5), mKeep, x + Math.sin(a) * 1.75, h + hh / 2 - 0.05, z + Math.cos(a) * 1.75, a); }
-      cluster(X(x + 0.2), h - 0.4, Z(z + 0.3), 3.4, 0.22); cluster(X(x - 0.7), h - 0.3, Z(z - 0.2), 2.2, -0.35); cluster(X(x + 0.9), h - 0.3, Z(z + 0.9), 1.6, 0.5); }
+    const cap = () => { put(new T.CylinderGeometry(2.3, 2.05, 0.4, 20), mTrim, x, h + 0.2, z); put(new T.ConeGeometry(2.6, 5.2, 20), mSlate, x, h + 0.4 + 2.6, z); };
+    if (sd > 0) cap();
+    else only(whole, cap), only(war, () => { for (let i = 0; i < 9; i++) { const a = i * 0.7, hh = Q(0.3, 1.5); put(tbox(0.9, hh, 0.5), mKeep, x + Math.sin(a) * 1.75, h + hh / 2 - 0.05, z + Math.cos(a) * 1.75, a); }
+      cluster(X(x + 0.2), h - 0.4, Z(z + 0.3), 3.4, 0.22); cluster(X(x - 0.7), h - 0.3, Z(z - 0.2), 2.2, -0.35); cluster(X(x + 0.9), h - 0.3, Z(z + 0.9), 1.6, 0.5); });
     for (const y of [4.2, 8.2]) { const m = new T.Mesh(new T.PlaneGeometry(0.3, 1.3), mDark); m.position.set(X(x - sd * 0.9), y, Z(z + 1.96)); m.rotation.y = -sd * 0.45; scene.add(m); } }
   // more of the place beyond the walls, dark against the sky
   for (const [x, z, w, h, cap] of [[-24, -30, 5, 19, 1], [22, -34, 6, 15, 0], [31, -12, 5, 12, 1], [-30, 6, 6, 11, 0], [-21, 24, 4.5, 13, 1], [26, 18, 5, 10, 0], [14, -44, 7, 22, 1]]) {
     box(w, h, w, mSlate, x, h / 2, z, 0.3); if (cap) { const g = new T.ConeGeometry(w * 0.82, w * 1.3, 4); g.rotateY(PI / 4 + 0.3); put(g, mSlate, x, h + w * 0.65, z); } else for (let i = 0; i < 4; i++) box(w * 0.3, 0.9, w * 0.3, mSlate, x + (i % 2 ? 1 : -1) * w * 0.36, h + 0.4, z + (i < 2 ? 1 : -1) * w * 0.36, 0.3); }
 
   // ---- glass: out of the doorway and along the foot of the front, thickest at the doors; veins in the paving before them
+  only(war, () => {
   for (const [x, z, h, lean] of [[-2.1, ZF + 0.5, 1.5, 0.3], [2.2, ZF + 0.4, 1.1, -0.35], [-3.3, ZF + 0.3, 0.7, 0.2], [3.4, ZF + 0.5, 0.8, -0.15], [-5.9, ZW + 0.9, 0.9, 0.3], [7.4, ZW + 0.8, 0.6, -0.4], [-1.25, ZF - 1.0, 0.6, -0.5], [1.2, ZF - 2.0, 0.7, 0.5]]) cluster(X(x), 0.02, Z(z), h, lean);
   block(-2.1, ZF + 0.5, 0.6); block(2.2, ZF + 0.4, 0.5);
   for (let i = 0; i < 5; i++) { const a = Q(0, 6.3); shard(X(Math.cos(a) * Q(0.3, 1.2)), 9.7 + Math.sin(a) * Q(0.3, 1.2), Z(ZF + 0.08), Q(0.5, 1.1), PI / 2 + Q(-0.5, 0.5), Q(-0.6, 0.6), 0); } // through the round window
   for (const [x, y, sd] of [[-5.3, 4.4, -1], [-8.6, 3.2, -1], [5.3, 5.2, 1]]) for (let n = 0; n < 3; n++) shard(X(x + Q(-0.2, 0.2)), y + Q(-0.3, 0.3), Z(ZW + 0.08), Q(0.3, 0.7), PI / 2 + Q(-0.6, 0.1), Q(-0.5, 0.5), 0); // and the wings' windows
   { const m = new T.Mesh(new T.PlaneGeometry(9, 7), new T.MeshBasicMaterial({ map: veinTex(1024, 512, 16, 83), color: new T.Color(0.3, 0.86, 0.76), transparent: true, blending: T.AdditiveBlending, depthWrite: false })); m.rotation.x = -PI / 2; m.rotation.z = PI / 2; m.position.set(X(0), 0.03, Z(ZF + 3.6)); m.renderOrder = 1; scene.add(m); }
+  });
 
   // ---- what stood in the court: a pair of obelisks either side of the way to the doors. One has been broken off short.
   for (const sd of [-1, 1]) { const x = sd * 5.4, z = 5.2; box(2.0, 0.5, 2.0, mTrim, x, 0.25, z); box(1.5, 1.1, 1.5, mKeep, x, 1.05, z); box(1.7, 0.2, 1.7, mTrim, x, 1.7, z); block(x, z, 1.25);
     const ob = (h, w0, w1) => { const g = new T.CylinderGeometry(w1, w0, h, 4); g.rotateY(PI / 4); return g; };
-    if (sd > 0) { put(ob(6.4, 0.72, 0.42), mWall, x, 1.8 + 3.2, z); const g = new T.ConeGeometry(0.42, 0.7, 4); g.rotateY(PI / 4); put(g, mWall, x, 8.55, z); }
-    else { put(ob(1.5, 0.72, 0.65), mWall, x, 2.55, z); put(ob(2.6, 0.64, 0.52), mWall, x + 1.6, 0.42, z - 2.2, 1.18, 0, PI / 2 - 0.04); put(ob(2.0, 0.5, 0.42), mWall, x + 2.6, 0.36, z - 4.7, 1.3, 0, PI / 2); block(x + 1.6, z - 2.2, 1.0); block(x + 2.6, z - 4.7, 0.8); // it fell south-east, clear of the way down the middle
-      for (let i = 0; i < 9; i++) { const s = Q(0.15, 0.45); put(new T.DodecahedronGeometry(s, 0), mWall, x + Q(0.2, 3.4), s * 0.5, z + Q(-5.6, -0.4), Q(0, 3), Q(0, 3)); } } }
+    const tall = () => { put(ob(6.4, 0.72, 0.42), mWall, x, 1.8 + 3.2, z); const g = new T.ConeGeometry(0.42, 0.7, 4); g.rotateY(PI / 4); put(g, mWall, x, 8.55, z); };
+    if (sd > 0) tall();
+    else only(whole, tall), only(war, () => { put(ob(1.5, 0.72, 0.65), mWall, x, 2.55, z); put(ob(2.6, 0.64, 0.52), mWall, x + 1.6, 0.42, z - 2.2, 1.18, 0, PI / 2 - 0.04); put(ob(2.0, 0.5, 0.42), mWall, x + 2.6, 0.36, z - 4.7, 1.3, 0, PI / 2); block(x + 1.6, z - 2.2, 1.0); block(x + 2.6, z - 4.7, 0.8); // it fell south-east, clear of the way down the middle
+      for (let i = 0; i < 9; i++) { const s = Q(0.15, 0.45); put(new T.DodecahedronGeometry(s, 0), mWall, x + Q(0.2, 3.4), s * 0.5, z + Q(-5.6, -0.4), Q(0, 3), Q(0, 3)); } }); }
 
   // ---- the barricade: carts, casks and stakes dragged across the court, and broken through in the middle
   const BZ = -3.4;
@@ -122,27 +169,43 @@ export function buildFore(scene, kit) {
     ab(new T.BoxGeometry(1.5, 0.12, 2.8), mat, 0, 0, 0); for (const k of [-1, 1]) { ab(new T.BoxGeometry(0.08, 0.6, 2.8), mat, k * 0.72, 0.3, 0); ab(new T.BoxGeometry(0.07, 0.07, 1.9), mat, k * 0.5, 0, 2.3); }
     for (const k of [-1, 1]) { const w = ab(new T.TorusGeometry(0.62, 0.07, 6, 18), mat, k * 0.86, -0.1, 0.2); w.rotation.y = PI / 2; for (let i = 0; i < 3; i++) { const s = ab(new T.BoxGeometry(0.05, 1.2, 0.05), mat, k * 0.86, -0.1, 0.2); s.rotation.x = i * PI / 3; } }
     a(new T.BoxGeometry(0.9, 0.5, 0.7), mat, -0.9, 0.25, 0.9).rotation.y = 0.4; block(x, z, 1.5); };
+  only(war, () => {
   cart(4.2, BZ, 0.25, mChar); cart(-6.6, BZ + 0.5, -0.2, mWood);
+  cart(-4.4, 25.5, 1.9, mWood); // and one that never reached the gate, off the side of the road
   const frise = (x, z, ry, broken) => { const len = broken ? 1.5 : 3.0; put(new T.CylinderGeometry(0.1, 0.1, len, 7), mWood, x, 0.62, z, ry, 0, PI / 2); // a log set with crossed stakes
     for (let s = -len / 2 + 0.3; s < len / 2; s += 0.55) for (const k of [-1, 1]) { put(new T.CylinderGeometry(0.02, 0.05, 1.7, 5), mWood, x + Math.cos(ry) * s, 0.62, z - Math.sin(ry) * s, ry, k * 0.85, 0); } block(x, z, len * 0.42); };
   frise(-3.3, BZ, 0.1); frise(8.3, BZ - 0.3, -0.15); frise(1.9, BZ - 1.5, 1.0, true);
   for (const [x, z, s, r] of [[6.4, BZ + 0.6, 0.9, 0.3], [7.2, BZ + 0.9, 0.7, 1.1], [-9.4, BZ + 0.2, 0.9, 0.2], [-9.2, BZ + 0.1, 0.62, 0.9]]) { const top = s < 0.8 && x < 0; box(s, s, s, mCrate, x, s / 2 + (top ? 0.9 : 0), z, r); if (!top) block(x, z, s * 0.75); }
-  for (const [x, z, down] of [[-8.3, BZ - 0.6, 0], [9.9, BZ + 0.3, 0], [0.6, BZ + 1.6, 1], [-1.6, BZ - 2.2, 1]]) { put(new T.CylinderGeometry(0.34, 0.3, 0.9, 12), mBarrel, x, down ? 0.33 : 0.45, z, Q(0, 3), 0, down ? PI / 2 : 0); block(x, z, 0.45); }
+  for (const [x, z, down] of [[-8.3, BZ - 0.6, 0], [9.9, BZ + 0.3, 0], [2.2, BZ + 2.1, 1], [-1.6, BZ - 2.2, 1]]) { put(new T.CylinderGeometry(0.34, 0.3, 0.9, 12), mBarrel, x, down ? 0.33 : 0.45, z, Q(0, 3), 0, down ? PI / 2 : 0); block(x, z, 0.45); }
   for (const [x, z, ry, t] of [[-1.2, BZ + 0.4, 0.4, 0.5], [0.4, BZ - 0.6, 2.1, 0.62], [2.9, BZ + 1.6, -0.6, 0.45], [-4.8, BZ - 1.4, 1.3, 0.55], [5.6, 9.4, 0.2, 0.7], [-2.2, -9.2, 2.6, 0.5]]) put(new T.CylinderGeometry(0.02, 0.02, 2.3, 6), mWood, x, 1.0, z, ry, t, 0); // spears left standing in the ground, and in what they hit
+  });
 
   // ---- fire: the burnt cart, a heap of timbers by the west wall, a brazier kicked over by the gate
-  const lights = [], fireAt = (x, y, z, s, li) => { kit.fire(X(x), y, Z(z), s); if (li) { const l = new T.PointLight(0xff7a30, li, 17, 2); l.position.set(X(x), y + 0.9, Z(z)); l.userData.base = li; scene.add(l); lights.push(l); } };
+  const lights = [];
+  only(war, () => {
+  const fireAt = (x, y, z, s, li) => { kit.fire(X(x), y, Z(z), s); if (li) { const l = new T.PointLight(0xff7a30, li, 17, 2); l.position.set(X(x), y + 0.9, Z(z)); l.userData.base = li; scene.add(l); lights.push(l); } };
   fireAt(4.3, 0.9, BZ + 0.1, 1.7, 15); fireAt(3.5, 0.3, BZ + 0.9, 1.0, 0);
   for (let i = 0; i < 7; i++) put(new T.BoxGeometry(0.16, 0.16, Q(1.4, 2.4)), mChar, -8.9 + Q(-0.6, 0.6), 0.2 + i * 0.07, 9.2 + Q(-0.5, 0.5), Q(0, 3), Q(-0.25, 0.25), 0); block(-8.9, 9.2, 1.1);
   fireAt(-8.9, 0.5, 9.2, 1.4, 12); fireAt(8.6, 0.2, -10.6, 0.8, 0);
   put(new T.CylinderGeometry(0.34, 0.2, 0.36, 10, 1, true), mIron, 2.9, 0.22, 11.6, 0, 0, 1.3); for (let i = 0; i < 3; i++) put(new T.CylinderGeometry(0.02, 0.02, 0.9, 5), mIron, 3.3 + i * 0.12, 0.05, 11.3 + i * 0.3, i, 0, PI / 2);
+  });
+  // afterwards the court is a place people use: cypresses in stone tubs along the way to the doors, benches under
+  // the west wall, stores stacked under the east one, and braziers standing either side of the doors, unlit in the daytime
+  only(whole, () => { const mYew = toon(0x3a5632);
+    for (const sd of [-1, 1]) for (const z of [-9, -4.5, 0, 9.6]) { const x = sd * 3.5; put(tcyl(0.5, 0.4, 0.7, 12), mTrim, x, 0.35, z); put(new T.CylinderGeometry(0.46, 0.46, 0.06, 12), mChar, x, 0.69, z); put(new T.ConeGeometry(0.44, 2.7, 9), mYew, x, 2.0, z); put(new T.SphereGeometry(0.4, 9, 6), mYew, x, 0.95, z); block(x, z, 0.55); }
+    for (const z of [-3, 4]) { box(0.5, 0.1, 2.2, mWood, -10.2, 0.5, z); for (const k of [-0.8, 0.8]) box(0.4, 0.45, 0.3, mTrim, -10.2, 0.225, z + k); block(-10.2, z - 0.6, 0.45); block(-10.2, z + 0.6, 0.45); }
+    for (const [x, z, sz, r, y] of [[9.9, 3.2, 0.9, 0.1, 0], [9.8, 4.3, 0.9, -0.15, 0], [9.9, 3.7, 0.7, 0.4, 0.9]]) { box(sz, sz, sz, mCrate, x, y + sz / 2, z, r); if (!y) block(x, z, sz * 0.7); }
+    for (const [x, z] of [[9.9, 5.5], [9.2, 6.1], [10.0, 6.4]]) { put(new T.CylinderGeometry(0.34, 0.3, 0.9, 12), mBarrel, x, 0.45, z, x * 3); block(x, z, 0.45); } });
+  only(whole, () => { for (const sd of [-1, 1]) { const x = sd * 2.9, z = ZF + 1.1; put(new T.CylinderGeometry(0.4, 0.22, 0.34, 12, 1, true), mIron, x, 1.2, z); put(new T.CylinderGeometry(0.22, 0.22, 0.03, 12), mIron, x, 1.04, z); for (let i = 0; i < 3; i++) { const a = i * 2.1 + 0.4; put(new T.CylinderGeometry(0.022, 0.022, 1.1, 5), mIron, x + Math.sin(a) * 0.17, 0.53, z + Math.cos(a) * 0.17, a, 0.3, 0); } block(x, z, 0.4); } });
 
   // ---- colours: the realm's, hanging on the front; one has come down
-  for (const [x, tilt] of [[-7.1, 0], [7.1, 0.5]]) { const b = new T.Mesh(new T.PlaneGeometry(1.3, 3.4, 1, 4), mBanner); b.position.set(X(x), 7.4 - tilt * 0.6, Z(ZW + 0.12)); b.rotation.z = tilt * 0.3; b.castShadow = true; scene.add(b); box(1.7, 0.08, 0.08, mWood, x, 9.14 - tilt * 0.3, ZW + 0.14, 0, 0, tilt * 0.3); }
-  { const b = new T.Mesh(new T.PlaneGeometry(1.3, 3.4, 1, 4), mBanner); b.rotation.set(-PI / 2, 0, 0.8); b.position.set(X(-3.6), 0.035, Z(-8.4)); b.receiveShadow = true; scene.add(b); }
+  const colours = (x, tilt) => { const b = new T.Mesh(new T.PlaneGeometry(1.3, 3.4, 1, 4), mBanner); b.position.set(X(x), 7.4 - tilt * 0.6, Z(ZW + 0.12)); b.rotation.z = tilt * 0.3; b.castShadow = true; scene.add(b); box(1.7, 0.08, 0.08, mWood, x, 9.14 - tilt * 0.3, ZW + 0.14, 0, 0, tilt * 0.3); };
+  colours(-7.1, 0); only(war, () => colours(7.1, 0.5)); only(whole, () => colours(7.1, 0));
+  only(war, () => { const b = new T.Mesh(new T.PlaneGeometry(1.3, 3.4, 1, 4), mBanner); b.rotation.set(-PI / 2, 0, 0.8); b.position.set(X(-3.6), 0.035, Z(-8.4)); b.receiveShadow = true; scene.add(b); });
 
   // ---- the dead, and what they dropped. The realm's line held the barricade with a few knights among them; they are
   // thickest there and before the doors, where the last of them fell back to.
+  only(war, () => {
   const { sword, piece, spear, shield, helm, body } = wreckage(scene, X, Z, Q), KNIGHT = LOOKS.captain, LINE = LOOKS.line, GLASS = LOOKS.glass, bare = (l) => ({ ...l, shield: undefined, weapon: 'none' });
   const D = PZ.d2, B = PZ.down, PR = PZ.prone;
   [ [LINE, D, -2.2, BZ + 1.3, 2.4], [LINE, B, 1.3, BZ + 0.6, -0.7], [KNIGHT, PR, -0.4, BZ - 1.2, 3.0], [GLASS, B, 2.6, BZ + 2.6, 1.2], [LINE, PZ.side, -4.6, BZ + 1.4, 0.6], [GLASS, D, -0.9, BZ + 3.1, -2.2], [bare(LINE), PZ.back2, 6.0, BZ - 1.3, 2.0],
@@ -165,23 +228,29 @@ export function buildFore(scene, kit) {
     for (const d of [soot, ash, crack, prints, drag]) d.done(); }
   { const parts = []; for (let i = 0; i < 60; i++) { const s = Q(0.06, 0.26), g = new T.DodecahedronGeometry(s, 0), edge = q() < 0.6, x = edge ? (q() < 0.5 ? -1 : 1) * Q(9.2, 10.7) : Q(-10, 10), z = edge ? Q(-12, 13.5) : Q(-12.5, 13.5); g.applyMatrix4(M.makeRotationFromEuler(eu.set(Q(0, 3), Q(0, 3), 0)).setPosition(X(x), s * 0.5, Z(z))); parts.push(g); }
     const m = new T.Mesh(mergeGeometries(parts), mTrim); m.castShadow = m.receiveShadow = true; scene.add(m); }
+  // on the road outside, the last of those who ran for the gate (placed after everything else that draws on the court's random numbers)
+  for (const [look, pose, x, z, face] of [[LINE, D, -1.6, 23.2, 0.4], [KNIGHT, B, 2.7, 18.4, 1.9], [bare(LINE), PZ.crawl, 1.5, 30.5, 3.0]]) body(look, pose, x, z, face, { pool: 0.7 });
+  shield(-0.9, 24.6, 1.1, 2); sword(2.2, 21.2, 0.7); helm(0.9, 27.3, 2.0, LINE); spear(-2.2, 19.4, 0.3, 2.3);
+  });
 
-  for (const [mat, gs] of bins) { const m = new T.Mesh(mergeGeometries(gs), mat); m.castShadow = m.receiveShadow = !!mat.isMeshToonMaterial; scene.add(m); }
+  for (const [g, b] of bins) for (const [mat, gs] of b) { const m = new T.Mesh(mergeGeometries(gs), mat); m.castShadow = m.receiveShadow = !!mat.isMeshToonMaterial; (g || scene).add(m); }
 
   // ---- the air: smoke standing over the place beyond the walls, the sun low and red in it, sparks going up off the fires
+  only(war, () => {
   const mSmoke = new T.SpriteMaterial({ map: TEX.glow, color: 0x0e0909, transparent: true, opacity: 0.6, depthWrite: false, fog: false });
   for (const [x, z, s] of [[-34, -44, 1.2], [30, -52, 1.5], [44, 6, 1.0], [-46, 20, 1.1], [6, -70, 1.7]]) for (let k = 0; k < 4; k++) { const p = new T.Sprite(mSmoke); p.position.set(X(x + k * 5 * s), 9 + k * 13 * s, Z(z + k * 2)); p.scale.set((18 + k * 12) * s, (20 + k * 10) * s, 1); scene.add(p); }
   { const p = new T.Sprite(new T.SpriteMaterial({ map: TEX.glow, color: new T.Color(0.95, 0.3, 0.12), transparent: true, opacity: 0.55, depthWrite: false, fog: false, blending: T.AdditiveBlending })); p.position.set(X(-190), 205, Z(120)); p.scale.setScalar(260); p.renderOrder = -2; scene.add(p);
     const c = new T.Sprite(new T.SpriteMaterial({ map: TEX.glow, color: new T.Color(1.3, 0.62, 0.3), transparent: true, opacity: 0.8, depthWrite: false, fog: false, blending: T.AdditiveBlending })); c.position.copy(p.position); c.scale.setScalar(70); c.renderOrder = -2; scene.add(c); }
+  });
   const NE = 150, ep = new Float32Array(NE * 3), eb = new Float32Array(NE * 4);
   for (let i = 0; i < NE; i++) eb.set([Q(-11, 11), Q(0, 9), Q(-13, 14), Q(0, 6.3)], i * 4);
   const eg = new T.BufferGeometry(); eg.setAttribute('position', new T.BufferAttribute(ep, 3));
-  const embers = new T.Points(eg, new T.PointsMaterial({ size: 0.07, map: TEX.glow, color: new T.Color(1.6, 0.6, 0.2), transparent: true, opacity: 0.8, blending: T.AdditiveBlending, depthWrite: false })); embers.frustumCulled = false; scene.add(embers);
+  const embers = new T.Points(eg, new T.PointsMaterial({ size: 0.07, map: TEX.glow, color: new T.Color(1.6, 0.6, 0.2), transparent: true, opacity: 0.8, blending: T.AdditiveBlending, depthWrite: false })); embers.frustumCulled = false; war.add(embers);
   const update = (t) => {
     for (let i = 0; i < NE; i++) { const ph = eb[i * 4 + 3], y = (eb[i * 4 + 1] + t * (0.35 + (ph % 1) * 0.5)) % 9; ep[i * 3] = X(eb[i * 4] + Math.sin(t * 0.5 + ph) * 0.6 + y * 0.25); ep[i * 3 + 1] = 0.3 + y; ep[i * 3 + 2] = Z(eb[i * 4 + 2] + Math.cos(t * 0.4 + ph * 2) * 0.6); }
     eg.attributes.position.needsUpdate = true;
     lights.forEach((l, i) => { l.intensity = l.userData.base * (0.84 + Math.sin(t * 9 + i * 3) * 0.1 + Math.sin(t * 23 + i) * 0.06); }); doorL.intensity = doorL.userData.base * (0.85 + Math.sin(t * 1.3) * 0.15);
   };
-  update(0);
-  return { obs, update };
+  update(0); scene.add(war, whole);
+  return { obs, obsWhole, war, whole, update };
 }

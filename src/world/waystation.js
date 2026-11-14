@@ -14,10 +14,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // The caravan road north of the gate (yard coordinates): straight out past the cairns, then round to the
 // east and out of sight behind a mesa. The dunes are levelled along it (roadOff, used by level.js).
 export const ROAD = [[0, 12.6], [0, 26], [0.5, 38], [3, 50], [9, 62], [19, 74], [35, 84], [57, 90], [90, 93], [130, 92]];
-export const roadOff = (x, z) => { // metres from the road's line
-  let m = 1e9; for (let i = 0; i + 1 < ROAD.length; i++) { const [ax, az] = ROAD[i], bx = ROAD[i + 1][0] - ax, bz = ROAD[i + 1][1] - az, u = Math.max(0, Math.min(1, ((x - ax) * bx + (z - az) * bz) / (bx * bx + bz * bz))); m = Math.min(m, Math.hypot(x - ax - bx * u, z - az - bz * u)); }
+export const lineOff = (line, x, z) => { // metres from a line of points
+  let m = 1e9; for (let i = 0; i + 1 < line.length; i++) { const [ax, az] = line[i], bx = line[i + 1][0] - ax, bz = line[i + 1][1] - az, u = Math.max(0, Math.min(1, ((x - ax) * bx + (z - az) * bz) / (bx * bx + bz * bz))); m = Math.min(m, Math.hypot(x - ax - bx * u, z - az - bz * u)); }
   return m;
 };
+export const roadOff = (x, z) => lineOff(ROAD, x, z); // metres from the road's line
 
 export function buildWaystation(scene, ox, oz) {
   const g = new T.Group(); g.position.set(ox, 0, oz); scene.add(g);

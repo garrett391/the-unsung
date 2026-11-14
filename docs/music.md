@@ -35,6 +35,31 @@ Owner's direction: melancholy over adventurous. Instrumental only, no singing.
 - File: `public/music/granite.mp3` (the owner's track, 128 kbps; the 2.3 s of silence at the end was cut: 2 min 58.7 s, looped). `actOne(true)` in `src/story/mission.js` plays it.
 - Comes in when the war horn banner shows at the end of the spar and runs through the raid, the fall back, the hold and Vessa; "Beneath the Flagstones" returns at dawn. So the camp's theme is now only the quiet before and after. The cue points are unheard: the owner's ear decides.
 
+## The waystation and the muster (Nov 2026)
+
+No track was made for these; they borrow, so that nothing is silent (owner's request). All unheard.
+
+- The raid on the yard: "The Weight of Granite" (owner: for variety; it used to be "A Blade For The Weary"). The horn sounds alone for about three seconds, then the track comes in low (`vol: 0.4`) under the guard being cut down, and `musicVol(1, 2.5)` brings it up to full when his hand closes on the sword.
+- After the yard fight, the officer's column: the title theme, "Nightfall Over Dunes", a little under full (`vol: 0.8`). It carries on into the muster.
+- The muster: the title theme under the talk; "A Blade For The Weary" for the bout (his own fighting music, which is what the officer wants the sergeant to see); the title theme again when the sergeant yields, through the clerk's table and on under the Act I cards, where "Beneath the Flagstones" takes over as before.
+- `musicVol(vol, dur)` in `audio.js` raises or lowers the playing track without restarting it.
+
+### Prompts for tracks of their own (for Gemini, or any music tool)
+
+Same palette and key as the rest. Each leads with "Instrumental, no vocals" and stays short, which is what has worked.
+
+**The yard** (the waystation at the end of a working day; after the fight; the muster's talk and the clerk's table). Replaces the borrowed title theme. Loop, 60 to 90 s.
+
+> Instrumental, no vocals. Quiet, weary desert theme for the end of a working day at a caravan waystation. Solo oud picking a slow, plain figure, a low cello holding long notes under it, soft frame drum like slow footsteps, a few notes of duduk answering near the end. 60 BPM, D minor. Warm, dusty, patient, a little lonely. No swell, no percussion hits, nothing heroic. Even volume throughout. Loopable ending.
+
+**The horn** (from the raiders' horn until he takes up the sword: the guard is cut down and nobody looks at the yard hand). Would replace the low-volume opening of "The Weight of Granite". 40 to 60 s, need not loop.
+
+> Instrumental, no vocals. Tense, held-breath underscore for a dark fantasy game: raiders have just come through a gate. Low string drone on D, slow frame drum pulse like a heartbeat, bowed cello harmonics, a single oud string plucked now and then. 60 BPM, D minor. Starts almost silent and tightens steadily for 45 seconds without ever breaking into a theme or a big hit. Dread, not action. Ends on an unresolved held note.
+
+**The bout** (the muster's trial with blunt steel: a test, not a battle). Replaces "A Blade For The Weary" there. Loop, 60 to 90 s.
+
+> Instrumental, no vocals. Brisk, wary sparring music for a trial bout between two soldiers, watched by a company. Driving oud ostinato, frame drum and hand drum in a steady 6/8, pizzicato low strings, short cello phrases that push and pull back. 100 BPM, D minor. Focused and dry, a contest of skill, not a war: no brass, no big drums, no triumphant melody. Even energy throughout. Loopable ending.
+
 Tracks are named in `TRACKS` in `src/core/audio.js`; one plays at a time. A new one waits for the old one to fade out, then fades in. A decoded track is large (about 60 MB for the three-minute one): `forgetMusic()` drops the ones not playing, and a long track could be cut down to a loop if phones struggle.
 
 For new tracks (in-game music, stingers for the lesson, Corin's fall, dawn), keep the same palette and key so they sit together.
@@ -46,7 +71,7 @@ In use (Nov 2026): **20 Sword Sound Effects (Attacks and Clashes)** by StarNinja
 - Sixteen of the twenty takes are in `public/sfx/` as short mono WAVs (24 kHz; WAV because older iPhones can't decode Ogg, and it has no encoder delay). Each was cut to start 35 ms before its strike and end where it dies away, so the sound lands with the blow.
 - `hit1-5` (sword 1, 2, 3, 4, 7): a blow landing. `big1-3` (sword 5, 8, 10): heavy blows and ripostes. `clang1-4` (clash 2, 3, 4, 5): a block. `parry1-4` (clash 1, 6, 8, 10): a parry.
 - `SFX.hit`, `big`, `clang` and `parry` play a random take (never the same twice running, pitch varied a little) over a low synthesized thump; the old synthesized versions remain as the fallback until the files load. Everything else (swings, rolls, the boom) is still synthesized.
-- The synthesized war horn is gone (owner, Nov 2026: he would rather have none than that). The two places it sounded are silent for now: the raiders reaching the waystation, and the end of the spar, where the banner still reads "A war horn sounds from the dunes". When a recorded horn turns up, add it to `LONG` in `audio.js` and call it at those two lines in `mission.js` (both are marked).
+- The war horn (`horn.mp3`, `SFX.horn()`): "Nordic warhorns sound effects" by fronbondi_skegs on Pixabay (file 162120; Pixabay Content License: free to use, no credit required), supplied by the owner (Nov 2026: "our war horn for now"). The download is 70 s of calls; this is the first one only, from 0.42 s to 6.92 s: about 3.5 s of horn and its dying away, faded out over the last 1.6 s, before the second call begins at 7.0 s. Normalized to -16 LUFS, 24 kHz mono, 96 kbps. It sounds when the raiders reach the waystation and at the end of the spar ("A war horn sounds from the dunes"). Its level (1.5 in `SFX.horn`) is unheard. The synthesized horn it replaces was removed earlier (owner: he would rather have none than that).
 - Chosen by measurement (length, onset, decay), not by ear: the session can't listen. If a take sounds wrong, delete its file and lower the count in `TAKES`.
 - `quake.mp3`: the vault shaking in the false ending, supplied by the owner (Nov 2026; source not recorded). Loudness-normalized to -16 LUFS, true peak -1.5 dB (two-pass `loudnorm`, linear), 24 kHz, 128 kbps. Twelve seconds: it hits at about 0.5 s and holds; `SFX.quake()` starts it with the first tremor and the scene fades it over 1.2 s when the Usurper lands. Its level (1.6 in `SFX.quake`) is unheard.
 

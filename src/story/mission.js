@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { G } from '../core/game.js';
-import { SFX, stopMusic, playMusic, preloadMusic, forgetMusic } from '../core/audio.js';
+import { SFX, stopMusic, playMusic, preloadMusic, forgetMusic, musicVol } from '../core/audio.js';
 import { PI, rnd, lerp, clamp, wrap } from '../core/util.js';
 import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
@@ -59,7 +59,8 @@ const settled = async (d, max = 1.5) => { const P = G.player, t0 = G.time; await
 // The forecourt (owner, Nov 2026): the game opens here, outside, before the building the halls are under.
 // The realm's last stand was made in this court and lost; the dead and the wreck of it are all that is
 // there, with one of the Usurper's sentries standing among them. Lock on and strike are taught on him,
-// and nothing else: two more come out of the doors, easy ones, and then he goes in. (A cutscene of him
+// and nothing else: he holds the breach in the barricade, so there is no way to the doors but through him, and
+// swings while he is taught on, but lightly. Two more come out of the doors, easy ones, and then he goes in. (A cutscene of him
 // fighting his way to the gate could open it; tabled.)
 const fx = (x, z) => [FORE.x + x, FORE.z + z], fx3 = (x, y, z) => [FORE.x + x, y, FORE.z + z];
 stage('forecourt', {
@@ -67,7 +68,7 @@ stage('forecourt', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'fore', player: [...fx(0, 17.6), PI], corin: null });
     const P = G.player, L = G.level; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.maxAtk = 1; preloadMusic('blade', 'sealed');
-    const S = G.spawn('glasssentry', ...fx(0.5, 2.0), { spare: true }); S.hold = true; S.face = PI; // among the dead in the middle of the court, his back to the gate
+    const S = G.spawn('glasssentry', ...fx(0.3, -3.1), { spare: true }); S.hold = true; S.face = PI; // in the breach of the barricade, his back to the gate
     if (!G.seenHalls) { G.seenHalls = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
     // From outside the gate, low: he walks in under the arch, and the front of the place stands over the court.
     cam.shot(fx3(0.9, 0.8, 21.4), fx3(0, 6.6, -13)); cam.shot(fx3(0.5, 1.4, 18.8), fx3(0, 5.6, -13), 7); ui.fade(0, 2.6);
@@ -76,12 +77,17 @@ stage('forecourt', {
     // The sentry turns when he is near. Two lessons, once (not again on a retry): he only stands there for them.
     await d.until(() => P.dist(S) < 8 || S.hp < S.maxHp); turnTo(d, S, S.angleTo(P), 0.6).catch(() => {});
     if (!G.taughtStrike) {
-      const beaten = () => S.hp <= 1; let n = 0, hp = S.hp; const hits = d.every(() => { if (S.hp < hp) n++; hp = S.hp; });
-      ui.hint('Lock on to the sentry with {k}'); await d.until(() => P.lock === S || n >= 3 || beaten()); // three blows without the lock: he has the idea
-      if (n < 3) { n = 0; ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); }
-      hits(); ui.hint(''); G.taughtStrike = true;
+      // (Owner, Nov 2026.) He keeps the breach (Enemy.post) and his blows are pulled (dmgK): it looks like a fight and costs
+      // little. The captain can't get by him: the barricade closes the rest of the court, and `bar` holds its line in the
+      // breach, a pace in front of him. So the lock has to be found; it is no longer skipped by landing blows without it.
+      const beaten = () => S.hp <= 1, line = FORE.z - 2.2; let n = 0, hp = S.hp; const hits = d.every(() => { if (S.hp < hp) n++; hp = S.hp; });
+      S.post = { z: FORE.z - 3.1, x0: FORE.x - 1.5, x1: FORE.x + 2.2 }; S.dmgK = 0.4; S.hold = false; S.cd = 2.2;
+      const bar = d.every(() => { if (P.pos.z < line) { P.pos.z = line; if (P.vel.z < 0) P.vel.z = 0; } });
+      ui.hint('Lock on to the sentry with {k}'); await d.until(() => P.lock === S || beaten());
+      if (!beaten()) { n = 0; ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); }
+      hits(); bar(); ui.hint(''); G.taughtStrike = true;
     }
-    S.spare = false; S.hold = false; S.cd = 1.4;
+    S.post = null; S.dmgK = 1; S.spare = false; S.hold = false; if (S.state === 'chase' || S.state === 'circle') S.cd = 1.4;
     await d.until(() => S.dead); await d.wait(0.9);
     // Two more, out of the doors.
     G.spawn('glasssentry', ...fx(-0.4, -15.2), { hpMul: 0.75 }); G.spawn('glasssentry', ...fx(0.4, -16.1), { hpMul: 0.75 });
@@ -341,6 +347,8 @@ stage('door', {
 // different"). The seal has taken the Usurper's years with it, so none of it happened: no dead,
 // no glass, no blood, no torches, the Door's light gone, and daylight coming down the stair he
 // came in by. Nothing is said. He walks out; the camera looks once at the column where the knight died.
+// Then the doors, and the same court he fought across (owner, Nov 2026): whole, in daylight, the gate
+// open, the watch standing easy at it and people about their day. He crosses it and goes out by the gate.
 stage('ascent', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'halls', after: true, player: [...hx(0, -52.6), 0], corin: null });
@@ -355,6 +363,17 @@ stage('ascent', {
     await glance(d, ...hx(-2.95, -25.2), { from: hx3(0.9, 1.5, -22.0), y: 0.7, hold: 3.2 }); // where she sat: bare stone
     await d.until(() => P.pos.z > HALLS.z - 1.4);
     P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4); motes();
+    G.resetWorld({ site: 'fore', after: true, sky: 'clear', player: [...fx(0, -15.4), 0], corin: null });
+    G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true;
+    for (const sd of [-1, 1]) new Extra(LOOKS.line, ...fx(sd * 1.95, 12.7), -sd * PI / 2); // the gate's watch, facing each other across the way out
+    const walk = async (e, pts, sp) => { for (;;) for (const [x, z, rest] of pts) { e.go(...fx(x, z), sp); await d.until(() => e.fixed); await d.wait(rest); } }; // someone going to and fro on an errand
+    walk(new Extra(LOOKS.line, ...fx(-9.4, 8.6), 2.2), [[-9.2, -8.5, 3.5], [-9.4, 8.6, 3.5]], 1.3).catch(() => {}); // a sentry pacing the west wall
+    walk(new Extra(LOOKS.clerk, ...fx(7.4, -10.8), 0, { scale: 0.96 }), [[5.6, 11.2, 5], [7.4, -10.8, 6]], 1.5).catch(() => {}); // a clerk between the east wing and the gate
+    cam.shot(fx3(3.4, 1.3, -6.6), fx3(0, 2.4, -13.4)); cam.shot(fx3(4.4, 1.5, -4.4), fx3(0, 2.2, -12.4), 7); ui.fade(0, 3); // on the doors: he comes out of the dark into the sun
+    await d.wait(1.4); await stroll(d, ...fx(0, -10.6), 1.4, 7); await d.wait(1.2);
+    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true;
+    await d.until(() => P.pos.z > FORE.z + 16.2); // out under the gate, onto the road
+    P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4);
   },
 });
 
@@ -384,7 +403,7 @@ stage('waystation', {
   checkpoint: true,
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'way', look: 'labourer', player: [...wy(-2.4, -9.6), 0.75], corin: null });
-    const P = G.player, L = G.level, R = []; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; preloadMusic('blade');
+    const P = G.player, L = G.level, R = []; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; preloadMusic('granite', 'title');
     const guard = new Extra(LOOKS.wayguard, ...wy(1.7, 9.4), 0), drover = new Extra(LOOKS.drover, ...wy(6.3, 2.4), 1.2);
     const loot = [[6.2, 4.3, 1.45], [5.6, -1.2, 1.8], [-6.6, 9.3, -0.9]]; // at the stall, the cart and the carter's load // where the first three stand over the goods, and which way they face
     if (!G.seenWay) {
@@ -394,7 +413,7 @@ stage('waystation', {
       stroll(d, ...wy(2.4, -2.2), 1.25, 9).catch(() => {});
       await d.wait(5.2);
       // A horn, out in the dunes. At the gate, raiders come running in off the road; the guard meets them, and is cut down.
-      G.shake = 0.1; stopMusic(2); P.walk = null; // (silent for now: the synthesized horn was taken out, and no recorded one has been found yet)
+      G.shake = 0.1; stopMusic(1.2); SFX.horn(); P.walk = null; d.wait(3.2).then(() => playMusic('granite', { cross: 0.5, fade: 5, vol: 0.4 }), () => {}); // the horn alone, then the fight's music under the scene, held low until he takes up the sword
       await d.wait(0.7); turnTo(d, P, 0.1, 0.7).catch(() => {});
       for (const [x, z] of [[1.2, 19], [-1.4, 21.5], [0.5, 24]]) R.push(G.spawn('raider', ...wy(x, z)));
       cam.shot(wy3(-3.2, 1.5, 3.6), wy3(0.9, 1.5, 10.5)); cam.shot(wy3(-2.6, 1.4, 5), wy3(1.2, 1.3, 10.5), 3.5);
@@ -417,8 +436,8 @@ stage('waystation', {
       await stroll(d, ...wy(0.75, 9.0), 2.7, 7);
       await turnTo(d, P, Math.atan2(guard.pos.x - 0.4 - P.pos.x, guard.pos.z + 0.6 - P.pos.z), 0.4);
       P.state = 'cine'; P.play(CL.kneel, 0.35); await d.wait(1.25);
-      // His hand closes on the grip, and the fight's music comes back for the first time since the Door.
-      P.wear('drifter'); guard.dress(LOOKS.wayguardBare); SFX.learn(); playMusic('blade', { cross: 1, fade: 2.5 });
+      // His hand closes on the grip, and the music comes up to its full weight.
+      P.wear('drifter'); guard.dress(LOOKS.wayguardBare); SFX.learn(); playMusic('granite', { cross: 1, fade: 2.5 }); musicVol(1, 2.5);
       G.slow = 0.7; P.flashCol = [1, 0.8, 0.3]; P.flash = 1; shock(P.pos, 2.4, 0xffe2a0); FX.sparks.emit(new T.Vector3(P.pos.x, 0.5, P.pos.z), 40, 3, 0xffe2a0, 1.1, { grav: -2.2, spread: 0.5, boost: 1.6 }); // and something he had put down years ago is in his hand again
       cam.shot([P.pos.x - 1.5, 0.6, P.pos.z + 1.9], [P.pos.x, 0.9, P.pos.z]); cam.shot([P.pos.x - 1.8, 1.1, P.pos.z + 2.3], [P.pos.x, 1.45, P.pos.z], 2.4);
       await d.wait(0.9); P.stop(0.7); P.state = 'loco'; P.calm = false; // he stands, and the guard comes up as it always did
@@ -426,7 +445,7 @@ stage('waystation', {
     } else { // a retry starts with the sword already in his hand
       P.wear('drifter'); P.place(...wy(0.75, 9.0), 1.6); guard.lie(CL.death, true); guard.dress(LOOKS.wayguardBare); drover.setVisible(false);
       for (const [x, z, f] of loot) { const e = G.spawn('raider', ...wy(x, z)); e.face = f; R.push(e); }
-      playMusic('blade', { cross: 1, fade: 2 }); ui.fade(0, 0.8);
+      playMusic('granite', { cross: 1, fade: 2 }); musicVol(1, 2); ui.fade(0, 0.8);
     }
     P.flashCol = [1, 0.15, 0.1]; G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(R[0]); cam.behind(); P.controlEnabled = true; G.freezeAI = false; for (const e of R) e.cd = rnd(1.4, 2.6);
     // It comes back to him (owner, Nov 2026: the sword in his hand is where the roll and the heavy blow
@@ -453,7 +472,7 @@ stage('waystation', {
     await d.until(() => live() === 0);
 
     // The yard is quiet. A guard column comes in at the gate: an officer and two soldiers, who stop at what they see.
-    ui.objective(''); ui.hint(''); G.boss = null; stopMusic(5); G.slow = 0.9;
+    ui.objective(''); ui.hint(''); G.boss = null; playMusic('title', { cross: 5, fade: 4, vol: 0.8 }); G.slow = 0.9; // the fighting's music goes out, and the quiet one comes in under the officer
     await d.wait(2.2); await settled(d);
     P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); G.freezeAI = true;
     const off = new Extra(LOOKS.officer, ...wy(0.2, 19), PI), s1 = new Extra(LOOKS.soldier, ...wy(-1.3, 21), PI), s2 = new Extra(LOOKS.soldier, ...wy(1.2, 21.6), PI);
@@ -486,7 +505,7 @@ stage('muster', {
   checkpoint: true,
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'way', sky: 'morning', muster: true, look: 'drifter', player: [...wy(1.5, -8.6), 0], corin: null });
-    const P = G.player, ring = wy(1.5, -1.5); G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; G.blunt = true; stopMusic(2); preloadMusic('flagstones');
+    const P = G.player, ring = wy(1.5, -1.5); G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; G.blunt = true; playMusic('title', { cross: 2, fade: 3, vol: 0.8 }); preloadMusic('blade', 'flagstones'); // (it is already playing if he came here from the yard)
     const S = G.spawn('sergeant', ...wy(1.5, 0.9), { spare: true }); S.face = PI;
     const off = new Extra(LOOKS.officer, ...wy(5.2, -6.2), -0.75), clerk = new Extra(LOOKS.clerk, ...wy(7.6, -9.3), 0, { scale: 0.96 }); clerk.watch = P;
     for (const [a, r] of [[0.5, 6.8], [1.25, 6.8], [-0.6, 6.8], [-1.35, 5.6], [-2.3, 6.8]]) { const e = new Extra(LOOKS.soldier, ring[0] + Math.sin(a) * r, ring[1] + Math.cos(a) * r, a + PI, /* the company, standing well back from the ring */ { scale: 0.97 + Math.abs(a) * 0.02 }); e.watch = S; }
@@ -494,7 +513,7 @@ stage('muster', {
     await d.wait(2.6);
     await d.talk([['Officer', 'You came.'], ['Officer', 'I know what I saw in this yard. I want my sergeant to see it.'], ['Sergeant', 'Blunt steel. First to yield. Whenever you like, yard hand.']]);
     await stroll(d, ...wy(1.5, -3.9), 2.0, 5);
-    G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(S); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = S; S.cd = 1.6;
+    G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(S); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = S; S.cd = 1.6; playMusic('blade', { cross: 1.5, fade: 2 }); // the bout has his own fighting music: what the officer saw in the yard
     // Two objectives, so the shield is a thing to do and not a tip to read: beat it down, then win.
     ui.objective("Beat down the sergeant's shield"); ui.hint('Strike it with {l}. It gives on the third blow.'); let broke = false;
     const tick = d.every(() => { if (!broke && (S.open || S.hp < S.maxHp)) { broke = true; ui.objective('Win the bout'); ui.hint(''); } });
@@ -504,7 +523,7 @@ stage('muster', {
       P.hp = 100; S.hp = S.maxHp; G.freezeAI = false; S.cd = 1.6;
     }
     // He yields. The clerk's table.
-    tick(); G.slow = 0.8; ui.objective(''); ui.hint(''); G.boss = null; await settled(d);
+    tick(); G.slow = 0.8; ui.objective(''); ui.hint(''); G.boss = null; playMusic('title', { cross: 3, fade: 4, vol: 0.8 }); await settled(d); // and the quiet one again for the clerk's table; it runs on under the Act I cards
     P.controlEnabled = false; P.lock = null; P.calm = true; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
     S.stagDur = 1e9; S.open = false; S.set('stagger'); S.vel.set(0, 0, 0); S.trailOn = false; S.yoff = 0; S.play(CL.kneel, 0.3);
     { const dx = P.pos.x - S.pos.x, dz = P.pos.z - S.pos.z, l = Math.hypot(dx, dz) || 1, mx = (P.pos.x + S.pos.x) / 2, mz = (P.pos.z + S.pos.z) / 2;
@@ -578,7 +597,7 @@ stage('spar', {
       ['Corin', 'Then teach me that part.'],
       ['Captain', 'Tomorrow.'],
     ]);
-    G.spar = false; G.shake = 0.12; ui.banner('A war horn sounds from the dunes', 2.6); playMusic('granite', { cross: 1.5, fade: 2.5 }); // no horn sound yet (see the waystation): the banner and the music turning carry it
+    G.spar = false; G.shake = 0.12; ui.banner('A war horn sounds from the dunes', 2.6); SFX.horn(); playMusic('granite', { cross: 1.5, fade: 2.5 });
     await d.wait(2.8);
   },
 });

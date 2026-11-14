@@ -92,7 +92,10 @@ if (at('door')) {
   await play(30, { bot: true, to: [-110, -20], until: "G.player.pos.z>-40" }); await shot('00g-after-rotunda');
   await play(30, { bot: true, to: [-110, -20], until: "G.cinematic" }); await play(1.6); await shot('00h-she-is-gone');
   await play(30, { until: "G.player.controlEnabled" }); await play(10, { bot: true, to: [-110, 0.5], until: "G.player.pos.z>-8" }); await shot('00i-after-gallery');
-  log('out', await play(40, { bot: true, to: [-110, 0.5], until: stageIs('road') }));
+  log('out', await play(40, { bot: true, to: [-110, 0.5], until: "G.level.site==='fore'" }));
+  await play(4); await page.waitForTimeout(4500); await shot('00j-the-court-after'); await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('00k-the-court-after');
+  await play(20, { bot: true, to: [-150, 78], until: "G.player.pos.z>66" }); await shot('00l-to-the-gate');
+  log('the gate', await play(40, { bot: true, to: [-150, 78], until: stageIs('road') }));
   log('road', await play(30, { tap: true, until: stageIs('waystation') }));
 }
 if (process.env.TO === 'door') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); } // TO=door stops after the prologue
