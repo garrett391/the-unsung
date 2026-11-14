@@ -6,8 +6,9 @@ export const I = { mx: 0, my: 0, block: false, heavy: false, touch: false };
 export const keys = {};
 export const coarse = matchMedia('(pointer:coarse)').matches;
 // Camera sensitivity, 0.25..2, kept between visits where storage allows.
-export const opts = { sens: 1, blood: true };
-try { const v = +localStorage.getItem('unsung.sens'); if (v >= 0.25 && v <= 2) opts.sens = v; if (localStorage.getItem('unsung.blood') === 'off') opts.blood = false; } catch (_) { /* no storage */ }
+export const opts = { sens: 1, blood: true, model: false };
+try { const v = +localStorage.getItem('unsung.sens'); if (v >= 0.25 && v <= 2) opts.sens = v; if (localStorage.getItem('unsung.blood') === 'off') opts.blood = false; if (localStorage.getItem('unsung.model') === 'on') opts.model = true; } catch (_) { /* no storage */ }
+export function setModel(on) { opts.model = on; try { localStorage.setItem('unsung.model', on ? 'on' : 'off'); } catch (_) { /* no storage */ } }
 export function setBlood(on) { opts.blood = on; try { localStorage.setItem('unsung.blood', on ? 'on' : 'off'); } catch (_) { /* no storage */ } }
 export function setSens(v) { opts.sens = v; try { localStorage.setItem('unsung.sens', String(v)); } catch (_) { /* no storage */ } }
 let stick = null, look = null, mBlock = false, tHeavy = false, mHeavy = false, touchT = -9;

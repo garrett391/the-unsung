@@ -2,16 +2,19 @@ import * as T from 'three';
 import { G } from '../core/game.js';
 import { PI, clamp, lerp, sstep, wrap, damp } from '../core/util.js';
 import { buildHumanoid, JN, NJ, PL, HIP } from './rig.js';
+import { buildModel, MODELS } from './model.js';
 import { sample, locoPose } from './anim.js';
 import { TEX } from '../gfx/materials.js';
 import { drip } from '../gfx/fx.js';
 
 const tmpA = new T.Vector3(), tmpB = new T.Vector3(), GORE = new T.Color(0x470a0d);
+// A look that names an authored model wears it once it has loaded (actors/model.js); until then, and otherwise, the figure is built in code.
+const build = (look) => (look.model && MODELS[look.model] ? buildModel(look) : buildHumanoid(look));
 
 // Shared body: transform, pose blending, locomotion phase, trail and hit flash.
 export class Char {
   constructor(look, scale) {
-    this.rig = buildHumanoid(look); this.root = this.rig.root; this.scale = scale || 1; this.root.scale.setScalar(this.scale); G.scene.add(this.root);
+    this.rig = build(look); this.root = this.rig.root; this.scale = scale || 1; this.root.scale.setScalar(this.scale); G.scene.add(this.root);
     this.pos = new T.Vector3(); this.vel = new T.Vector3(); this.face = 0; this.yoff = 0; this.radius = 0.44 * this.scale;
     this.cur = new Float32Array(PL); this.snap = new Float32Array(PL); this.tgt = new Float32Array(PL);
     this.blend = 1; this.blendDur = 0.1; this.clip = null; this.ct = 0;
@@ -25,8 +28,8 @@ export class Char {
   }
   // Change what the figure wears: a new rig in the same place and pose.
   dress(look) {
-    const vis = this.root.visible; G.scene.remove(this.root); for (const m of this.rig.mats) m.dispose();
-    this.rig = buildHumanoid(look); this.root = this.rig.root; this.root.scale.setScalar(this.scale); this.root.visible = vis; G.scene.add(this.root);
+    const vis = this.root.visible; G.scene.remove(this.root); for (const m of this.rig.mats) m.dispose(); if (this.rig.skel) this.rig.skel.dispose();
+    this.rig = build(look); this.root = this.rig.root; this.root.scale.setScalar(this.scale); this.root.visible = vis; G.scene.add(this.root);
     this.bladeBase = this.rig.bladeMat.color.clone(); this._wet = this._fl = true; this.apply(G.time); this.root.position.set(this.pos.x, this.yoff, this.pos.z); this.root.rotation.y = this.face;
   }
   _snap() { for (let i = 0; i < PL; i++) { let v = this.cur[i]; if (i < NJ * 3) v = wrap(v); this.snap[i] = v; } this.blend = 0; }
@@ -75,6 +78,7 @@ export class Char {
     const J = this.rig.J, c = this.layer ? this.layer(this.cur) : this.cur;
     for (let i = 0; i < NJ; i++) J[JN[i]].rotation.set(c[i * 3], c[i * 3 + 1], c[i * 3 + 2]);
     J.hips.position.set(c[NJ * 3], HIP + c[NJ * 3 + 1], c[NJ * 3 + 2]);
+    if (this.rig.update) this.rig.update(); // an authored model's parts that follow a joint only in part
     const cp = this.rig.cape;
     if (cp) {
       const s = Math.min(1.2, this.speedN), lean = c[0], long = cp.length > 3, pitch = c[0] + c[3] + c[6];

@@ -24,6 +24,7 @@ page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resourc
 await page.route('**/fonts.googleapis.com/**', (r) => r.abort());
 await page.goto(`http://localhost:${port}/`);
 await page.waitForTimeout(800);
+if (process.env.MODEL) await page.evaluate(() => G.setModel(true)); // MODEL=1: the captain wears the authored knight model (actors/model.js)
 const shot = (n) => page.screenshot({ timeout: 120000, path: join(shots, (phone ? 'phone-' : '') + n + '.png') });
 await shot('00-title');
 

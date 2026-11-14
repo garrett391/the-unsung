@@ -2,7 +2,7 @@ import * as T from 'three';
 import { G } from './core/game.js';
 import { PI, $ } from './core/util.js';
 import { initAudio, playMusic, stopMusic } from './core/audio.js';
-import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, setBlood, releaseAll } from './core/input.js';
+import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, setBlood, setModel, releaseAll } from './core/input.js';
 import { initRenderer } from './gfx/renderer.js';
 import { initFx, updateFx, clearBlood } from './gfx/fx.js';
 import { buildLevel, confine } from './world/level.js';
@@ -12,6 +12,7 @@ import { Enemy } from './actors/enemy.js';
 import { Ally } from './actors/ally.js';
 import { ATK, LOOKS } from './actors/data.js';
 import { Extra } from './actors/extra.js';
+import { loadModel } from './actors/model.js';
 import { CL, PZ, C } from './actors/anim.js';
 import { ui } from './ui/hud.js';
 import { Director } from './story/director.js';
@@ -131,6 +132,15 @@ if (saved) {
 // pause menu
 const bloodBtn = $('pblood'), bloodLabel = () => (bloodBtn.textContent = `BLOOD: ${opts.blood ? 'ON' : 'OFF'}`);
 bloodLabel(); bloodBtn.addEventListener('click', () => { setBlood(!opts.blood); bloodLabel(); });
+// A trial of authored models (actors/model.js): the captain as a downloaded, textured knight
+// in place of the figure built in code. The file is only fetched when this is on.
+const modelBtn = $('pmodel'), modelLabel = () => (modelBtn.textContent = `CAPTAIN: ${opts.model ? 'KNIGHT MODEL' : 'BUILT IN CODE'}`);
+G.setModel = async (on) => {
+  setModel(on); modelLabel(); LOOKS.captain.model = on ? 'knight' : undefined;
+  if (on) try { await loadModel('knight'); } catch (e) { console.warn('model not loaded', e); }
+  if (player.look === 'captain') player.dress(LOOKS.captain);
+};
+modelLabel(); modelBtn.addEventListener('click', () => G.setModel(!opts.model)); if (opts.model) G.setModel(true);
 const sens = $('psens'); sens.value = opts.sens; sens.addEventListener('input', () => setSens(+sens.value));
 G.pause = (on) => {
   if (!G.running || on === !!G.paused) return;
