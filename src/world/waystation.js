@@ -11,6 +11,14 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // Everything is built in local coordinates (x east, z north, the yard's middle at 0, 0) inside
 // one group; obstacles are returned in world coordinates. `muster` holds what the guard column
 // sets up overnight (ring, clerk's table, colours) and is only shown for the muster.
+// The caravan road north of the gate (yard coordinates): straight out past the cairns, then round to the
+// east and out of sight behind a mesa. The dunes are levelled along it (roadOff, used by level.js).
+export const ROAD = [[0, 12.6], [0, 26], [0.5, 38], [3, 50], [9, 62], [19, 74], [35, 84], [57, 90], [90, 93], [130, 92]];
+export const roadOff = (x, z) => { // metres from the road's line
+  let m = 1e9; for (let i = 0; i + 1 < ROAD.length; i++) { const [ax, az] = ROAD[i], bx = ROAD[i + 1][0] - ax, bz = ROAD[i + 1][1] - az, u = Math.max(0, Math.min(1, ((x - ax) * bx + (z - az) * bz) / (bx * bx + bz * bz))); m = Math.min(m, Math.hypot(x - ax - bx * u, z - az - bz * u)); }
+  return m;
+};
+
 export function buildWaystation(scene, ox, oz) {
   const g = new T.Group(); g.position.set(ox, 0, oz); scene.add(g);
   const muster = new T.Group(); g.add(muster);
@@ -49,7 +57,13 @@ export function buildWaystation(scene, ox, oz) {
 
   // packed earth in the yard and out along the road, flagstones in front of the house
   { const e = add(new T.PlaneGeometry(31, 25.4), toon(0xe2d0b0, { map: rep(TEX.sand, 12, 10) }), 0, 0.012, 0); e.rotation.x = -PI / 2; e.castShadow = false;
-    const r = add(new T.PlaneGeometry(7, 26), toon(0xe2d0b0, { map: rep(TEX.sand, 2.8, 10.4) }), 0, 0.011, 25.6); r.rotation.x = -PI / 2; r.castShadow = false;
+    // the road: a ribbon along ROAD, narrowing a little as it goes (it used to stop dead a few metres out)
+    { const cv = new T.CatmullRomCurve3(ROAD.map(([x, z]) => V(x, 0, z))), n = 90, pts = cv.getSpacedPoints(n), L = cv.getLength(), pos = [], uv = [], nor = [], idx = [];
+      for (let i = 0; i <= n; i++) { const p = pts[i], a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)], dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz), w = (7 - 1.6 * Math.min(1, (i / n) * 2)) / 2;
+        pos.push(p.x - (dz / l) * w, 0, p.z + (dx / l) * w, p.x + (dz / l) * w, 0, p.z - (dx / l) * w); uv.push(0, (i / n) * L / 2.5, 2.8, (i / n) * L / 2.5); nor.push(0, 1, 0, 0, 1, 0);
+        if (i < n) { const k = i * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); } }
+      const rg = new T.BufferGeometry(); rg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); rg.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); rg.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); rg.setIndex(idx);
+      add(rg, toon(0xe2d0b0, { map: rep(TEX.sand, 1, 1) }), 0, 0.011, 0).castShadow = false; }
     const f = add(new T.PlaneGeometry(24, 3.6), toon(0xffffff, { map: rep(TEX.flags, 6, 1) }), 0, 0.02, -10.3); f.rotation.x = -PI / 2; f.castShadow = false; }
 
   // yard walls: plastered, a little uneven, with a darker coping
@@ -179,11 +193,11 @@ export function buildWaystation(scene, ox, oz) {
     for (const [x, z, s] of [[-11.0, 1.2, 0.3], [-10.6, 0.5, 0.26], [-11.2, 0.45, 0.24]]) sack(x, z, s); box(0.7, 0.3, 0.4, mCloths[2], -10.3, 0.15, 1.35, 0.5); stick(V(-10.7, 0.32, 1.1), V(-9.95, 0.32, 1.6), 0.015, mRope);
     for (let k = 0; k < 7; k++) { const s = C(0.06, 0.15), p = add(new T.DodecahedronGeometry(s, 0), mJar, 2.75 + C(-0.4, 0.4), s * 0.25, 11.6 + C(-0.4, 0.3)); p.scale.y = 0.35; p.rotation.y = C(0, 3); }
     // way-marks along the road outside: cairns of three stones
-    for (const [x, z] of [[4.4, 23], [-4.5, 30], [4.6, 36]]) for (let k = 0; k < 3; k++) { const s = 0.4 - k * 0.11, c = add(new T.DodecahedronGeometry(s, 0), mStone, x + C(-0.05, 0.05), [0.24, 0.62, 0.9][k], z + C(-0.05, 0.05), C(0, 3)); c.scale.y = 0.7; }
+    for (const [x, z] of [[4.4, 23], [-4.5, 30], [4.6, 36], [-1.6, 47], [12.5, 58], [13, 73], [36, 79.5]]) for (let k = 0; k < 3; k++) { const s = 0.4 - k * 0.11, c = add(new T.DodecahedronGeometry(s, 0), mStone, x + C(-0.05, 0.05), [0.24, 0.62, 0.9][k], z + C(-0.05, 0.05), C(0, 3)); c.scale.y = 0.7; }
     // the ground
     const ruts = decals(DECAL.ruts, 0x46321e, 0.85), dirt = decals(DECAL.soft, 0x6e5234, 0.5), pale = decals(DECAL.soft, 0xf0dfb8, 0.3), damp = decals(DECAL.soft, 0x3a2c20, 0.8) /* strong, because the sunlit earth is far brighter than white before the grade: a faint patch on it doesn't show at all */, straw = decals(DECAL.straw, 0xd2ba6a, 0.9), prints = decals(DECAL.prints, 0x4a341e, 0.6);
     const lay = (set, pts, w, step) => { for (let i = 0; i + 1 < pts.length; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], a = Math.atan2(x1 - x0, z1 - z0), L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(L / step)); for (let k = 0; k < n; k++) { const u = (k + 0.5) / n; set.at(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u, w, L / n + 0.7, a + PI, set === prints ? 0.036 : 0.03); } } };
-    lay(ruts, [[0.3, 38], [-0.2, 30], [0.2, 21], [0, 12.4], [0.5, 9.6], [3.2, 7.4], [7.4, 5.6]], 2.3, 3.4); // in off the road and round to where the cart stands
+    lay(ruts, [[57, 90], [35, 84], [19, 74], [9, 62], [3, 50], [0.3, 38], [-0.2, 30], [0.2, 21], [0, 12.4], [0.5, 9.6], [3.2, 7.4], [7.4, 5.6]], 2.3, 3.4); // in off the road and round to where the cart stands
     for (const p of [[[0.4, 11.2], [0.2, 3.5], [0.1, -4], [0, -9.6]], [[-0.8, -9.4], [-3.4, -3.2], [-5.2, 0.4]], [[-7.6, 0.6], [-11.2, -1.6]], [[10.6, -3.2], [5.2, 3.4], [1.6, 9.8]], [[8.2, 3.2], [7.2, -3.6], [6.6, -9.0]], [[-8.0, 9.6], [-6.2, 3.4]], [[1.2, -9.4], [9.8, -5.0]]]) lay(prints, p, 0.9, 3.2);
     for (let i = 0; i < 9; i++) dirt.at(C(-2.4, 2.4), C(7, 13), C(2.6, 4.6), C(2.6, 4.6), C(0, 6.3)); for (let i = 0; i < 8; i++) dirt.at(C(-3, 3), C(-9.4, -6.4), C(2.4, 4.2), C(2, 3.4), C(0, 6.3));
     for (let i = 0; i < 26; i++) dirt.at(C(-13.5, 13.5), C(-8, 11), C(2, 5), C(2, 5), C(0, 6.3)); for (let i = 0; i < 8; i++) dirt.at(C(-2.6, 2.6), C(14, 38), C(2.6, 4.4), C(3, 5), C(0, 6.3));
@@ -191,6 +205,34 @@ export function buildWaystation(scene, ox, oz) {
     damp.at(-6.5, 1.5, 4.6, 4.4, 0.3); damp.at(-5.0, 2.5, 2.4, 2.2, 1.2); damp.at(-12.3, -1.8, 2.6, 2.4, 0); damp.at(12.5, -6.2, 1.6, 1.5, 0); damp.at(-11.0, -10.3, 1.6, 1.4, 0.8);
     for (let i = 0; i < 12; i++) straw.at(C(-12.4, -9.6), C(-9.4, 1.4), C(1.4, 2.6), C(1.4, 2.6), C(0, 6.3), 0.034); straw.at(9.2, 4.2, 2.4, 2.4, 1); straw.at(7.9, 5.6, 1.6, 1.6, 2);
     for (const d of [ruts, dirt, pale, damp, straw, prints]) d.done(g); }
+
+  // ---- the country round about: mesas and buttes of banded rock standing out of the dunes, a scree
+  // slope at each foot, and a tilted one (a cuesta) to the north. The road bends behind the nearest.
+  { const mq = rng(733), C = (a, b) => a + mq() * (b - a);
+    const strata = canvasTex(256, (c, n) => {
+      speck(c, n, [198, 140, 94], 14, mq);
+      for (let y = 0; y < n;) { const h = 5 + mq() * 24; c.fillStyle = ['rgba(150,84,52,.55)', 'rgba(228,184,132,.5)', 'rgba(122,72,50,.45)', 'rgba(214,150,96,.4)', 'rgba(240,210,164,.4)'][(mq() * 5) | 0]; c.fillRect(0, y, n, h); c.fillStyle = 'rgba(62,36,26,.3)'; c.fillRect(0, y + h - 1.5, n, 1.5); y += h; } // beds of different rock, a shadow under each
+      for (let k = 0; k < 30; k++) { let x = mq() * n, y = mq() * n; c.strokeStyle = `rgba(66,38,28,${0.2 + mq() * 0.25})`; c.lineWidth = 0.8 + mq() * 1.6; c.beginPath(); c.moveTo(x, y); for (let m = 0; m < 5; m++) { x += (mq() - 0.5) * 7; y += 8 + mq() * 22; c.lineTo(x, y); } c.stroke(); } // joints down the face
+      for (let k = 0; k < 14; k++) { const x = mq() * n, w = 8 + mq() * 26, gr = c.createLinearGradient(x, 0, x + w, 0); gr.addColorStop(0, 'rgba(50,28,22,0)'); gr.addColorStop(0.5, 'rgba(50,28,22,.16)'); gr.addColorStop(1, 'rgba(50,28,22,0)'); c.fillStyle = gr; c.fillRect(x, 0, w, n); }
+    });
+    const mMesa = toon(0xffffff, { map: strata, vertexColors: true });
+    const PROF = [[0, 1.55, 0], [0.1, 1.4, 0], [0.22, 1.22, 0], [0.31, 1.08, 0.5], [0.35, 1.01, 1], [0.58, 1.0, 1], [0.61, 0.95, 1], [0.92, 0.93, 1], [0.97, 0.87, 1], [1, 0.8, 1]]; // [height, radius, 1 on the cliff / 0 on the scree]
+    const mesa = (x, z, r, h, o = {}) => {
+      const N = 44, ph = [C(0, 6), C(0, 6), C(0, 6), C(0, 6)], sx = o.sx || 1, tilt = o.tilt || 0, ta = o.ta || 0, pos = [], col = [], uv = [], idx = [], rows = PROF.length, ur = Math.max(2, Math.round((r * sx) / 6));
+      const out = (a, k) => 1 + 0.2 * Math.sin(2 * a + ph[0]) + 0.12 * Math.sin(3 * a + ph[1]) + 0.06 * Math.sin(5 * a + ph[2]) + k * (0.035 * Math.sin(13 * a + ph[3]) + 0.02 * Math.sin(23 * a + ph[0])); // an uneven outline, and buttresses on the cliff
+      PROF.forEach(([t, rf, k], j) => { for (let i = 0; i <= N; i++) { const a = (i / N) * PI * 2, R = r * rf * out(a, k), y = t * h * (1 + (t > 0.3 ? tilt * Math.cos(a - ta) * rf : 0)) - 3;
+        pos.push(Math.sin(a) * R * sx, y, Math.cos(a) * R); uv.push((i / N) * ur, y / 13); const s = 1 - k; col.push(1 + s * 0.08, 1 - s * 0.04, 1 - s * 0.2); // the scree is paler and sandier
+        if (j < rows - 1 && i < N) { const p = j * (N + 1) + i; idx.push(p, p + 1, p + N + 1, p + 1, p + N + 2, p + N + 1); } } });
+      const top = pos.length / 3, last = (rows - 1) * (N + 1); pos.push(0, h - 3, 0); uv.push(0.5, 0.5); col.push(1.1, 1.02, 0.86); for (let i = 0; i < N; i++) idx.push(top, last + i, last + i + 1);
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); geo.setAttribute('color', new T.Float32BufferAttribute(col, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+      const nr = geo.attributes.normal; for (let j = 0; j < rows; j++) { const p = j * (N + 1), q2 = p + N, nx = nr.getX(p) + nr.getX(q2), ny = nr.getY(p) + nr.getY(q2), nz = nr.getZ(p) + nr.getZ(q2), l = Math.hypot(nx, ny, nz) || 1; nr.setXYZ(p, nx / l, ny / l, nz / l); nr.setXYZ(q2, nx / l, ny / l, nz / l); } // close the seam
+      const m = add(geo, mMesa, x, 0, z, o.ry); m.castShadow = m.receiveShadow = false; return m;
+    };
+    mesa(44, 56, 11, 17, { sx: 1.2, ry: 0.4 }); // the one the road goes behind
+    mesa(-36, 70, 9, 24, { sx: 0.9 }); mesa(-52, 60, 6, 15); // two buttes to the north-west
+    mesa(-40, 112, 16, 20, { sx: 1.6, ry: 0.2, tilt: 0.28, ta: PI }); // a cuesta, far up the road's old line
+    mesa(84, 44, 13, 21, { sx: 1.3, ry: -0.5 }); mesa(-74, 8, 14, 16, { sx: 1.4, ry: 1.4, tilt: 0.25, ta: 1.2 });
+    mesa(62, -48, 13, 19, { sx: 1.3 }); mesa(-48, -64, 16, 22, { sx: 1.5, ry: 0.6 }); mesa(10, -84, 13, 15, { sx: 1.8, tilt: 0.2, ta: 0.5 }); }
 
   // What the guard column sets up for the muster: a bout ring, the clerk's table, and its colours.
   { const ring = new T.Mesh(new T.RingGeometry(4.0, 4.16, 48), toon(0x7a2a26)); ring.rotation.x = -PI / 2; ring.position.set(1.5, 0.03, -1.5); ring.receiveShadow = true; muster.add(ring);

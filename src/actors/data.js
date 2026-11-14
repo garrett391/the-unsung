@@ -31,13 +31,14 @@ for (const k in ATK) { ATK[k].key = k; ATK[k].dur = CL[ATK[k].clip].dur; }
 const PLAIN = { armor: 0x8a7a5c, trim: 0x5e4a34, under: 0x6b6250, dark: 0x3a2c22, steel: 0xc9ccd2, rim: 0x3a2e22, /* a warm, faint rim: the blue one turns brown cloth purple in daylight */ helm: 'wrap', wrap: 0xcfc2a2, skin: 0xc99872, plain: true, pads: 0.5, legs: 1.1 };
 const SOLDIER = { armor: 0x9aa0aa, trim: 0x6c727c, under: 0x26305a, dark: 0x5a3a24, steel: 0xe6e9ef, shield: 2, rim: 0x23305a, helm: 'open', tabard: true, lames: true, knees: true, legs: 1.12, pads: 1.05, eye: 0x08080c };
 const WAYGUARD = { armor: 0x7a5a3c, trim: 0x8a8a86, under: 0x6b6250, dark: 0x2c2620, steel: 0xc9ccd2, rim: 0x3a2e22, helm: 'open', shield: 1, plain: true, pads: 0.8, skin: 0xb98a66, hair: 0x2c2420 };
+const HAND = { ...PLAIN, scarf: 0x4c4136, sash: 0x222a3e, wraps: 0xa39678 }; // the yard hand (the captain, in the years between): a dark scarf bunched at the neck, a faded navy sash, forearms and shins bound
 export const LOOKS = {
   captain: { armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, cape: 0x27355e, shield: 0, rim: 0x2c3f86, legs: 1.22, pads: 0.88 },
-  labourer: { ...PLAIN, weapon: 'none' }, drifter: { ...PLAIN, shield: 1 },
+  labourer: { ...HAND, weapon: 'none' }, drifter: { ...HAND, shield: 1 },
   // Polished steel over a navy gambeson, white tabard with the company badge, open-faced helm: the guard's line soldiers (Corin adds a crimson crest).
   soldier: SOLDIER, officer: { ...SOLDIER, trim: 0xc9a24a, plume: 0xe9e2d0, cape: 0x7a2026, shield: undefined, hair: 0x3a2c22 },
   wayguard: WAYGUARD, wayguardBare: { ...WAYGUARD, weapon: 'none', shield: undefined }, // the waystation's own gate guard, in boiled leather and an iron hat; and after his sword is taken
-  drover: { ...PLAIN, armor: 0x9a6a4a, under: 0xb7a888, helm: 'none', hair: 0x7a5228, skin: 0xd9a77e, weapon: 'none', pads: 0.45 },
+  drover: { ...PLAIN, armor: 0x8f5f40, under: 0xb7a888, helm: 'none', cloth: 0xd9cfb6, beard: 1, hair: 0x2e2620, skin: 0xc4926c, sash: 0x2c3f60, wraps: 0xb3a686, strap: 1, weapon: 'none', pads: 0.45 }, // a caravan man: head-cloth and cord, beard, indigo sash, satchel
   // The halls above the vault: one of the realm's knights, in his colours with her face bare; and the Usurper's guard, pale plate with glass grown into it.
   knight: { armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, rim: 0x2c3f86, legs: 1.1, pads: 0.9, weapon: 'none' }, // helmed, like him (owner: the bare faces are too plain to carry a scene yet)
   line: { armor: 0x8f96a2, trim: 0x4a5a8a, under: 0x2a3050, dark: 0x25262e, steel: 0xdfe3ea, rim: 0x23305a, shield: 2 }, // the realm's line soldiers, in plain steel

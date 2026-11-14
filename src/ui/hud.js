@@ -26,7 +26,7 @@ export const ui = {
   // A new objective or hint arrives with a short gold flash and a soft cue, so it is seen (a count ticking up inside one is not new).
   objective(text) { const el = $('obj'), key = (text || '').replace(/\d+/g, ''); el.textContent = text || ''; el.style.opacity = text ? 1 : 0; if (key && key !== ui._obj) arrive(el); ui._obj = key; },
   hint(text) { const el = $('hint'); if (text) el.innerHTML = fill(text); el.style.opacity = text ? 1 : 0; if (text && text !== ui._hint) arrive(el); ui._hint = text || ''; },
-  // What the captain thinks: a soft cloud over the play for a few seconds. It stops nothing.
+  // What the captain thinks: where the dialogue box sits, but a clouded box edged in black and violet, which fades by itself. It stops nothing.
   thought(text, dur = 5) { const el = $('thought'); clearTimeout(ui._th); if (text) el.textContent = text; el.style.opacity = text ? 1 : 0; if (text) ui._th = setTimeout(() => (el.style.opacity = 0), dur * 1000); },
   holdBar(on) { $('hold').style.display = on ? 'block' : 'none'; },
   banner(text, dur = 2) { const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 16); b.style.opacity = 1; clearTimeout(ui._bh); ui._bh = setTimeout(() => (b.style.opacity = 0), dur * 1000); },

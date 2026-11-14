@@ -35,10 +35,10 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 @keyframes objmark{0%,55%{box-shadow:0 0 10px 3px #e9c15a;background:#ffe7a0}}
 #hint.new{animation:hintin 2.4s ease-out}
 @keyframes hintin{0%{transform:translateX(-50%) translateY(12px) scale(1.18);background:rgba(8,8,14,.9);box-shadow:0 0 0 1px #e9c15a,0 0 26px rgba(233,193,90,.85)}14%,55%{transform:translateX(-50%) scale(1.18);background:rgba(8,8,14,.9);box-shadow:0 0 0 1px #e9c15a,0 0 26px rgba(233,193,90,.85)}100%{box-shadow:0 0 0 1px rgba(233,193,90,0),0 0 26px rgba(233,193,90,0)}}
-#thought{position:absolute;left:50%;transform:translateX(-50%);top:20%;width:max-content;max-width:min(84vw,440px);text-align:center;font-size:19px;font-style:italic;line-height:1.3;color:#f4eee0;
-  padding:13px 28px 15px;background:rgba(26,29,42,.72);border:1px solid rgba(226,230,240,.38);border-radius:999px/60px;box-shadow:0 0 22px 7px rgba(200,208,226,.16),inset 0 0 18px rgba(200,208,226,.12);opacity:0;transition:opacity .9s}
-#thought::before,#thought::after{content:"";position:absolute;left:50%;border-radius:50%;background:rgba(26,29,42,.72);border:1px solid rgba(226,230,240,.38);box-shadow:0 0 10px 2px rgba(200,208,226,.14)}
-#thought::before{width:14px;height:14px;margin-left:-16px;bottom:-21px}#thought::after{width:8px;height:8px;margin-left:-3px;bottom:-34px}
+#thought{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;width:max-content;max-width:min(94vw,640px);text-align:center;font-size:19px;font-style:italic;line-height:1.3;color:#ece6f4;
+  padding:9px 30px 11px;border:1px solid #06050a;border-radius:16px;opacity:0;transition:opacity 1.1s;
+  background:radial-gradient(ellipse 60% 120% at 22% 30%,rgba(120,96,170,.3),transparent 70%),radial-gradient(ellipse 55% 130% at 78% 70%,rgba(96,84,150,.28),transparent 70%),radial-gradient(ellipse 40% 90% at 50% 10%,rgba(190,180,215,.12),transparent 75%),rgba(12,10,20,.84);
+  box-shadow:0 0 0 1px rgba(146,108,214,.6),0 0 14px 3px rgba(118,80,196,.38),inset 0 0 20px rgba(150,124,220,.16)}
 #dlg{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;width:min(94vw,640px);padding:14px 20px 18px;background:rgba(8,8,14,.82);
   border-top:1px solid rgba(217,178,74,.7);display:none}
 #dlg .who{font-size:13px;letter-spacing:.26em;color:#e9c15a;margin-bottom:5px;text-transform:uppercase}
@@ -93,7 +93,8 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 @keyframes pulse{50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){#dlg .more,#chron .tap,#obj.new,#hint.new{animation:none}}
 @media (max-width:600px){#bars{width:40vw}#tgt{left:auto;right:62px;transform:none;width:36vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}}
-@media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}#thought{top:min(196px,34%);font-size:17px}}
+@media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}#thought{bottom:auto;top:96px;font-size:17px}}
+@media (pointer:coarse) and (max-width:600px){#tgt.boss~#thought{top:176px}}
 </style>
 </head>
 <body>

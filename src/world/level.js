@@ -5,7 +5,7 @@ import { toon, TEX, canvasTex, speck, shieldTex } from '../gfx/materials.js';
 import { DECAL, decals } from '../gfx/decals.js';
 import { FX } from '../gfx/fx.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { buildWaystation } from './waystation.js';
+import { buildWaystation, roadOff } from './waystation.js';
 import { buildHalls, HALLS, GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W } from './halls.js';
 
 // Layout (north = +z). A walled camp in front of a cliff. Raiders come through the
@@ -102,7 +102,8 @@ export function buildLevel() {
   const mBanner = toon(0xffffff, { map: TEX.banner, side: T.DoubleSide, alphaTest: 0.5 });
   const V = (x, y, z) => new T.Vector3(x, y, z), UP = V(0, 1, 0);
   // The dunes start past the walls, except along the raiders' road north of the breach, which stays level.
-  const dune = (x, z) => { const road = 1 - clamp((Math.abs(x) - 5.5) / 6, 0, 1), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - lerp(26, 44, road * road * (3 - 2 * road))), d = Math.min(Math.hypot(dx, dz), Math.hypot(Math.max(WAY.x - 24 - x, 0, x - WAY.x - 24), Math.max(WAY.z - 21 - z, 0, z - WAY.z - 37))); return Math.min(1, d / 14) * (Math.sin(x * 0.045 + z * 0.02) * 3 + Math.sin(z * 0.06 - x * 0.03) * 2.2 + Math.sin(x * 0.13) * 0.8) - (d > 0 ? 0.2 : 0); };
+  const dune = (x, z) => { const road = 1 - clamp((Math.abs(x) - 5.5) / 6, 0, 1), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - lerp(26, 44, road * road * (3 - 2 * road))), d = Math.min(Math.hypot(dx, dz), Math.hypot(Math.max(WAY.x - 24 - x, 0, x - WAY.x - 24), Math.max(WAY.z - 21 - z, 0, z - WAY.z - 37))); const rk = z > WAY.z + 30 ? clamp((roadOff(x - WAY.x, z - WAY.z) - 8) / 14, 0, 1) : 1; // level along the caravan road, too, out to where it is lost to sight
+    return rk * Math.min(1, d / 14) * (Math.sin(x * 0.045 + z * 0.02) * 3 + Math.sin(z * 0.06 - x * 0.03) * 2.2 + Math.sin(x * 0.13) * 0.8) - (d > 0 && rk > 0 ? 0.2 : 0); };
   const add = (geo, mat, x, y, z, ry) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); if (ry) m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
   const box = (w, h, d, mat, x, y, z, ry) => add(new T.BoxGeometry(w, h, d), mat, x, y, z, ry);
 
