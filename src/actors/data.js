@@ -35,12 +35,14 @@ export const TYPES = {
     look: { ...RAIDER, armor: 0x3e3230, trim: 0x8b3a34, steel: 0x77706a, eye: 0xff5a30, weapon: 'maul', blade: 1.0, horns: 1 },
     moves: [{ style: 'over', wind: 1.0, rec: 1.2, dmg: 30, range: 3.1, lunge: 5, slam: 1.6 }] },
   // The prologue's fight at the Glass Door. The game opens on the last moments of it: he is
-  // already beaten (`hurt`: hunched, panting, bleeding; see Enemy), slow, and has one tired
-  // swing left, so nothing needs explaining to a player who has not been taught anything yet.
+  // already beaten (`hurt`: hunched, panting, bleeding; see Enemy) and slow, so nothing needs
+  // explaining to a player who has not been taught anything yet. He is still dangerous: an
+  // overhead cut and a quicker sweep, both telegraphed, and blows that cost a careless player.
+  // (Owner, Nov 2026: a little harder than the first pass, which had one weak swing.)
   // A pale, crowned figure in bone-coloured plate, with glass (his sign) for crown and blade.
-  usurper: { name: 'THE USURPER', hp: 240, speed: 1.5, poise: 2, scale: 1.2, boss: true, heavy: true, hurt: true, trail: 0x8fd8cc,
+  usurper: { name: 'THE USURPER', hp: 280, speed: 1.9, poise: 3, scale: 1.2, boss: true, heavy: true, hurt: true, trail: 0x8fd8cc,
     look: { armor: 0xb4ad9c, trim: 0x7a6636, under: 0x25272c, dark: 0x101114, steel: 0xbfeee6, eye: 0x3fd0bc, rim: 0x3c8f84, blade: 1.2, crown: 'glass', glass: 1, cape: 0x14282a, capeLen: 5, tatter: 1, skirt: 0x14282a, pads: 0.82, lames: 1, knees: 1 },
-    moves: [{ style: 'over', wind: 1.15, rec: 1.7, dmg: 8, range: 2.9, lunge: 4 }] },
+    moves: [{ style: 'over', wind: 1.0, rec: 1.45, dmg: 13, range: 2.95, lunge: 4.5 }, { style: 'slash', wind: 0.82, rec: 1.25, dmg: 10, range: 2.7, lunge: 5.5 }] },
   vessa: { name: "VESSA, THE WITCHES' HAND", hp: 820, speed: 4.2, poise: 14, scale: 1.22, boss: true, heavy: true,
     look: { armor: 0x2c2440, trim: 0xb48cff, under: 0x4a4266, dark: 0x16121e, steel: 0xd8ccff, eye: 0xc79bff, rim: 0x5a2c9a, weapon: 'glaive', blade: 1.25, crown: 1, cape: 0x3a1c5c },
     moves: [

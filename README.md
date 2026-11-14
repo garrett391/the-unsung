@@ -51,8 +51,9 @@ A bot plays every stage in headless Chrome and saves screenshots to `test/shots/
 npm run build && npm test
 CHROME=/path/to/chrome npm test     # if Chrome is somewhere else
 FROM=raid npm test                  # start at a stage (door, spar, raid, fallback, hold, vessa)
+TO=door npm test                    # stop after the prologue
 node test/playtest.mjs phone        # phone-sized touch layout
-node test/look.mjs                  # close-up turnaround of the opening foe
+node test/look.mjs                  # close-up turnarounds of the opening foe and the captain
 ```
 
 ## Layout

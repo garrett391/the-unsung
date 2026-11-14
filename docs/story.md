@@ -52,7 +52,7 @@ Vessa, the Witches' Hand, is the face of it: a recurring enemy commander who spe
 
 ## Prologue: the climax nobody saw
 
-1. **The Glass Door (cold open, playable).** The last moments of the fight in the vault. The Usurper is beaten; he goes down and gets up again. The hero puts him behind the glass, and the vault runs backwards around him. Parting words: "Only you will remember this."
+1. **The Glass Door (cold open, playable).** The last moments of the fight in the vault. The Usurper is beaten to his knees. The hero cuts him down, takes it for the end, and walks away; a few steps on the vault shakes, and behind him the Usurper gets up again. The hero puts him behind the glass, and the vault runs backwards around him. Parting words: "Only you will remember this."
 2. **The road.** He walks out into a world where nothing happened. No crowds, no thanks. A caravan passes him and no one looks twice.
 3. **Drifting (cards or short scenes).** Years of labouring jobs. He can't settle and doesn't fit.
 4. **The waystation.** Desert raiders hit the waystation where he works. He takes up a fallen guard's sword. The first real fight of the game is him, a nobody in their eyes, cutting through them. A guard officer arrives at the end and sees what he did. (Also the first sign of the border war.)

@@ -55,11 +55,17 @@ if (!only) {
   await play(2.6); await shot('00a-door');
   log('door opens', await play(2.6, {})); await shot('00b-usurper');
   log('usurper', await play(8, { bot: true, god: true, until: "G.boss&&G.boss.state==='wind'" })); await play(0.9); await shot('00b2-swing');
-  log('falls', await play(60, { bot: true, god: true, until: "G.boss&&G.boss.state==='down'" })); await play(2.6); await shot('00b3-down'); await play(2.2); await shot('00b4-rises');
+  log('to his knees', await play(60, { bot: true, god: true, until: "G.boss&&G.boss.hp<=1" })); await play(2.2); await shot('00b3-kneels');
+  await play(60, { until: "G.player.state==='cine'" }); await play(1.5); await shot('00b4-the-blow-raised');
+  await play(60, { until: "G.enemies[0].state==='down'" }); await play(0.5); await shot('00b5-the-blow'); await play(2.6); await shot('00b6-done');
+  await play(60, { until: "G.player.walk" }); await play(2.4); await shot('00b7-walks-away');
+  await play(60, { until: "G.level.flare>0.2" }); await play(1.5); await shot('00b8-shakes'); await play(2.2); await shot('00b9-rises');
+  log('round two', await play(60, { until: "G.player.controlEnabled" })); await play(0.3); await shot('00b10-up-again');
   log('sealing', await play(60, { bot: true, god: true, until: "G.level.flare>0.9" })); await play(0.6); await shot('00c-sealing');
   await play(3.4); await shot('00d-sealed'); await page.evaluate(() => { G.auto = true; });
   log('road', await play(8, { until: "G.STAGES[G.stage].name==='spar'" }));
 }
+if (process.env.TO === 'door') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); } // TO=door stops after the prologue
 if (at('spar')) {
   log('intro', await play(6)); await shot('01-spar-start');
   log('lock+strike', await play(14, { bot: true, until: "G.corin.mode==='attack'" })); await shot('02-spar-strike');

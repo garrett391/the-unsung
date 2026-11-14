@@ -62,6 +62,14 @@ PZ.d1=P({hips:[.25,0,0],pos:[0,-.42,0],spine:[.5],neck:[.5],thL:[-.9,0,.1],knL:[
 PZ.d2=P({hips:[1.45,0,0],pos:[0,-.74,.2],spine:[.1],neck:[.2],thL:[-.1,0,.15],knL:[.15],thR:[-.05,0,-.15],knR:[.1],shL:[-1.9,0,.7],elL:[-.5],shR:[-1.2,0,-.9],elR:[-.4],haR:[1.4]});
 PZ.air=P({hips:[-.9,0,0],pos:[0,-.1,0],spine:[-.3],neck:[-.4],thL:[-.7,0,.3],knL:[.8],thR:[-.2,0,-.3],knR:[.9],shL:[-.5,0,1.3],elL:[-.4],shR:[-.3,0,-1.4],elR:[-.3],haR:[1]});
 PZ.down=P({hips:[-1.5,0,0],pos:[0,-.72,-.15],spine:[-.05],neck:[-.1],thL:[-.25,0,.2],knL:[.3],thR:[-.1,0,-.2],knR:[.15],shL:[-.2,0,1.1],elL:[-.3],shR:[-.1,0,-1.2],elR:[-.2],haR:[1]});
+// The false ending at the Glass Door (story/mission.js): beaten to his knees, cut down, and hauled back up by the glass in him.
+PZ.kneel=P({spine:[.42],chest:[.16],neck:[.6],shR:[.22,0,-.22],elR:[-.12],haR:[1.45],shL:[.15,0,.3],elL:[-.35]},PZ.d1);
+PZ.kneelHit=P({spine:[.1,.25,0],chest:[0,.2,0],neck:[-.25,.3,.2],shR:[.3,0,-.6],shL:[.2,0,.6]},PZ.kneel);
+PZ.exw=P({shR:[-2.8,0,-.12],elR:[-.75],haR:[.25],spine:[-.26,-.1,0],neck:[.3,.4,0]},PZ.hw); // sword high, both eyes on the man at his feet
+PZ.ex=P({hips:[.16,.05,0],pos:[0,-.2,.04],spine:[.24,.2,0],chest:[.06,.1,0],neck:[-.3,-.2,0]},PZ.hs);PZ.ex2=P({pos:[0,-.24,.04],shR:[-.55,0,.12]},PZ.ex); // the captain's last blow: the heavy cut, more upright
+PZ.rise1=P({hips:[-.4,0,0],pos:[0,-.36,0],spine:[-.45],chest:[-.32],neck:[-.75],thL:[.55,0,.1],knL:[1.0],anL:[.5],thR:[.4,0,-.1],knR:[1.25],anR:[.5],shL:[.55,0,.5],elL:[-.2],shR:[.55,0,-.5],elR:[-.2],haR:[1.2]});
+PZ.rise2=P({hips:[-.12,0,0],pos:[0,.06,0],spine:[-.26],chest:[-.2],neck:[-.55],thL:[.16,0,.06],knL:[.35],anL:[.55],thR:[.05,0,-.06],knR:[.5],anR:[.55],shL:[.22,0,.42],elL:[-.15],shR:[.22,0,-.42],elR:[-.15],haR:[1.2]});
+PZ.rise3=B({neck:[.42,.26,0],spine:[.2,.1,0]});
 export const EASE={o:u=>1-Math.pow(1-u,3),i:u=>u*u,l:u=>u};
 export function C(dur,...keys){return{dur,keys:keys.map(k=>({t:k[0],p:k[1],e:EASE[k[2]]||sstep}))};}
 export function sample(c,t,out){const K=c.keys;if(t<=K[0].t){out.set(K[0].p);return;}const n=K.length;if(t>=K[n-1].t){out.set(K[n-1].p);return;}
@@ -84,6 +92,11 @@ export const CL={
   death:C(1.1,[.3,PZ.d1],[.75,PZ.d2,'i']),
   air:C(.2,[.12,PZ.air,'o']),
   down:C(.2,[.14,PZ.down,'i']),
+  kneel:C(1.1,[.4,PZ.d1],[1.1,PZ.kneel]),
+  fall:C(.85,[0,PZ.kneel],[.1,PZ.kneelHit,'o'],[.85,PZ.d2,'i']),
+  rise:C(3.1,[0,PZ.d2],[1.15,PZ.rise1],[2.05,PZ.rise2],[2.4,PZ.rise2],[2.62,PZ.rise3,'i'],[3.1,PZ.guard]),
+  raise:C(.3,[.3,PZ.exw]),
+  exec:C(1.5,[0,PZ.exw],[.11,PZ.ex,'i'],[.3,PZ.ex2,'o'],[1.5,PZ.ex2]), // the heavy overhead, held where it lands
 };
 const sideRoll=s=>C(.56,[.06,P({hips:[.35,0,s*.9],pos:[0,-.42,0]},PZ.r0)],[.24,P({hips:[.35,0,s*3.3],pos:[0,-.3,0]},PZ.r0),'l'],[.42,P({hips:[.35,0,s*5.6],pos:[0,-.45,0]},PZ.r0),'l'],
   [.56,B({hips:[0,-.42,s*6.283],pos:[0,-.3,0],thL:[-.9,.3,.1],knL:[1.4],thR:[-.2,-.1,-.1],knR:[1.5]}),'l']);

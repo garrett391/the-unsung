@@ -23,6 +23,7 @@ export class Player extends Char {
     this.hp = 100; this.st = 100; this.stDelay = 0; this.state = 'loco'; this.aT = 0; this.at = null; this.hitSet = new Set(); this.buf = { a: '', t: -9 }; this.inv = 0; this.lock = null;
     this.blockT = -9; this.charge = 0; this.runT = 0; this.dead = false; this.clip = null; this.blend = 1; this.hitDur = 0.4; this.wasBlock = false; this.sideT = -9;
     this.controlEnabled = true; this.place(x, z, face); this.stW = 1; this.leadW = 0; this.wet = 0; this._wet = true;
+    this.walk = null; this.calm = false; this.cineTrail = false; this.flashCol = [1, 0.15, 0.1]; // cutscene hooks, see stick() and update()
   }
   // Body layer over every pose (clips and locomotion), so the weight sits in the legs and hips:
   // a lower, wider base; swings that turn from the hips with the torso following; and more
@@ -72,6 +73,8 @@ export class Player extends Char {
   take(a, win) { if (this.buf.a === a && G.time - this.buf.t < (win || 0.3)) { this.buf.a = ''; return true; } return false; }
   // Camera-relative stick as a world direction; returns its strength.
   stick(out) {
+    // A stage script can walk him somewhere: walk = { x, z, sp } steers straight at the point at sp m/s, as if the stick were held.
+    if (this.walk) { const dx = this.walk.x - this.pos.x, dz = this.walk.z - this.pos.z, l = Math.hypot(dx, dz), m = Math.min(1, this.walk.sp / RUN) * Math.min(1, l / 0.35); if (l < 0.12) { out.set(0, 0, 0); return 0; } out.set((dx / l) * m, 0, (dz / l) * m); return m; }
     if (!this.controlEnabled) { out.set(0, 0, 0); return 0; }
     const m = Math.hypot(I.mx, I.my); if (m < 0.18) { out.set(0, 0, 0); return 0; }
     const k = Math.min(1, (m - 0.18) / 0.72) / m, sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
@@ -149,10 +152,10 @@ export class Player extends Char {
     if (this.lock && (this.lock.dead || this.dist(this.lock) > 24 || !this.lock.root.visible)) this.lock = pickLock(true);
     if (!this.controlEnabled) this.buf.a = '';
     const sd = tmpB, mag = this.stick(sd); this.trailOn = false;
-    let near = false; for (const e of G.targets()) if (!e.dead && this.dist(e) < 9) { near = true; break; }
+    let near = false; if (!this.calm) for (const e of G.targets()) if (!e.dead && this.dist(e) < 9) { near = true; break; } // calm: a script has him lower his guard with a foe still on stage
     const S_ = this.state;
     this.stW = damp(this.stW, S_ === 'roll' || S_ === 'back' || S_ === 'dead' ? 0 : 1, 14, dt);
-    this.leadW = damp(this.leadW, S_ === 'atk' || S_ === 'wind' || S_ === 'parry' ? 1 : 0, 10, dt);
+    this.leadW = damp(this.leadW, S_ === 'atk' || S_ === 'wind' || S_ === 'parry' || (S_ === 'cine' && this.clip) ? 1 : 0, 10, dt);
     if (S_ === 'loco') {
       if (blockHeld && !this.wasBlock) this.blockT = now; this.wasBlock = blockHeld;
       const maxSp = blockHeld ? 2.4 : this.lock ? 4.7 : RUN;
@@ -213,6 +216,7 @@ export class Player extends Char {
       if (this.take('l', 0.5)) { const r = this.ripTarget(); if (r) this.riposte(r); else this.startAtk('l1'); }
       else if (this.aT >= 0.34) { this.state = 'loco'; this.stop(0.12); }
     } else if (S_ === 'dead') { this.vel.multiplyScalar(Math.exp(-6 * dt)); this.speedN = 0; }
+    else if (S_ === 'cine') { this.vel.multiplyScalar(Math.exp(-10 * dt)); this.speedN = 0; this.trailOn = this.cineTrail; this.guard = damp(this.guard, this.calm ? 0 : 1, 5, dt); this.blockW = damp(this.blockW, 0, 24, dt); } // a stage script is playing clips on him
     const gl = this.charge * 2.5; this.rig.bladeMat.emissive.setRGB(gl, gl * 0.7, gl * 0.2);
   }
 }
