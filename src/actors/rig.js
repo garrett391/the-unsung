@@ -60,27 +60,30 @@ export function buildHumanoid(o) {
   const plate = o.plain ? clothTex : plateTex, mail = o.plain ? clothTex : mailTex; // o.plain: quilted cloth and leather, not plate over mail
   const mA = M(o.armor, { map: plate }), mT = M(o.trim), mU = M(o.under, { map: mail }), mUF = M(o.under, { map: mail, side: T.DoubleSide }), mD = M(o.dark || 0x24252d), mS = M(o.steel || 0xdfe3ea);
   const mEye = new T.MeshBasicMaterial({ color: o.eye || 0x08080c });
+  const PLN = !!o.plain, bare = PLN || o.helm === 'open' || o.helm === 'none' || o.helm === 'wrap', mSkin = bare ? M(o.skin || 0xd9a77e) : null, mHair = bare ? M(o.hair || 0x7a5228) : null;
   // The Usurper's glass (crown, growths, blade): unlit and just bright enough to bloom. The blade has its own material because blood tints it.
   const glass = () => new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) }), mGl = o.glass ? glass() : null, mBlade = o.glass ? glass() : mS;
   const root = new T.Group(), J = {};
   const hips = (J.hips = joint(root, 0, HIP, 0));
   mk(rbox(0.33, 0.18, 0.22, 0.06), mU, hips, 0, -0.03, 0);
   const mF = M(o.armor, { side: T.DoubleSide, map: plate });
-  mk(new T.CylinderGeometry(0.215, 0.3, 0.27, SEG, 1, true), mF, hips, 0, -0.1, 0).scale.z = 0.8;
-  mk(new T.CylinderGeometry(0.225, 0.225, 0.06, SEG), mT, hips, 0, 0.05, 0).scale.z = 0.8;
-  mk(new T.BoxGeometry(0.08, 0.08, 0.04), mT, hips, 0, 0.05, 0.18);
-  for (const sd of [-1, 1]) {
+  if (PLN) mk(memo('tunic', () => new T.LatheGeometry(new T.SplineCurve([[0.2, 0.06], [0.215, -0.04], [0.245, -0.16], [0.262, -0.25]].map(([a, b]) => new T.Vector2(a, b))).getPoints(8), SEG)), mF, hips, 0, 0, 0).scale.z = 0.8; // the skirt of a tunic, flaring to mid-thigh
+  else mk(new T.CylinderGeometry(0.215, 0.3, 0.27, SEG, 1, true), mF, hips, 0, -0.1, 0).scale.z = 0.8;
+  mk(new T.CylinderGeometry(PLN ? 0.212 : 0.225, PLN ? 0.212 : 0.225, PLN ? 0.045 : 0.06, SEG), mT, hips, 0, 0.05, 0).scale.z = 0.8;
+  mk(PLN ? rbox(0.05, 0.05, 0.02, 0.008) : new T.BoxGeometry(0.08, 0.08, 0.04), PLN ? mD : mT, hips, 0, 0.05, PLN ? 0.172 : 0.18);
+  if (!PLN) for (const sd of [-1, 1]) {
     mk(slab(0.16, 0.24, 0.035, 0.05), mA, hips, sd * 0.125, -0.2, 0.185).rotation.x = -0.2; // tassets, rounded at the corners
     mk(slab(0.13, 0.03, 0.04, 0.012), mT, hips, sd * 0.125, -0.27, 0.203).rotation.x = -0.2;
     mk(slab(0.16, 0.22, 0.035, 0.05), mA, hips, sd * 0.125, -0.2, -0.185).rotation.x = 0.2;
   }
   const spine = (J.spine = joint(hips, 0, 0.07, 0));
-  mk(new T.CylinderGeometry(0.2, 0.2, 0.2, SEG), mU, spine, 0, 0.1, 0).scale.z = 0.74;
+  mk(new T.CylinderGeometry(PLN ? 0.19 : 0.2, PLN ? 0.196 : 0.2, 0.2, SEG), PLN ? mA : mU, spine, 0, 0.1, 0).scale.z = 0.74;
   const chest = (J.chest = joint(spine, 0, 0.2, 0));
   // breastplate: turned on a curve, so it swells over the ribs and draws in to the waist and collar
-  mk(memo('chest', () => new T.LatheGeometry(new T.SplineCurve([[0.196, 0], [0.214, 0.06], [0.262, 0.17], [0.288, 0.27], [0.268, 0.335], [0.2, 0.372]].map(([a, b]) => new T.Vector2(a, b))).getPoints(12), SEG)), mA, chest, 0, 0, 0).scale.z = 0.8;
-  mk(new T.CylinderGeometry(0.12, 0.21, 0.07, SEG), mT, chest, 0, 0.385, 0).scale.z = 0.85;
-  mk(new T.CylinderGeometry(0.212, 0.203, 0.045, SEG), mT, chest, 0, 0.03, 0).scale.z = 0.8; // waist band of the breastplate
+  if (PLN) mk(memo('chestP', () => new T.LatheGeometry(new T.SplineCurve([[0.188, 0], [0.194, 0.07], [0.22, 0.19], [0.236, 0.275], [0.214, 0.335], [0.15, 0.376]].map(([a, b]) => new T.Vector2(a, b))).getPoints(12), SEG)), mA, chest, 0, 0, 0).scale.z = 0.78; // a man's chest under cloth, not a breastplate: narrower, with the shoulders set in
+  else mk(memo('chest', () => new T.LatheGeometry(new T.SplineCurve([[0.196, 0], [0.214, 0.06], [0.262, 0.17], [0.288, 0.27], [0.268, 0.335], [0.2, 0.372]].map(([a, b]) => new T.Vector2(a, b))).getPoints(12), SEG)), mA, chest, 0, 0, 0).scale.z = 0.8;
+  mk(new T.CylinderGeometry(PLN ? 0.085 : 0.12, PLN ? 0.165 : 0.21, PLN ? 0.06 : 0.07, SEG), PLN ? mA : mT, chest, 0, PLN ? 0.38 : 0.385, 0).scale.z = 0.85; // the yoke: sloping shoulders up to the collar
+  if (!PLN) mk(new T.CylinderGeometry(0.212, 0.203, 0.045, SEG), mT, chest, 0, 0.03, 0).scale.z = 0.8; // waist band of the breastplate
   if (!o.tabard && !o.cape && !o.plain) mk(new T.BoxGeometry(0.03, 0.27, 0.03), mT, chest, 0, 0.18, -0.2).rotation.x = -0.18; // backplate ridge
   // belt pouch, and a scabbard on the left hip for sword-bearers
   mk(rbox(0.1, 0.1, 0.06, 0.02), mD, hips, -0.17, -0.05, -0.19); mk(rbox(0.105, 0.035, 0.065, 0.012), mT, hips, -0.17, -0.005, -0.19);
@@ -108,27 +111,34 @@ export function buildHumanoid(o) {
   }
   // helm
   const neck = (J.neck = joint(chest, 0, 0.4, 0));
-  mk(new T.CylinderGeometry(o.helm === 'open' ? 0.125 : 0.158, 0.2, 0.075, SEG, 1, true), mUF, neck, 0, 0.0, 0).scale.z = 0.92; // mail collar
+  if (PLN) mk(new T.CylinderGeometry(0.075, 0.13, 0.05, SEG, 1, true), mF, neck, 0, -0.01, 0).scale.z = 0.92; // a soft collar
+  else mk(new T.CylinderGeometry(o.helm === 'open' ? 0.105 : 0.158, 0.2, 0.075, SEG, 1, true), mUF, neck, 0, 0.0, 0).scale.z = 0.92; // mail collar
   if (o.helm === 'open' || o.helm === 'none' || o.helm === 'wrap') {
-    // Open-faced helm with a brim and cheek plates: the face shows. 'none' is a bare head, 'wrap' a desert head-wrap that leaves only the eyes.
-    const mSkin = M(o.skin || 0xd9a77e), mHair = M(o.hair || 0x7a5228);
-    mk(new T.CylinderGeometry(0.1, 0.13, 0.1, SEG), mU, neck, 0, 0.03, 0);
-    const face = mk(ball(0.118), mSkin, neck, 0, 0.15, 0.02); face.scale.set(0.95, 1.12, 1);
-    for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.026, 0.02, 0.012), mEye, neck, sd * 0.042, 0.165, 0.128);
-    mk(new T.BoxGeometry(0.05, 0.012, 0.012), M(0x8a5a40), neck, 0, 0.098, 0.124);
-    mk(new T.BoxGeometry(0.024, 0.045, 0.03), mSkin, neck, 0, 0.135, 0.135).rotation.x = -0.25;
-    for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.042, 0.01, 0.012), mHair, neck, sd * 0.042, 0.186, 0.127).rotation.z = -sd * 0.12;
-    if (o.helm !== 'wrap') for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.035, 0.16, 0.06), mHair, neck, sd * 0.12, 0.13, -0.01);
+    // A head with a face: skull, cheeks drawing in to a chin, nose, ears, eyes set under a brow, on a neck narrower than the jaw.
+    // 'open' puts a brimmed helm with cheek plates on it, 'none' leaves it bare, 'wrap' winds a desert head-wrap round it that leaves only the eyes.
+    mk(new T.CylinderGeometry(0.05, 0.062, 0.13, 12), mSkin, neck, 0, 0.03, -0.008);
+    mk(ball(0.112), mSkin, neck, 0, 0.172, 0).scale.set(0.9, 1.05, 1.04);
+    mk(ball(0.09), mSkin, neck, 0, 0.112, 0.024).scale.set(0.86, 0.95, 0.98);
+    mk(ball(0.036), mSkin, neck, 0, 0.05, 0.07).scale.set(1.15, 0.8, 0.9);
+    mk(rbox(0.026, 0.052, 0.03, 0.011), mSkin, neck, 0, 0.142, 0.116).rotation.x = -0.3; mk(ball(0.015), mSkin, neck, 0, 0.123, 0.126).scale.set(1.2, 0.85, 1);
+    const mLip = M(new T.Color(o.skin || 0xd9a77e).multiplyScalar(0.62));
+    mk(rbox(0.042, 0.009, 0.012, 0.004), mLip, neck, 0, 0.09, 0.105);
+    for (const sd of [-1, 1]) {
+      mk(ball(0.014), mEye, neck, sd * 0.04, 0.168, 0.1).scale.set(1.3, 0.72, 0.6);
+      mk(rbox(0.05, 0.012, 0.02, 0.005), mHair, neck, sd * 0.041, 0.189, 0.102).rotation.z = -sd * 0.1;
+      mk(ball(0.022), mSkin, neck, sd * 0.1, 0.153, -0.006).scale.set(0.45, 1, 0.7);
+    }
     if (o.helm === 'wrap') { // cloth wound over the crown with a roll at the brow, a veil over nose and mouth, a turn round the neck and a tail down the back
       const mW = M(o.wrap || 0xcfc2a2, { map: clothTex, side: T.DoubleSide });
-      const top = mk(new T.SphereGeometry(0.142, SEG, 8, 0, PI * 2, 0, PI / 2), mW, neck, 0, 0.192, -0.004); top.scale.set(1, 0.86, 1.06); top.rotation.x = -0.12;
-      mk(new T.TorusGeometry(0.128, 0.03, 8, SEG), mW, neck, 0, 0.2, 0.0).rotation.x = PI / 2 - 0.12;
-      mk(new T.CylinderGeometry(0.14, 0.152, 0.125, SEG, 1, true), mW, neck, 0, 0.092, 0.006);
-      mk(new T.CylinderGeometry(0.135, 0.185, 0.1, SEG, 1, true), mW, neck, 0, 0.0, 0).scale.z = 0.95;
-      mk(drape(0.2, 0.27, 0.34, 0.05), mW, neck, 0, 0.12, -0.15).rotation.set(0.12, PI, 0);
+      const top = mk(new T.SphereGeometry(0.128, SEG, 8, 0, PI * 2, 0, PI / 2), mW, neck, 0, 0.196, -0.004); top.scale.set(1, 0.9, 1.08); top.rotation.x = -0.12;
+      mk(new T.TorusGeometry(0.116, 0.027, 8, SEG), mW, neck, 0, 0.203, 0.0).rotation.x = PI / 2 - 0.12;
+      const veil = mk(new T.CylinderGeometry(0.112, 0.12, 0.125, SEG, 1, true), mW, neck, 0, 0.094, 0.014); veil.scale.z = 1.24;
+      mk(new T.CylinderGeometry(0.1, 0.16, 0.09, SEG, 1, true), mW, neck, 0, 0.005, 0).scale.z = 0.95;
+      mk(drape(0.18, 0.25, 0.34, 0.05), mW, neck, 0, 0.12, -0.132).rotation.set(0.12, PI, 0);
     } else if (o.helm === 'none') {
-      const cap = mk(new T.SphereGeometry(0.126, 12, 6, 0, PI * 2, 0, PI / 1.9), mHair, neck, 0, 0.165, -0.005); cap.rotation.x = -0.25;
-      if (o.bandage) { const bd = mk(new T.CylinderGeometry(0.124, 0.124, 0.05, SEG), M(0xd8d0bc), neck, 0, 0.215, 0.012); bd.rotation.set(0.1, 0, 0.16); }
+      const cap = mk(new T.SphereGeometry(0.119, 16, 8, 0, PI * 2, 0, PI * 0.56), mHair, neck, 0, 0.178, -0.008); cap.scale.set(0.94, 1.05, 1.07); cap.rotation.x = -0.34; // hair: higher at the brow, down to the nape behind
+      mk(ball(0.085), mHair, neck, 0, 0.128, -0.042).scale.set(1.02, 1, 0.8);
+      if (o.bandage) { const bd = mk(new T.CylinderGeometry(0.122, 0.122, 0.05, SEG), M(0xd8d0bc), neck, 0, 0.222, 0.004); bd.rotation.set(0.1, 0, 0.16); }
     } else {
     const dome = mk(new T.SphereGeometry(0.168, SEG, 8, 0, PI * 2, 0, PI / 2), mA, neck, 0, 0.215, -0.01); dome.scale.y = 0.85;
     const brim = mk(new T.CylinderGeometry(0.2, 0.235, 0.025, SEG), mA, neck, 0, 0.215, 0.015); brim.rotation.x = 0.16;
@@ -175,26 +185,29 @@ export function buildHumanoid(o) {
   // visual weight lower on the body.
   const LG = o.legs || 1, PD = o.pads || 1;
   const arm = (s, a, b, c) => {
-    const sh = (J[a] = joint(chest, s * 0.3, 0.3, 0));
-    mk(ball(0.135), mA, sh, s * 0.02, 0.03, 0).scale.set(1.12 * PD, 0.85 * PD, 1.15 * PD);
-    mk(ball(0.1), mA, sh, s * 0.05, -0.07, 0).scale.set(PD, 0.7 * PD, 1.15 * PD);
+    const sh = (J[a] = joint(chest, s * (PLN ? 0.255 : 0.3), PLN ? 0.292 : 0.3, 0));
+    if (PLN) mk(ball(0.08), mA, sh, -s * 0.012, 0.0, 0).scale.set(1.05, 1, 1.1); // the shoulder of a jerkin, no plate
+    else { mk(ball(0.135), mA, sh, s * 0.02, 0.03, 0).scale.set(1.12 * PD, 0.85 * PD, 1.15 * PD);
+    mk(ball(0.1), mA, sh, s * 0.05, -0.07, 0).scale.set(PD, 0.7 * PD, 1.15 * PD); }
     if (o.lames) { // stacked plates stepping down the upper arm
       mk(new T.SphereGeometry(0.15, SEG, 6, 0, PI * 2, 0, PI / 2.4), mA, sh, s * 0.035, 0.0, 0).scale.set(1.15, 0.8, 1.2);
       mk(new T.CylinderGeometry(0.105, 0.125, 0.06, SEG, 1, true), mA, sh, s * 0.03, -0.08, 0).scale.z = 1.15;
       mk(new T.CylinderGeometry(0.095, 0.112, 0.05, SEG, 1, true), mA, sh, s * 0.025, -0.13, 0).scale.z = 1.1;
     }
     mk(limb(0.07, 0.06, 0.27), mU, sh);
-    mk(new T.CylinderGeometry(0.078, 0.078, 0.03, SEG), mT, sh, 0, -0.15, 0);
+    if (!PLN) mk(new T.CylinderGeometry(0.078, 0.078, 0.03, SEG), mT, sh, 0, -0.15, 0);
     const el = (J[b] = joint(sh, 0, -0.27, 0));
-    mk(limb(0.062, 0.088, 0.25), mA, el); mk(ball(0.066), mT, el, 0, 0, -0.015);
-    mk(new T.CylinderGeometry(0.098, 0.098, 0.03, SEG), mT, el, 0, -0.235, 0);
-    { const cw = mk(slab(0.1, 0.12, 0.02, 0.04), mA, el, s * 0.072, 0.0, -0.02); cw.rotation.order = 'XZY'; cw.rotation.set(0, PI / 2, s * 0.22); } // couter wing
-    mk(new T.CylinderGeometry(0.112, 0.092, 0.085, SEG, 1, true), mF, el, 0, -0.175, 0); // flared gauntlet cuff
+    if (PLN) { mk(limb(0.055, 0.043, 0.25), mSkin, el); mk(new T.CylinderGeometry(0.064, 0.06, 0.04, SEG), mU, el, 0, 0.0, 0); mk(new T.CylinderGeometry(0.049, 0.047, 0.05, SEG), mD, el, 0, -0.215, 0); } // a bare forearm below a rolled sleeve, and a leather wrist wrap
+    else { mk(limb(0.062, 0.088, 0.25), mA, el); mk(ball(0.066), mT, el, 0, 0, -0.015);
+    mk(new T.CylinderGeometry(0.098, 0.098, 0.03, SEG), mT, el, 0, -0.235, 0); }
+    if (!PLN) { const cw = mk(slab(0.1, 0.12, 0.02, 0.04), mA, el, s * 0.072, 0.0, -0.02); cw.rotation.order = 'XZY'; cw.rotation.set(0, PI / 2, s * 0.22); } // couter wing
+    if (!PLN) mk(new T.CylinderGeometry(0.112, 0.092, 0.085, SEG, 1, true), mF, el, 0, -0.175, 0); // flared gauntlet cuff
     const ha = (J[c] = joint(el, 0, -0.25, 0));
     // a closed gauntlet: wrist, palm, curled fingers and a thumb (it used to be one block)
-    mk(new T.CylinderGeometry(0.05, 0.046, 0.03, 10), mD, ha, 0, -0.012, 0); mk(rbox(0.07, 0.06, 0.092, 0.024), mD, ha, 0, -0.05, 0);
-    mk(rbox(0.066, 0.05, 0.088, 0.022), mD, ha, -s * 0.012, -0.088, 0.004).rotation.z = -s * 0.45; mk(rbox(0.03, 0.055, 0.032, 0.013), mD, ha, -s * 0.02, -0.06, 0.058).rotation.x = -0.5;
-    mk(rbox(0.024, 0.085, 0.108, 0.011), mA, ha, s * 0.05, -0.04, 0); mk(rbox(0.03, 0.022, 0.11, 0.01), mT, ha, s * 0.05, -0.085, 0); // back-of-hand plate and knuckles
+    const mH = PLN ? mSkin : mD; // a bare hand, or a gauntlet
+    mk(new T.CylinderGeometry(0.05, 0.046, 0.03, 10), mH, ha, 0, -0.012, 0).scale.setScalar(PLN ? 0.88 : 1); mk(rbox(0.07, 0.06, 0.092, 0.024), mH, ha, 0, -0.05, 0);
+    mk(rbox(0.066, 0.05, 0.088, 0.022), mH, ha, -s * 0.012, -0.088, 0.004).rotation.z = -s * 0.45; mk(rbox(0.03, 0.055, 0.032, 0.013), mH, ha, -s * 0.02, -0.06, 0.058).rotation.x = -0.5;
+    if (!PLN) { mk(rbox(0.024, 0.085, 0.108, 0.011), mA, ha, s * 0.05, -0.04, 0); mk(rbox(0.03, 0.022, 0.11, 0.01), mT, ha, s * 0.05, -0.085, 0); } // back-of-hand plate and knuckles
     return ha;
   };
   arm(1, 'shL', 'elL', 'haL'); const haR = arm(-1, 'shR', 'elR', 'haR');
@@ -208,12 +221,17 @@ export function buildHumanoid(o) {
   }
   const leg = (s, a, b, c) => {
     const th = (J[a] = joint(hips, s * 0.105, -0.03, 0));
-    mk(limb(0.095 * LG, 0.075 * LG, 0.42), mU, th); mk(rbox(0.14 * LG, 0.23, 0.075 * LG, 0.034 * LG), mA, th, 0, -0.16, 0.058 * LG);
+    mk(limb(0.095 * LG, 0.075 * LG, 0.42), mU, th); if (!PLN) mk(rbox(0.14 * LG, 0.23, 0.075 * LG, 0.034 * LG), mA, th, 0, -0.16, 0.058 * LG);
     const kn = (J[b] = joint(th, 0, -0.42, 0));
+    if (PLN) { // trousers into a tall soft boot with a turned-down top
+      mk(ball(0.07 * LG), mU, kn, 0, 0, 0.012 * LG); mk(limb(0.074 * LG, 0.056 * LG, 0.38), mD, kn); mk(new T.CylinderGeometry(0.083 * LG, 0.078 * LG, 0.05, SEG), mT, kn, 0, -0.06, 0);
+      mk(ball(0.066 * LG), mD, kn, 0, -0.14, -0.024 * LG).scale.set(0.95, 1.6, 0.85);
+    } else {
     mk(ball(0.072 * LG), mT, kn, 0, 0, 0.035 * LG); mk(limb(0.078 * LG, 0.06 * LG, 0.38), mA, kn);
     mk(rbox(0.03, 0.3, 0.03, 0.013), mT, kn, 0, -0.2, 0.062 * LG);
     mk(ball(0.07 * LG), mA, kn, 0, -0.13, -0.028 * LG).scale.set(0.95, 1.6, 0.85); // calf
     mk(new T.CylinderGeometry(0.1 * LG, 0.1 * LG, 0.028, SEG), mT, th, 0, -0.05, 0); mk(rbox(0.146 * LG, 0.03, 0.08 * LG, 0.012), mT, th, 0, -0.265, 0.058 * LG); // thigh strap, cuisse edge
+    }
     if (o.knees) { // a knee cop with a swept wing on the outside, over a tall greave
       mk(ball(0.085 * LG), mA, kn, 0, 0.01, 0.05).scale.set(1.15, 1.05, 0.8);
       const wg = mk(slab(0.11, 0.17, 0.02, 0.045), mA, kn, s * 0.085 * LG, 0.05, 0.02); wg.rotation.order = 'XZY'; wg.rotation.set(-0.15, PI / 2, -s * 0.45);
@@ -221,7 +239,7 @@ export function buildHumanoid(o) {
     }
     const an = (J[c] = joint(kn, 0, -0.38, 0));
     if (o.knees) mk(new T.CylinderGeometry(0.085 * LG, 0.095 * LG, 0.05, SEG), mA, an, 0, 0.03, 0.01);
-    mk(rbox(0.115 * LG, 0.09 * LG, 0.27 * LG, 0.04 * LG), mD, an, 0, -0.025, 0.055); mk(rbox(0.1 * LG, 0.03, 0.15 * LG, 0.013), mA, an, 0, 0.022 * LG, 0.06).rotation.x = 0.2; // sabaton plate mk(new T.BoxGeometry(0.12 * LG, 0.06 * LG, 0.09), mT, an, 0, -0.04, 0.16 * LG);
+    mk(rbox(0.115 * LG, 0.09 * LG, 0.27 * LG, 0.04 * LG), mD, an, 0, -0.025, 0.055); if (!PLN) mk(rbox(0.1 * LG, 0.03, 0.15 * LG, 0.013), mA, an, 0, 0.022 * LG, 0.06).rotation.x = 0.2; // sabaton plate mk(new T.BoxGeometry(0.12 * LG, 0.06 * LG, 0.09), mT, an, 0, -0.04, 0.16 * LG);
   };
   leg(1, 'thL', 'knL', 'anL'); leg(-1, 'thR', 'knR', 'anR');
   // weapon: blade along +Z of the hand, edge in the YZ plane

@@ -41,26 +41,30 @@ export const LOOKS = {
   clerk: { ...PLAIN, armor: 0x3a4466, trim: 0x8a7a5c, under: 0x2a3050, helm: 'none', hair: 0x9a9690, skin: 0xd9a77e, weapon: 'none', pads: 0.4 },
 };
 
-const RAIDER = { armor: 0x5a4636, trim: 0x9a6a36, under: 0x8c7a60, dark: 0x2a2420, steel: 0xa8a8a2, eye: 0xff9a3c, rim: 0x40281a };
+// Raiders are desert people, not knights: leather over loose cloth, bare forearms, a dark head-wrap
+// with only the eyes showing, and rust-red cloth hanging from the belt. PLATED keeps the wrap and
+// puts bronze over it (shield-bearers); the big ones keep their horned helms.
+const RAIDER = { armor: 0x5a4636, trim: 0x9a6a36, under: 0x9a8662, dark: 0x2a2420, steel: 0xa8a8a2, eye: 0xff9a3c, rim: 0x40281a, plain: true, helm: 'wrap', wrap: 0x2b2624, skin: 0x8a5a3c, hair: 0x1a1614, skirt: 0x6a2c22 };
+const PLATED = { ...RAIDER, plain: false }, HELMED = { ...PLATED, helm: undefined, skirt: undefined };
 export const TYPES = {
   raider: { name: 'RAIDER', hp: 58, speed: 3.6, poise: 1, scale: 1, look: RAIDER,
     moves: [{ style: 'slash', wind: 0.58, rec: 0.7, dmg: 16, range: 2.35, lunge: 6.5 }] },
   bulwark: { name: 'BRONZE SHIELD', hp: 84, speed: 2.8, poise: 2, scale: 1.06, shield: true,
-    look: { ...RAIDER, armor: 0x7a5a2c, trim: 0xc08a3a, shield: 1 },
+    look: { ...PLATED, armor: 0x7a5a2c, trim: 0xc08a3a, shield: 1 },
     moves: [{ style: 'thrust', wind: 0.7, rec: 0.85, dmg: 15, range: 2.75, lunge: 8.5 }] },
   brute: { name: 'BREAKER', hp: 200, speed: 2.3, poise: 6, scale: 1.4, heavy: true,
-    look: { ...RAIDER, armor: 0x3e3230, trim: 0x8b3a34, steel: 0x77706a, eye: 0xff5a30, weapon: 'maul', blade: 1.0, horns: 1 },
+    look: { ...HELMED, armor: 0x3e3230, trim: 0x8b3a34, steel: 0x77706a, eye: 0xff5a30, weapon: 'maul', blade: 1.0, horns: 1 },
     moves: [{ style: 'over', wind: 1.0, rec: 1.2, dmg: 30, range: 3.1, lunge: 5, slam: 1.6 }] },
   // Quick and lightly armed: a cut that usually runs straight on into a thrust (`follow`: never used to open).
-  runner: { name: 'DUNE RUNNER', hp: 40, speed: 4.9, poise: 1, scale: 0.94,
-    look: { ...RAIDER, armor: 0x6f5c44, trim: 0x2f6a70, under: 0xb09a78, pads: 0.7, blade: 0.78 },
+  runner: { name: 'DUNE RUNNER', hp: 48, speed: 4.9, poise: 1, scale: 0.94,
+    look: { ...RAIDER, armor: 0x6f5c44, trim: 0x2f6a70, under: 0xb09a78, wrap: 0x2c5a60, skirt: undefined, blade: 0.78 },
     moves: [{ style: 'slash', wind: 0.44, rec: 0.55, dmg: 9, range: 2.25, lunge: 8.5, chain: 0.6, then: 1 }, { style: 'thrust', wind: 0.3, rec: 0.8, dmg: 11, range: 2.5, lunge: 9.5, follow: true }] },
   // Leads the raid on the waystation: a raider's cut that can run on into an overhead with a shockwave.
-  chief: { name: 'RAID LEADER', hp: 170, speed: 3.1, poise: 4, scale: 1.16, heavy: true,
-    look: { ...RAIDER, armor: 0x4a302a, trim: 0xb9853a, eye: 0xffb24a, horns: 1, cape: 0x5a2420, blade: 1.05, lames: 1 },
+  chief: { name: 'RAID LEADER', hp: 220, speed: 3.1, poise: 4, scale: 1.16, heavy: true,
+    look: { ...HELMED, armor: 0x4a302a, trim: 0xb9853a, eye: 0xffb24a, horns: 1, cape: 0x5a2420, skirt: 0x5a2420, blade: 1.05, lames: 1 },
     moves: [{ style: 'slash', wind: 0.6, rec: 0.8, dmg: 15, range: 2.75, lunge: 7, chain: 0.4, then: 1 }, { style: 'over', wind: 0.8, rec: 1.1, dmg: 22, range: 3.0, lunge: 6, slam: 1.4 }] },
   // The muster's trial bout (G.blunt: nothing bleeds and nobody dies). A line soldier who knows his shield.
-  sergeant: { name: 'THE SERGEANT', hp: 150, speed: 3.0, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0,
+  sergeant: { name: 'THE SERGEANT', hp: 190, speed: 3.0, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0,
     look: { ...SOLDIER, hair: 0x9a9690, skin: 0xb98a66 },
     moves: [{ style: 'slash', wind: 0.62, rec: 0.8, dmg: 14, range: 2.4, lunge: 6.5 }, { style: 'thrust', wind: 0.7, rec: 0.9, dmg: 14, range: 2.8, lunge: 8 }] },
   // The prologue's fight at the Glass Door. The game opens on the last moments of it: he is

@@ -195,6 +195,8 @@ stage('road', {
       'He walked out into a world where nothing had happened.',
       'A caravan passed him on the road. No one looked twice.',
       'For years he took labouring work where he found it. He could not settle, and he did not fit.',
+      'The realm was at peace, and did not know it had ever been otherwise.',
+      'Then, out past the last wells, the desert grew restless.',
       '<em>A waystation on the caravan road.</em>',
     ], TAP);
     ui.chronClose();
@@ -204,7 +206,7 @@ stage('road', {
 // The waystation and the muster (docs/story.md, prologue 4 and 5) are played at the second site
 // (world/waystation.js). Yard coordinates: x east, z north, from the middle of the yard.
 const wy = (x, z) => [WAY.x + x, WAY.z + z], wy3 = (x, y, z) => [WAY.x + x, y, WAY.z + z];
-const gateRoad = () => wy(rnd(-2.2, 2.2), rnd(23, 31)); // out on the caravan road, beyond the gate
+const flank = (s) => wy(s * rnd(8, 13), rnd(15.6, 19.6)); // outside the north wall, east (1) or west (-1) of the gate: out of sight from the yard, and they come round to the gate (route() in level.js)
 // Walk the captain to a point under a script, and wait until he is there (or `max` seconds have gone).
 async function stroll(d, x, z, sp, max = 8) { const P = G.player, w = (P.walk = { x, z, sp }), t0 = G.time; await d.until(() => P.walk !== w || Math.hypot(P.pos.x - x, P.pos.z - z) < 0.2 || G.time - t0 > max); if (P.walk === w) P.walk = null; }
 const turnTo = (d, c, to, dur) => { const f0 = c.face, df = wrap(to - f0); return d.tween(dur, (u) => { c.face = wrap(f0 + df * u * u * (3 - 2 * u)); }); };
@@ -262,6 +264,7 @@ stage('waystation', {
       P.state = 'cine'; P.play(CL.kneel, 0.35); await d.wait(1.25);
       // His hand closes on the grip, and the fight's music comes back for the first time since the Door.
       P.wear('drifter'); guard.dress(LOOKS.wayguardBare); SFX.learn(); playMusic('blade', { cross: 1, fade: 2.5 });
+      G.slow = 0.7; P.flashCol = [1, 0.8, 0.3]; P.flash = 1; shock(P.pos, 2.4, 0xffe2a0); FX.sparks.emit(new T.Vector3(P.pos.x, 0.5, P.pos.z), 40, 3, 0xffe2a0, 1.1, { grav: -2.2, spread: 0.5, boost: 1.6 }); // and something he had put down years ago is in his hand again
       cam.shot([P.pos.x - 1.5, 0.6, P.pos.z + 1.9], [P.pos.x, 0.9, P.pos.z]); cam.shot([P.pos.x - 1.8, 1.1, P.pos.z + 2.3], [P.pos.x, 1.45, P.pos.z], 2.4);
       await d.wait(0.9); P.stop(0.7); P.state = 'loco'; P.calm = false; // he stands, and the guard comes up as it always did
       await d.wait(1.7);
@@ -270,20 +273,28 @@ stage('waystation', {
       for (const [x, z, f] of loot) { const e = G.spawn('raider', ...wy(x, z)); e.face = f; R.push(e); }
       playMusic('blade', { cross: 1, fade: 2 }); ui.fade(0, 0.8);
     }
-    G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(R[0]); cam.behind(); P.controlEnabled = true; G.freezeAI = false; for (const e of R) e.cd = rnd(1.4, 2.6);
+    P.flashCol = [1, 0.15, 0.1]; G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(R[0]); cam.behind(); P.controlEnabled = true; G.freezeAI = false; for (const e of R) e.cd = rnd(1.4, 2.6);
+    // It comes back to him (owner, Nov 2026: the sword in his hand is where the roll and the heavy blow
+    // are taught, as things remembered). One raider comes for him while the others are still at the
+    // goods; each skill, the first time he uses it, returns with a flash and its name. Once, not on a retry.
+    if (!G.taughtWay) {
+      const foe = R[0]; for (const e of R) e.hold = e !== foe; foe.spare = true; foe.cd = 1.0; ui.objective('Cut down the raider');
+      const back = async (name) => { SFX.learn(); ui.banner(name, 1.8); ui.hint(''); P.flashCol = [1, 0.8, 0.3]; P.flash = 0.9; G.slow = Math.max(G.slow, 0.4); shock(P.pos, 2, 0xffe2a0); await d.wait(0.9); P.flashCol = [1, 0.15, 0.1]; };
+      ui.hint('Roll clear of his blade with {d}'); await d.until(() => P.state === 'roll' || P.state === 'back'); await back('THE ROLL');
+      ui.hint('Hold {h} to wind up a heavy blow, then let go'); await d.until(() => P.state === 'atk' && P.at && P.at.heavy && P.hitSet.size > 0); await back('THE HEAVY BLOW');
+      G.taughtWay = true; foe.spare = false; for (const e of R) e.hold = false;
+    }
     ui.objective('Drive the raiders out of the yard');
     await d.until(() => live() === 0); await d.wait(0.9);
     // More of them, and quicker, with the light going.
     d.tween(8, (u) => L.setDawn(u * 0.45)).catch(() => {});
-    G.maxAtk = 2; G.spawn('runner', ...gateRoad()); G.spawn('runner', ...gateRoad()); G.spawn('raider', ...gateRoad());
-    await glance(d, ...wy(0, 14), { from: wy3(-5.5, 3.4, 2.5) });
-    ui.hint('Roll clear of a blow with {d}'); await d.wait(7); ui.hint('');
+    G.maxAtk = 2; G.spawn('runner', ...flank(1)); G.spawn('runner', ...flank(1)); G.spawn('raider', ...flank(1));
+    await d.wait(1.6); await glance(d, ...wy(0, 14), { from: wy3(-5.5, 3.4, 2.5) }); // they are at the gate by the time the camera is
     await d.until(() => live() === 0); await d.wait(0.9);
     // The one who leads them.
     d.tween(8, (u) => L.setDawn(0.45 + u * 0.55)).catch(() => {});
-    const chief = G.spawn('chief', ...wy(0, 26)); G.spawn('raider', ...gateRoad()); G.spawn('runner', ...gateRoad());
-    await glance(d, ...wy(0, 14), { from: wy3(-5.5, 3.4, 2.5) }); G.boss = chief;
-    ui.hint('Hold {h} to wind up a heavy blow, then let go'); await d.wait(7); ui.hint('');
+    const chief = G.spawn('chief', ...wy(-8.5, 17.5)); G.spawn('raider', ...flank(-1)); G.spawn('raider', ...flank(-1)); G.spawn('runner', ...flank(-1));
+    await d.wait(1.6); await glance(d, ...wy(0, 14), { from: wy3(5.5, 3.4, 2.5) }); G.boss = chief;
     await d.until(() => live() === 0);
 
     // The yard is quiet. A guard column comes in at the gate: an officer and two soldiers, who stop at what they see.
@@ -329,7 +340,9 @@ stage('muster', {
     await d.talk([['Officer', 'You came.'], ['Officer', 'I know what I saw in this yard. I want my sergeant to see it.'], ['Sergeant', 'Blunt steel. First to yield. Whenever you like, yard hand.']]);
     await stroll(d, ...wy(1.5, -3.9), 2.0, 5);
     G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(S); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = S; S.cd = 1.6;
-    ui.objective('Win the bout'); ui.hint('His shield turns your strikes. Keep striking and it will give, or go round it.'); let hintT = G.clock + 9; const tick = d.every(() => { if (hintT && G.clock > hintT) { hintT = 0; ui.hint(''); } });
+    // Two objectives, so the shield is a thing to do and not a tip to read: beat it down, then win.
+    ui.objective("Beat down the sergeant's shield"); ui.hint('Strike it with {l}. It gives on the third blow.'); let broke = false;
+    const tick = d.every(() => { if (!broke && (S.open || S.hp < S.maxHp)) { broke = true; ui.objective('Win the bout'); ui.hint(''); } });
     for (;;) {
       await d.until(() => S.hp <= 1 || P.hp <= 1); if (S.hp <= 1) break;
       G.freezeAI = true; await settled(d, 1); await d.talk([['Sergeant', 'Yield? No. Again.']]); // beaten: they go again

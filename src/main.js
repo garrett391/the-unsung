@@ -10,7 +10,8 @@ import { cam, updateCamera } from './world/camera.js';
 import { Player } from './actors/player.js';
 import { Enemy } from './actors/enemy.js';
 import { Ally } from './actors/ally.js';
-import { ATK } from './actors/data.js';
+import { ATK, LOOKS } from './actors/data.js';
+import { Extra } from './actors/extra.js';
 import { CL, PZ, C } from './actors/anim.js';
 import { ui } from './ui/hud.js';
 import { Director } from './story/director.js';
@@ -156,5 +157,5 @@ function frame(now) { const rdt = Math.max(0, Math.min(0.05, (now - last) / 1000
 requestAnimationFrame(frame);
 
 // handles for the headless playtest and for poking at things in the console
-Object.assign(G, { step, begin, I, keys, press, cam, CL, PZ, C, director, STAGES, opts });
+Object.assign(G, { step, begin, I, keys, press, cam, CL, PZ, C, director, STAGES, opts, Extra, LOOKS });
 window.G = G;

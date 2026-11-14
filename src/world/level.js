@@ -22,8 +22,9 @@ const FIRE = 16;
 // `level.setSite` switches between them.
 export const WAY = { x: 0, z: 120 };
 export const YARD = { x0: WAY.x - 15, x1: WAY.x + 15, z0: WAY.z - 12, z1: WAY.z + 12 };
+export const WSIDE = { x0: WAY.x - 14, x1: WAY.x + 14, z0: WAY.z + 14.3, z1: WAY.z + 21 }; // along the outside of the north wall: raiders come round to the gate from here, out of sight of the yard
 export const WROAD = { x0: WAY.x - 3, x1: WAY.x + 3, z0: WAY.z + 10, z1: WAY.z + 34 };
-const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARROWS, BREACH, EAST], obs: [], sky: ['night', 'dawn'] }, way: { at: [WAY.x, WAY.z], player: [YARD], all: [YARD, WROAD], obs: [], sky: ['day', 'dusk'] } };
+const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARROWS, BREACH, EAST], obs: [], sky: ['night', 'dawn'] }, way: { at: [WAY.x, WAY.z], player: [YARD], all: [YARD, WROAD, WSIDE], obs: [], sky: ['day', 'dusk'] } };
 let PLAYER_AREA = SITES.ruins.player, ALL_AREA = SITES.ruins.all;
 export const OBSTACLES = []; // the current site's
 
@@ -54,6 +55,12 @@ export function steer(p, r, ang, reach) {
   if (!best) return ang;
   // aim at the tangent on the side the walker is already leaning to
   return best.a + (best.side > 0 ? -1 : 1) * Math.asin(Math.min(1, best.m / Math.max(best.d, best.m))) * 1.15;
+}
+// Where a walker outside the waystation's wall must head to reach someone inside it: the gate.
+// (Walking straight at them would only press it against the wall.) Null when the way is clear.
+export function route(p, t) {
+  if (!G.level || G.level.site !== 'way' || p.z < WAY.z + 12.6 || t.z > WAY.z + 12.6) return null;
+  return [WAY.x, WAY.z + (Math.abs(p.x - WAY.x) > 2.3 ? 16.6 : 10.5)];
 }
 const inAny = (x, z, m) => ALL_AREA.some((R) => x >= R.x0 + m && x <= R.x1 - m && z >= R.z0 + m && z <= R.z1 - m);
 // Pull the camera toward its target until it is no longer inside a wall.

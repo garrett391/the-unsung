@@ -9,7 +9,7 @@ import { CL } from './anim.js';
 import { TYPES } from './data.js';
 import { FX, Trail, shock, blood } from '../gfx/fx.js';
 import { pickLock } from './player.js';
-import { steer } from '../world/level.js';
+import { steer, route } from '../world/level.js';
 
 const tmpA = new T.Vector3(), tmpB = new T.Vector3();
 export const attackers = () => G.enemies.reduce((n, e) => n + (e.state === 'wind' || e.state === 'strike' ? 1 : 0), 0);
@@ -97,15 +97,16 @@ export class Enemy extends Char {
     const brake = (k) => this.vel.multiplyScalar(Math.exp(-k * dt)); let eye = 1;
     if (t.hurt && this.state !== 'down' && Math.random() < dt * 2.2) drip(tmpB.set(this.pos.x + rnd(-0.12, 0.12), 1.1 * this.scale, this.pos.z + rnd(-0.12, 0.12)));
     const speed = t.speed + (this.phase2 ? 0.8 : 0);
-    if (G.freezeAI && ['chase', 'circle', 'wind', 'strike', 'recover'].includes(this.state)) { brake(8); this.trailOn = false; this.setLoco(4, dt); return; }
+    if ((G.freezeAI || this.hold) && ['chase', 'circle', 'wind', 'strike', 'recover'].includes(this.state)) // hold: a stage script keeps this one out of the fight for now
+      { brake(8); this.trailOn = false; this.setLoco(4, dt); return; }
     switch (this.state) {
       case 'spawn':
         this.yoff = lerp(-1.9 * this.scale, 0, sstep(Math.min(1, this.st / 0.9)));
         if (Math.random() < 0.5) FX.dust.emit(this.pos, 1, 1.5, 0xb8a37c, 0.4, { flat: 1, spread: 0.4, grav: -1 });
         if (this.st >= 0.9) { this.yoff = 0; this.set('chase'); } break;
-      case 'chase':
-        this.turnTo(steer(this.pos, this.radius, ang, d), 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt);
-        if (d < 3.6 * this.scale) this.set('circle'); break;
+      case 'chase': { const via = route(this.pos, P_.pos); // round by the gate, if a wall stands between
+        this.turnTo(steer(this.pos, this.radius, via ? Math.atan2(via[0] - this.pos.x, via[1] - this.pos.z) : ang, d), 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt);
+        if (d < 3.6 * this.scale && !via) this.set('circle'); break; }
       case 'circle': {
         this.turnTo(ang, 7, dt); const want = 2.7 + this.radius, rad = clamp((d - want) * 2.2, -1.6, speed), tan = this.dir * 1.35, nx = dx / d, nz = dz / d;
         this.vel.x = damp(this.vel.x, nx * rad + nz * tan, 6, dt); this.vel.z = damp(this.vel.z, nz * rad - nx * tan, 6, dt);

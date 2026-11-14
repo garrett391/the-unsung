@@ -19,7 +19,7 @@ await mkdir(shots, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'] });
 const page = await (await browser.newContext({ viewport: phone ? { width: 390, height: 800 } : { width: 960, height: 560 }, hasTouch: phone })).newPage();
 const errors = [];
-page.on('pageerror', (e) => errors.push(e.stack || e.message));
+page.on('pageerror', (e) => { errors.push(e.stack || e.message); console.log('PAGE ERROR', (e.stack || e.message).slice(0, 600)); });
 page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
 await page.route('**/fonts.googleapis.com/**', (r) => r.abort());
 await page.goto(`http://localhost:${port}/`);
@@ -36,6 +36,7 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
       for (const x of foes) { const d = p.dist(x); if (d < bd) { bd = d; e = x; } }
       if (e && bd > 20) { p.lock = null; G.cam.yaw = Math.atan2(e.pos.x - p.pos.x, e.pos.z - p.pos.z) + Math.PI; G.cam.manualT = 1e9; G.keys.KeyW = true; } // too far to lock: run at it
       else if (e) { p.lock = e; G.keys.KeyW = bd > 2.3; if (bd < 2.9 && f++ % 14 === 0) G.press(o.heavy && f % 3 === 0 ? 'h' : 'l'); } else { G.keys.KeyW = false; }
+      if (o.roll && e && f % 45 === 30) G.press('d');
       if (o.home && !e && Math.hypot(p.pos.x - o.home[0], p.pos.z - o.home[1]) > 2) o.to = o.home; else if (o.home) o.to = null;
       if (o.to) { p.lock = null; const a = Math.atan2(o.to[0] - p.pos.x, o.to[1] - p.pos.z); G.cam.yaw = a + Math.PI; G.cam.manualT = 1e9; G.keys.KeyW = true; }
     }
@@ -78,6 +79,7 @@ if (at('waystation')) { // real timing through the opening, so the shots catch i
   await play(30, { until: "G.player.walk" }); await play(2.2); await shot('0i-to-the-body');
   await play(30, { until: "G.player.look==='drifter'" }); await play(0.4); await shot('0j-takes-the-sword'); await play(2.2); await shot('0j2-stands');
   log('yard fight', await play(30, { until: "G.player.controlEnabled" })); await play(0.4); await shot('0k-fight');
+  log('it comes back', await play(90, { bot: true, god: true, heavy: true, roll: true, until: "G.taughtWay" })); await play(0.3); await shot('0k2-it-comes-back');
   log('wave 2', await play(90, { bot: true, god: true, until: "G.enemies.some(e=>e.kind==='runner')" })); await play(2.0); await shot('0l-wave-2');
   log('wave 3', await play(120, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.kind==='chief')" })); await play(2.0); await shot('0m-leader'); await play(6, { bot: true, god: true }); await shot('0m2-leader-fight');
   log('column', await play(180, { bot: true, god: true, heavy: true, until: "G.extras.length>2" })); await play(4.5); await shot('0n-column');
