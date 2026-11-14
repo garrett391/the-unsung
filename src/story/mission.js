@@ -64,9 +64,10 @@ stage('door', {
     // he comes on, and the shield is taught against real swings. Any lesson ends early if he is beaten.
     const beaten = () => U.hp <= 1;
     if (!G.taughtDoor) {
-      ui.hint('Lock on to the Usurper with {k}'); await d.until(() => P.lock === U || beaten());
       let n = 0, hp = U.hp; const hits = d.every(() => { if (U.hp < hp) n++; hp = U.hp; });
-      ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); hits();
+      ui.hint('Lock on to the Usurper with {k}'); await d.until(() => P.lock === U || n >= 3 || beaten()); // three blows without the lock: he has the idea, and the Usurper stops standing for it
+      if (n < 3) { n = 0; ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); }
+      hits();
       n = 0; const off = G.on((k, e) => { if (k === 'struck' && (e.result === 'block' || e.result === 'parry')) n++; });
       G.freezeAI = false; U.cd = 1.2; ui.hint(beaten() ? '' : 'Hold {b} to raise your shield when he swings');
       await d.until(() => n >= 2 || beaten()); off(); ui.hint(''); G.taughtDoor = true;
