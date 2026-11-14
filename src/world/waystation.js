@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { PI, rng } from '../core/util.js';
 import { toon, TEX, canvasTex, speck } from '../gfx/materials.js';
+import { DECAL, decals } from '../gfx/decals.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // The waystation on the caravan road (prologue; docs/story.md): a walled yard of plastered
@@ -147,6 +148,49 @@ export function buildWaystation(scene, ox, oz) {
     if (solid) block(x, z, 0.5);
   };
   palm(-10.2, 6.2, 6.4, 0.9, 1.9, true); palm(-19.5, 9, 7.6, 1.2, -1.2); palm(-22, 3.5, 6.0, 0.8, 2.6); palm(19.8, -3, 7.2, 1.1, 0.6); palm(8.5, 21, 6.6, 1.0, -2.2); palm(-7.5, 24, 5.6, 0.7, 1.0); palm(21, 14, 6.3, 0.9, 3.4);
+
+  // ---- the yard, in use: ruts where the carts come in, the earth trodden dark between gate, door and
+  // well, straw by the stable, washing on a line, a ladder left against the house, a rug and baskets
+  // out at the stall. Dressing only, with its own numbers.
+  { const wq = rng(417), C = (a, b) => a + wq() * (b - a);
+    const mCloths = [0x39507e, 0xd8ccb0, 0x9a4a30, 0xc9b98f].map((c) => toon(c, { side: T.DoubleSide })), mBasket = toon(0xa98450), mDate = toon(0x4a2a1c), mGrain = toon(0xd2b877);
+    const rug = canvasTex(64, (c, n) => { speck(c, n, [142, 44, 40], 16, wq); c.fillStyle = '#2f3f66'; c.fillRect(0, 0, n, 5); c.fillRect(0, n - 5, n, 5); c.fillRect(0, 0, 4, n); c.fillRect(n - 4, 0, 4, n);
+      c.fillStyle = '#d9c08a'; for (const y of [10, 31, 52]) c.fillRect(6, y, n - 12, 2); for (let k = 0; k < 3; k++) for (const y of [20, 42]) { const x = 14 + k * 18; c.beginPath(); c.moveTo(x, y - 6); c.lineTo(x + 6, y); c.lineTo(x, y + 6); c.lineTo(x - 6, y); c.closePath(); c.fill(); }
+      c.fillStyle = 'rgba(40,20,16,.12)'; for (let i = 0; i < n; i += 2) c.fillRect(0, i, n, 1); });
+    rug.wrapS = rug.wrapT = T.ClampToEdgeWrapping; const mRug = toon(0xffffff, { map: rug });
+    // the stall: a rug laid out in front, two more rolled, baskets of dates and grain, small jars hung from a pole between the posts
+    { const r = add(new T.PlaneGeometry(1.5, 2.3), mRug, 10.75, 0.035, -4.4); r.rotation.set(-PI / 2, 0, 0.06); r.castShadow = false; }
+    for (const [x, z, ry] of [[12.2, -6.75, 0.2], [12.35, -6.95, 0.05]]) add(new T.CylinderGeometry(0.13, 0.13, 1.5, 10), mRug, x, 0.14 + (ry < 0.1 ? 0.2 : 0), z).rotation.set(0, ry, PI / 2);
+    const basketG = new T.LatheGeometry([[0.16, 0], [0.22, 0.1], [0.26, 0.24], [0.25, 0.3]].map(([a, b]) => new T.Vector2(a, b)), 12);
+    const basket = (x, z, s, mFill) => { add(basketG, mBasket, x, 0, z, C(0, 3)).scale.setScalar(s); const f = add(new T.SphereGeometry(0.235 * s, 10, 5, 0, PI * 2, 0, PI / 2), mFill, x, 0.24 * s, z); f.scale.y = 0.4; add(new T.TorusGeometry(0.25 * s, 0.022 * s, 5, 12), mBasket, x, 0.3 * s, z).rotation.x = PI / 2; };
+    basket(12.0, -5.2, 1, mDate); basket(11.95, -3.7, 1.1, mGrain); basket(12.1, -4.45, 0.85, mDate); basket(2.4, -11.4, 1.1, mGrain); basket(3.0, -11.0, 0.9, mDate);
+    stick(V(11.7, 2.62, -7.1), V(11.7, 2.62, -1.9), 0.035, mWood);
+    for (let k = 0; k < 6; k++) { const z = -6.5 + k * 0.82 + C(-0.1, 0.1), l = C(0.12, 0.3), sc = k % 3 === 1 ? 0.2 : 0.26; stick(V(11.7, 2.6, z), V(11.7, 2.6 - l, z), 0.008, mRope); add(jarG, mJar, 11.7, 2.6 - l - 0.7 * sc, z, C(0, 3)).scale.setScalar(sc); } // well over head height
+    // a ladder against the house, a broom by the door, a bowl on the bench
+    { const x = 10.1; for (const s of [-1, 1]) stick(V(x + s * 0.22, 0, -10.95), V(x + s * 0.22, 4.7, -12.0), 0.035, mWood); for (let k = 0; k < 9; k++) { const u = (k + 1) / 10; stick(V(x - 0.24, 4.7 * u, -10.95 - 1.05 * u), V(x + 0.24, 4.7 * u, -10.95 - 1.05 * u), 0.022, mWoodD); } block(x, -11.3, 0.5); }
+    stick(V(-1.5, 0.1, -11.6), V(-1.42, 1.55, -11.98), 0.02, mWood); add(new T.ConeGeometry(0.11, 0.34, 8), mStraw, -1.51, 0.19, -11.57).rotation.x = 0.25;
+    add(new T.CylinderGeometry(0.1, 0.06, 0.07, 10), mJar, -5.2, 0.555, -11.72);
+    // washing on a line by the west wall, north of the well
+    { const x = -14.1, z0 = 7.4, z1 = 11.3; for (const z of [z0, z1]) { add(new T.CylinderGeometry(0.045, 0.06, 2.9, 7), mWood, x, 1.45, z); block(x, z, 0.25); }
+      const sag = (u) => 2.82 - Math.sin(PI * u) * 0.16; for (let k = 0; k < 6; k++) stick(V(x, sag(k / 6), z0 + (z1 - z0) * k / 6), V(x, sag((k + 1) / 6), z0 + (z1 - z0) * (k + 1) / 6), 0.01, mRope);
+      [0.14, 0.36, 0.6, 0.84].forEach((u, k) => { const w = C(0.5, 0.8), h = C(0.6, 0.95), c = add(new T.PlaneGeometry(w, h, 2, 3), mCloths[k], x, sag(u) - h / 2, z0 + (z1 - z0) * u, PI / 2 + C(-0.06, 0.06)); c.rotation.z = C(-0.03, 0.03); }); }
+    // a second bucket at the well, bundles off a pack animal by the stable, broken pots swept to the gate tower
+    add(new T.CylinderGeometry(0.19, 0.15, 0.32, 10), mWood, -4.75, 0.16, 2.3, 0.4); add(new T.TorusGeometry(0.185, 0.02, 5, 12), mIron, -4.75, 0.3, 2.3).rotation.x = PI / 2;
+    for (const [x, z, s] of [[-11.0, 1.2, 0.3], [-10.6, 0.5, 0.26], [-11.2, 0.45, 0.24]]) sack(x, z, s); box(0.7, 0.3, 0.4, mCloths[2], -10.3, 0.15, 1.35, 0.5); stick(V(-10.7, 0.32, 1.1), V(-9.95, 0.32, 1.6), 0.015, mRope);
+    for (let k = 0; k < 7; k++) { const s = C(0.06, 0.15), p = add(new T.DodecahedronGeometry(s, 0), mJar, 2.75 + C(-0.4, 0.4), s * 0.25, 11.6 + C(-0.4, 0.3)); p.scale.y = 0.35; p.rotation.y = C(0, 3); }
+    // way-marks along the road outside: cairns of three stones
+    for (const [x, z] of [[4.4, 23], [-4.5, 30], [4.6, 36]]) for (let k = 0; k < 3; k++) { const s = 0.4 - k * 0.11, c = add(new T.DodecahedronGeometry(s, 0), mStone, x + C(-0.05, 0.05), [0.24, 0.62, 0.9][k], z + C(-0.05, 0.05), C(0, 3)); c.scale.y = 0.7; }
+    // the ground
+    const ruts = decals(DECAL.ruts, 0x46321e, 0.85), dirt = decals(DECAL.soft, 0x6e5234, 0.5), pale = decals(DECAL.soft, 0xf0dfb8, 0.3), damp = decals(DECAL.soft, 0x3a2c20, 0.8) /* strong, because the sunlit earth is far brighter than white before the grade: a faint patch on it doesn't show at all */, straw = decals(DECAL.straw, 0xd2ba6a, 0.9), prints = decals(DECAL.prints, 0x4a341e, 0.6);
+    const lay = (set, pts, w, step) => { for (let i = 0; i + 1 < pts.length; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], a = Math.atan2(x1 - x0, z1 - z0), L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(L / step)); for (let k = 0; k < n; k++) { const u = (k + 0.5) / n; set.at(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u, w, L / n + 0.7, a + PI, set === prints ? 0.036 : 0.03); } } };
+    lay(ruts, [[0.3, 38], [-0.2, 30], [0.2, 21], [0, 12.4], [0.5, 9.6], [3.2, 7.4], [7.4, 5.6]], 2.3, 3.4); // in off the road and round to where the cart stands
+    for (const p of [[[0.4, 11.2], [0.2, 3.5], [0.1, -4], [0, -9.6]], [[-0.8, -9.4], [-3.4, -3.2], [-5.2, 0.4]], [[-7.6, 0.6], [-11.2, -1.6]], [[10.6, -3.2], [5.2, 3.4], [1.6, 9.8]], [[8.2, 3.2], [7.2, -3.6], [6.6, -9.0]], [[-8.0, 9.6], [-6.2, 3.4]], [[1.2, -9.4], [9.8, -5.0]]]) lay(prints, p, 0.9, 3.2);
+    for (let i = 0; i < 9; i++) dirt.at(C(-2.4, 2.4), C(7, 13), C(2.6, 4.6), C(2.6, 4.6), C(0, 6.3)); for (let i = 0; i < 8; i++) dirt.at(C(-3, 3), C(-9.4, -6.4), C(2.4, 4.2), C(2, 3.4), C(0, 6.3));
+    for (let i = 0; i < 26; i++) dirt.at(C(-13.5, 13.5), C(-8, 11), C(2, 5), C(2, 5), C(0, 6.3)); for (let i = 0; i < 8; i++) dirt.at(C(-2.6, 2.6), C(14, 38), C(2.6, 4.4), C(3, 5), C(0, 6.3));
+    for (let i = 0; i < 30; i++) { const k = (wq() * 4) | 0, o = C(0.5, 1.5), s = C(2, 4.4), [x, z] = k === 0 ? [C(-14, 14), 12.1 - o] : k === 1 ? [-15.1 + o, C(-11, 11)] : k === 2 ? [15.1 - o, C(-11, 11)] : [C(-14, 14), -8.6 + C(0, 1.2)]; if (k === 0 && Math.abs(x) < 3.2) continue; pale.at(x, z, s, s * C(0.45, 0.8), k === 1 || k === 2 ? PI / 2 : 0); } // sand drifted to the wall feet
+    damp.at(-6.5, 1.5, 4.6, 4.4, 0.3); damp.at(-5.0, 2.5, 2.4, 2.2, 1.2); damp.at(-12.3, -1.8, 2.6, 2.4, 0); damp.at(12.5, -6.2, 1.6, 1.5, 0); damp.at(-11.0, -10.3, 1.6, 1.4, 0.8);
+    for (let i = 0; i < 12; i++) straw.at(C(-12.4, -9.6), C(-9.4, 1.4), C(1.4, 2.6), C(1.4, 2.6), C(0, 6.3), 0.034); straw.at(9.2, 4.2, 2.4, 2.4, 1); straw.at(7.9, 5.6, 1.6, 1.6, 2);
+    for (const d of [ruts, dirt, pale, damp, straw, prints]) d.done(g); }
 
   // What the guard column sets up for the muster: a bout ring, the clerk's table, and its colours.
   { const ring = new T.Mesh(new T.RingGeometry(4.0, 4.16, 48), toon(0x7a2a26)); ring.rotation.x = -PI / 2; ring.position.set(1.5, 0.03, -1.5); ring.receiveShadow = true; muster.add(ring);

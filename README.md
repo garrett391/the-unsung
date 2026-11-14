@@ -62,6 +62,8 @@ TO=door npm test                    # stop after the prologue
 node test/playtest.mjs phone        # phone-sized touch layout
 node test/look.mjs                  # close-up turnarounds of the opening foe and the captain
 node test/cast.mjs                  # every look and enemy type, in daylight
+node test/halls.mjs                 # a tour of the empty halls
+node test/places.mjs                # the camp (night and dawn) and the waystation yard, empty
 ```
 
 ## Layout

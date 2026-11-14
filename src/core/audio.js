@@ -24,7 +24,7 @@ function makeContext() {
 // a source started while it is still suspended stutters as the context wakes. One track plays
 // at a time; asking for another fades the current one out first, and the new one fades in after it.
 const BASE = import.meta.env.BASE_URL, MUSIC_VOL = 0.55;
-export const TRACKS = { title: 'music/title.mp3', blade: 'music/blade.mp3', sealed: 'music/sealed.mp3', flagstones: 'music/flagstones.mp3' };
+export const TRACKS = { title: 'music/title.mp3', blade: 'music/blade.mp3', sealed: 'music/sealed.mp3', flagstones: 'music/flagstones.mp3', granite: 'music/granite.mp3' };
 const bufs = new Map(); // name -> AudioBuffer, or the promise of one
 let mus = null, want = null, quietAt = 0; // quietAt: when the last track faded out will be silent
 function loadTrack(name) {
@@ -135,7 +135,6 @@ export const SFX = {
   die: () => noise(0.7, 0.22, 2600, 160, 'bandpass', 0.5),
   blip: () => noise(0.035, 0.05, 1800, 1400, 'bandpass', 1.5),
   learn: () => { tone(98, 0.9, 'triangle', 0.16, 96); tone(147, 0.9, 'triangle', 0.08, 145, 0.04); noise(0.3, 0.12, 200, 90, 'lowpass'); },
-  horn: () => { tone(110, 2.4, 'sawtooth', 0.16, 104); tone(165, 2.4, 'sawtooth', 0.1, 156, 0.05); noise(2.2, 0.08, 300, 200, 'lowpass'); },
   fall: () => { [294, 247, 196, 147].forEach((f, i) => tone(f, 0.8, 'triangle', 0.1, null, i * 0.22)); },
   dawn: () => { [262, 330, 392, 523, 659].forEach((f, i) => tone(f, 2.2, 'sine', 0.08, null, i * 0.35)); },
   flame: () => { noise(0.9, 0.5, 200, 1800, 'bandpass', 0.6); tone(60, 0.8, 'sine', 0.4, 40); },

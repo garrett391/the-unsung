@@ -115,7 +115,7 @@ export function buildHalls(scene, kit) {
   // ---- age: damp and dirt on the stone, cracks in it, and dust hanging in the air. Painted patches, merged into one mesh per kind.
   const dq = rng(91), DQ = (a, b) => a + dq() * (b - a); // its own numbers, so the layout below stays where it was
   const dtex = (draw) => { const t = canvasTex(128, (g, n) => { g.clearRect(0, 0, n, n); draw(g, n); }); t.wrapS = t.wrapT = T.ClampToEdgeWrapping; return t; };
-  const grimeT = dtex((g) => { for (let i = 0; i < 11; i++) { const x = DQ(36, 92), y = DQ(36, 92), r = DQ(14, 34), gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(255,255,255,${DQ(0.2, 0.5).toFixed(2)})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
+  const grimeT = dtex((g) => { for (let i = 0; i < 18; i++) { const x = DQ(36, 92), y = DQ(36, 92), r = DQ(14, 34), gr = g.createRadialGradient(x, y, 0, x, y, r), a = DQ(0.4, 0.75); gr.addColorStop(0, `rgba(255,255,255,${a.toFixed(2)})`); gr.addColorStop(0.55, `rgba(255,255,255,${(a * 0.7).toFixed(2)})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
     g.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 60; i++) { g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(DQ(10, 118), DQ(10, 118), DQ(1, 5), 0, 7); g.fill(); } }); // worn through in spots
   const crackT = dtex((g) => { g.lineCap = g.lineJoin = 'round'; g.strokeStyle = 'rgba(255,255,255,.9)';
     const run = (x, y, a, n, w) => { g.lineWidth = w; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < n; k++) { a += DQ(-0.7, 0.7); x = Math.max(8, Math.min(120, x + Math.cos(a) * 11)); y = Math.max(8, Math.min(120, y + Math.sin(a) * 11)); g.lineTo(x, y); if (w > 1 && dq() < 0.3) { g.stroke(); run(x, y, a + (dq() < 0.5 ? 1 : -1), (n / 2) | 0, w * 0.6); g.lineWidth = w; g.beginPath(); g.moveTo(x, y); } } g.stroke(); };
@@ -128,7 +128,7 @@ export function buildHalls(scene, kit) {
       wall: (sd, hw, y, z, w, h, rz = 0) => { const g = new T.PlaneGeometry(w, h); g.rotateZ(rz); g.rotateY(-sd * PI / 2); put(g, sd * (hw - 0.012), y, z); },
       done: () => { const m = new T.Mesh(mergeGeometries(parts), new T.MeshBasicMaterial({ map, color, transparent: true, opacity, depthWrite: false })); m.renderOrder = order; scene.add(m); } }; };
   const hwAt = (z) => (z > -30 ? GH : z > -46 ? RW : 2.6), wallOK = (z) => !(z < -29 && z > -31) && !(z < -35.6 && z > -40.4) && !(z < -45 && z > -47); // not across an arch
-  { const grime = decal(grimeT, 0x07090d, 0.62, 1), crack = decal(crackT, 0x040507, 0.8, 1);
+  { const grime = decal(grimeT, 0x07090d, 0.5, 1), crack = decal(crackT, 0x040507, 0.8, 1);
     for (let i = 0; i < 44; i++) { const z = -DQ(-1, 57.4), hw = hwAt(z) - 0.2, x = dq() < 0.65 ? (dq() < 0.5 ? -1 : 1) * (hw - DQ(0.3, 1.1)) : DQ(-hw, hw), s = DQ(1.3, 3.4); grime.floor(x, z, s, s * DQ(0.6, 1), DQ(0, 6.3)); } // thickest along the walls, where nobody walks
     for (let i = 0; i < 20; i++) { const z = -DQ(0, 57), sd = i % 2 ? 1 : -1; if (!wallOK(z)) continue; const h = DQ(1.2, 2.6); grime.wall(sd, hwAt(z), h * 0.42, z, DQ(1.6, 3.4), h, DQ(-0.2, 0.2)); } // damp rising from the skirting
     for (let i = 0; i < 18; i++) { const z = -DQ(0, 57.4), hw = hwAt(z) - 0.8, s = DQ(1.1, 2.6); crack.floor(DQ(-hw, hw), z, s, s, DQ(0, 6.3), 0.026); }

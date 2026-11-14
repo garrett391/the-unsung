@@ -26,7 +26,7 @@ const breach = () => [rnd(-2.6, 2.6), rnd(29, 36)]; // out on the raiders' road,
 const east = () => [rnd(22, 26), rnd(-4, -2)];
 // Act I's music ("Beneath the Flagstones"): whatever is playing fades out, then it fades in and loops
 // through the night. Every Act I stage asks for it, so a retry or CONTINUE has it too; asking while it plays does nothing.
-const actOne = () => playMusic('flagstones', { cross: 3, fade: 4 });
+const actOne = (fight) => playMusic(fight ? 'granite' : 'flagstones', { cross: 3, fade: 4 }); // the camp's music, or (fight) the night's fighting: from the first raiders until Vessa is driven off
 // Turn the camera to something the player needs to know about (a wave coming in, where to go),
 // hold on it for a moment, then hand it back. The captain can't act or be hurt meanwhile.
 async function glance(d, x, z, o = {}) {
@@ -343,7 +343,7 @@ stage('waystation', {
       stroll(d, ...wy(2.4, -2.2), 1.25, 9).catch(() => {});
       await d.wait(5.2);
       // A horn, out in the dunes. At the gate, raiders come running in off the road; the guard meets them, and is cut down.
-      SFX.horn(); G.shake = 0.1; stopMusic(2); P.walk = null;
+      G.shake = 0.1; stopMusic(2); P.walk = null; // (silent for now: the synthesized horn was taken out, and no recorded one has been found yet)
       await d.wait(0.7); turnTo(d, P, 0.1, 0.7).catch(() => {});
       for (const [x, z] of [[1.2, 19], [-1.4, 21.5], [0.5, 24]]) R.push(G.spawn('raider', ...wy(x, z)));
       cam.shot(wy3(-3.2, 1.5, 3.6), wy3(0.9, 1.5, 10.5)); cam.shot(wy3(-2.6, 1.4, 5), wy3(1.2, 1.3, 10.5), 3.5);
@@ -496,7 +496,7 @@ stage('spar', {
       n = 0; C.setMode(mode, want); const off = count(kind); const tick = d.every(() => ui.objective(need > 1 ? `${objective} (${Math.min(n, need)}/${need})` : objective));
       ui.hint(hint); await d.until(() => n >= need); off(); tick(); ui.hint(''); await d.wait(0.7);
     };
-    actOne(); forgetMusic(); // the earlier tracks are no longer needed
+    actOne(); forgetMusic(); preloadMusic('granite'); // the earlier tracks are no longer needed; the fighting's is on its way
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; // talk() holds him still, then hands control back
     await d.talk([
       ['Corin', 'Captain! You promised me one lesson before the night watch.'],
@@ -527,7 +527,7 @@ stage('spar', {
       ['Corin', 'Then teach me that part.'],
       ['Captain', 'Tomorrow.'],
     ]);
-    G.spar = false; SFX.horn(); G.shake = 0.12; ui.banner('A war horn sounds from the dunes', 2.6);
+    G.spar = false; G.shake = 0.12; ui.banner('A war horn sounds from the dunes', 2.6); playMusic('granite', { cross: 1.5, fade: 2.5 }); // no horn sound yet (see the waystation): the banner and the music turning carry it
     await d.wait(2.8);
   },
 });
@@ -536,7 +536,7 @@ stage('raid', {
   checkpoint: true,
   setup() { G.resetWorld({ player: [0.6, 8, 0], corin: [-1.4, 8.4, 0, 'battle'] }); cam.behind(); ui.fade(0, 0.6); },
   async run(d) {
-    const C = G.corin; G.spar = false; G.maxAtk = 1; actOne();
+    const C = G.corin; G.spar = false; G.maxAtk = 1; actOne(true);
     await d.talk([['Corin', 'Raiders at the breach!'], ['Captain', 'Corin. Guard my right side.'], ['Corin', 'Always, Captain.']]);
     C.setMode('battle'); ui.objective('Drive back the raiders'); ui.hint('Lock on with {k} to keep a raider in front of you');
     for (let i = 0; i < 3; i++) G.spawn('raider', ...breach());
@@ -574,7 +574,7 @@ stage('hold', {
   checkpoint: true,
   setup() { G.resetWorld({ player: [0, MOUTH.z + 1.5, 0], corin: [-1.8, MOUTH.z + 1.8, 0, 'battle'] }); cam.behind(); ui.fade(0, 0.6); },
   async run(d) {
-    const P = G.player; G.maxAtk = 2; P.hp = 100; actOne();
+    const P = G.player; G.maxAtk = 2; P.hp = 100; actOne(true);
     const H = (G.hold = { progress: 0, far: false }); ui.holdBar(true); let spawnT = 0.5, brute = false, total = 8;
     const SX = (G.stretchers = makeStretchers(total));
     ui.hint('Stay close to the Narrows. No stretcher sets off without cover.'); let hintT = 6;
@@ -601,7 +601,7 @@ stage('vessa', {
   checkpoint: true,
   setup() { G.resetWorld({ player: [0, MOUTH.z + 1.5, 0], corin: null }); cam.behind(); ui.fade(0, 0.6); },
   async run(d) {
-    const P = G.player, C = G.corin; ui.objective(''); actOne();
+    const P = G.player, C = G.corin; ui.objective(''); actOne(true);
     for (const e of G.enemies) e.flee();
     if (C.root.visible) {
       await d.talk([['Soldier', 'The last stretcher is through! Captain, fall back!'], ['Captain', 'Corin. Go with them. Bar the gate behind you.'], ['Corin', 'Captain, I...'], ['Captain', 'That was not a request.']]);
@@ -641,7 +641,7 @@ stage('vessa', {
 stage('dawn', {
   setup() { G.resetWorld({ player: [0, MOUTH.z + 4, 0], corin: null }); },
   async run(d) {
-    const P = G.player; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.lock = null; G.boss = null;
+    const P = G.player; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.lock = null; G.boss = null; actOne(); // the fighting is over: the camp's quiet music again
     for (const e of G.enemies) e.flee();
     SFX.dawn(); cam.shot([P.pos.x + 3.5, 1.6, P.pos.z + 5], [P.pos.x, 1.5, P.pos.z]); cam.shot([P.pos.x + 5, 2.6, P.pos.z + 8], [P.pos.x, 2.4, P.pos.z - 6], 9);
     await d.tween(7, (u) => G.level.setDawn(u));

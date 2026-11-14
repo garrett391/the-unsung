@@ -30,6 +30,11 @@ Owner's direction: melancholy over adventurous. Instrumental only, no singing.
 - File: `public/music/flagstones.mp3` (the owner's track, 128 kbps; the 1.5 s of silence at the start and 2.1 s at the end were cut so it loops without a gap: 57.55 s, looped). `actOne()` in `src/story/mission.js` plays it.
 - Fades in over the Act I cards and loops through the whole first night, the Vessa fight and the dawn report included. Every Act I stage asks for it, so CONTINUE and retries from a checkpoint have it too.
 
+## Act I, the fighting: "The Weight of Granite"
+
+- File: `public/music/granite.mp3` (the owner's track, 128 kbps; the 2.3 s of silence at the end was cut: 2 min 58.7 s, looped). `actOne(true)` in `src/story/mission.js` plays it.
+- Comes in when the war horn banner shows at the end of the spar and runs through the raid, the fall back, the hold and Vessa; "Beneath the Flagstones" returns at dawn. So the camp's theme is now only the quiet before and after. The cue points are unheard: the owner's ear decides.
+
 Tracks are named in `TRACKS` in `src/core/audio.js`; one plays at a time. A new one waits for the old one to fade out, then fades in. A decoded track is large (about 60 MB for the three-minute one): `forgetMusic()` drops the ones not playing, and a long track could be cut down to a loop if phones struggle.
 
 For new tracks (in-game music, stingers for the lesson, Corin's fall, dawn), keep the same palette and key so they sit together.
@@ -40,7 +45,8 @@ In use (Nov 2026): **20 Sword Sound Effects (Attacks and Clashes)** by StarNinja
 
 - Sixteen of the twenty takes are in `public/sfx/` as short mono WAVs (24 kHz; WAV because older iPhones can't decode Ogg, and it has no encoder delay). Each was cut to start 35 ms before its strike and end where it dies away, so the sound lands with the blow.
 - `hit1-5` (sword 1, 2, 3, 4, 7): a blow landing. `big1-3` (sword 5, 8, 10): heavy blows and ripostes. `clang1-4` (clash 2, 3, 4, 5): a block. `parry1-4` (clash 1, 6, 8, 10): a parry.
-- `SFX.hit`, `big`, `clang` and `parry` play a random take (never the same twice running, pitch varied a little) over a low synthesized thump; the old synthesized versions remain as the fallback until the files load. Everything else (swings, rolls, the boom, the horn) is still synthesized.
+- `SFX.hit`, `big`, `clang` and `parry` play a random take (never the same twice running, pitch varied a little) over a low synthesized thump; the old synthesized versions remain as the fallback until the files load. Everything else (swings, rolls, the boom) is still synthesized.
+- The synthesized war horn is gone (owner, Nov 2026: he would rather have none than that). The two places it sounded are silent for now: the raiders reaching the waystation, and the end of the spar, where the banner still reads "A war horn sounds from the dunes". When a recorded horn turns up, add it to `LONG` in `audio.js` and call it at those two lines in `mission.js` (both are marked).
 - Chosen by measurement (length, onset, decay), not by ear: the session can't listen. If a take sounds wrong, delete its file and lower the count in `TAKES`.
 - `quake.mp3`: the vault shaking in the false ending, supplied by the owner (Nov 2026; source not recorded). Loudness-normalized to -16 LUFS, true peak -1.5 dB (two-pass `loudnorm`, linear), 24 kHz, 128 kbps. Twelve seconds: it hits at about 0.5 s and holds; `SFX.quake()` starts it with the first tremor and the scene fades it over 1.2 s when the Usurper lands. Its level (1.6 in `SFX.quake`) is unheard.
 

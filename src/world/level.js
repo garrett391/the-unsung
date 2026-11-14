@@ -1,7 +1,8 @@
 import * as T from 'three';
 import { G } from '../core/game.js';
 import { PI, clamp, lerp, rng } from '../core/util.js';
-import { toon, TEX, canvasTex, speck } from '../gfx/materials.js';
+import { toon, TEX, canvasTex, speck, shieldTex } from '../gfx/materials.js';
+import { DECAL, decals } from '../gfx/decals.js';
 import { FX } from '../gfx/fx.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildWaystation } from './waystation.js';
@@ -390,6 +391,62 @@ export function buildLevel() {
   { const co = new T.Mesh(new T.SphereGeometry(0.42, 10, 6), mCoal); co.scale.y = 0.2; co.position.set(9, 0.1, -2.5); scene.add(co); }
   fire(9, 0.14, -2.5, 1.45); OBSTACLES.push({ x: 9, z: -2.5, r: 0.7 });
   const cfl = new T.PointLight(0xff8a3c, FIRE, 15, 2); cfl.position.set(9, 1.6, -2.5); scene.add(cfl); W.fires.push(cfl);
+
+  // ---- the camp, lived in: supper on the fire, somewhere to sit and eat, posts to train at, the
+  // stretchers waiting by the Narrows, and the ground worn by all of it. Dressing only, with its own numbers.
+  { const cq = rng(77), C = (a, b) => a + cq() * (b - a), solid = (x, z, r) => OBSTACLES.push({ x, z, r });
+    const stick = (a, b, rad, mat) => { const m = add(new T.CylinderGeometry(rad, rad, a.distanceTo(b), 6), mat, 0, 0, 0); m.position.copy(a).lerp(b, 0.5); m.quaternion.setFromUnitVectors(UP, b.clone().sub(a).normalize()); return m; };
+    const mCanvas = toon(0x9c8e72, { side: T.DoubleSide }), mWater = toon(0x24404a), mBowl = toon(0x9a6a44), mBread = toon(0xb98a4e), mPaper = toon(0xe0d4b4);
+    const bucket = (x, z) => { add(new T.CylinderGeometry(0.17, 0.13, 0.3, 10), mWood, x, 0.15, z, C(0, 3)); add(new T.TorusGeometry(0.17, 0.014, 5, 12), mDark, x, 0.29, z).rotation.x = PI / 2; add(new T.TorusGeometry(0.16, 0.01, 4, 10, PI), mDark, x, 0.3, z, C(0, 3)); };
+    // the campfire: a tripod, a chain and a pot; two logs to sit on
+    const fx = 9, fz = -2.5;
+    for (let k = 0; k < 3; k++) { const a = k * 2.094 + 0.3; stick(V(fx + Math.sin(a) * 0.66, 0, fz + Math.cos(a) * 0.66), V(fx, 2.1, fz), 0.028, mDark); }
+    stick(V(fx, 2.05, fz), V(fx, 1.5, fz), 0.012, mDark); add(new T.SphereGeometry(0.25, 12, 8, 0, PI * 2, 0.9, PI - 0.9), mDark, fx, 1.26, fz); add(new T.TorusGeometry(0.2, 0.012, 4, 10, PI), mDark, fx, 1.41, fz);
+    { const top = new T.Mesh(new T.CircleGeometry(0.19, 12), mBread); top.rotation.x = -PI / 2; top.position.set(fx, 1.39, fz); scene.add(top); } // what's in it
+    for (const [x, z, ry] of [[7.25, -2.4, PI / 2 + 0.12], [9.3, -4.35, -0.1]]) { const lg = add(new T.CylinderGeometry(0.2, 0.23, 1.8, 10), mWood, x, 0.2, z); lg.rotation.set(0, ry, PI / 2); for (const k of [-0.45, 0.45]) solid(x + Math.cos(ry) * k, z - Math.sin(ry) * k, 0.42); }
+    add(new T.CylinderGeometry(0.07, 0.06, 0.1, 8), mBowl, 7.25, 0.45, -2.9); add(new T.CylinderGeometry(0.07, 0.06, 0.1, 8), mBowl, 9.7, 0.45, -4.3);
+    // firewood stacked against the east wall
+    for (let j = 0; j < 3; j++) for (let k = 0; k < 5 - j; k++) add(new T.CylinderGeometry(0.085, 0.095, 0.75, 7), mWood, 16.5 + C(-0.05, 0.05), 0.09 + j * 0.16, 4.9 + (k + j * 0.5) * 0.19).rotation.set(0, C(-0.06, 0.06), PI / 2);
+    solid(16.5, 5.3, 0.62);
+    // two pells beside the ring: a post wrapped in straw rope, with a bar for the guard, hacked about
+    for (const z of [4.4, 7.6]) { const x = -8.4; add(new T.CylinderGeometry(0.09, 0.11, 1.95, 8), mWood, x, 0.97, z); add(new T.CylinderGeometry(0.17, 0.17, 0.72, 10), mStraw, x, 1.2, z);
+      for (const y of [0.86, 1.2, 1.54]) add(new T.TorusGeometry(0.172, 0.018, 5, 12), mRope, x, y, z).rotation.x = PI / 2;
+      box(0.07, 0.07, 1.0, mWood, x, 1.66, z, C(-0.3, 0.3)); add(new T.SphereGeometry(0.13, 8, 6), mSack, x, 2.02, z).scale.y = 1.15; solid(x, z, 0.36); }
+    // a trestle table and bench near the north tents: bowls, a jug, bread, the day's orders
+    { const x = -7.2, z = 17.2, ry = 0.25, g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g);
+      const put = (geo, mat, px, py, pz, r) => { const m = new T.Mesh(geo, mat); m.position.set(px, py, pz); if (r) m.rotation.y = r; m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+      put(new T.BoxGeometry(2.1, 0.07, 0.9), mWood, 0, 0.8, 0); for (const s of [-1, 1]) { put(new T.BoxGeometry(0.08, 0.78, 0.8), mWood, s * 0.8, 0.39, 0); put(new T.BoxGeometry(0.07, 0.42, 0.28), mWood, s * 0.75, 0.21, 0.85); }
+      put(new T.BoxGeometry(1.9, 0.06, 0.3), mWood, 0, 0.45, 0.85);
+      for (const [px, pz] of [[-0.7, 0.2], [-0.15, 0.25], [0.5, 0.18]]) put(new T.CylinderGeometry(0.085, 0.05, 0.06, 10), mBowl, px, 0.865, pz);
+      put(new T.LatheGeometry([[0.05, 0], [0.1, 0.06], [0.11, 0.16], [0.06, 0.24], [0.07, 0.3]].map(([a, b]) => new T.Vector2(a, b)), 10), mBowl, 0.82, 0.835, -0.15);
+      put(new T.SphereGeometry(0.12, 8, 6), mBread, 0.2, 0.87, -0.18).scale.set(1.3, 0.5, 0.9); put(new T.BoxGeometry(0.46, 0.012, 0.34), mPaper, -0.5, 0.842, -0.16, 0.2);
+      solid(x, z, 1.05); solid(x + Math.sin(ry) * 0.85, z + Math.cos(ry) * 0.85, 0.6); }
+    // stretchers stood against the rock by the mouth of the Narrows, blankets folded beside them, a bucket
+    for (const [x, tilt, ry] of [[-7.4, -0.3, 0.05], [-8.15, -0.36, -0.08]]) { const g = new T.Group(); g.position.set(x, 0, -9.82); g.rotation.set(tilt, ry, 0); scene.add(g);
+      for (const s of [-1, 1]) { const p = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 2.2, 6), mWood); p.position.set(s * 0.3, 1.1, 0); p.castShadow = true; g.add(p); }
+      const cl = new T.Mesh(new T.PlaneGeometry(0.6, 1.6, 1, 3), mCanvas); cl.position.set(0, 1.1, 0); cl.castShadow = cl.receiveShadow = true; g.add(cl); }
+    box(0.62, 0.1, 0.46, mCloth, -9.3, 0.05, -9.55, 0.1); box(0.6, 0.1, 0.44, mCanvas, -9.3, 0.15, -9.55, -0.05); box(0.58, 0.1, 0.44, mCloth, -9.3, 0.25, -9.55, 0.12); solid(-7.8, -9.9, 0.7); solid(-9.3, -9.6, 0.42);
+    bucket(-6.35, -9.5); bucket(-9.3, -4.7); bucket(13.0, 13.2);
+    // a water butt, and shields stood against the walls
+    add(barrelG, mBarrel, -14.2, 0.45, 10.4, 1.0); { const w = new T.Mesh(new T.CircleGeometry(0.3, 12), mWater); w.rotation.x = -PI / 2; w.position.set(-14.2, 0.86, 10.4); scene.add(w); } solid(-14.2, 10.4, 0.5);
+    const shieldG = (() => { const sp = new T.Shape(); sp.moveTo(-0.22, 0.27); sp.lineTo(0.22, 0.27); sp.lineTo(0.22, -0.04); sp.lineTo(0, -0.35); sp.lineTo(-0.22, -0.04); sp.closePath(); return new T.ExtrudeGeometry(sp, { depth: 0.035, bevelEnabled: false }); })();
+    const mShield = [0, 2].map((k) => toon(0xffffff, { map: shieldTex(k) }));
+    for (const [x, z, sd, k] of [[-16.8, 10.9, 1, 0], [-16.8, 11.5, 1, 1], [16.8, 9.2, -1, 0], [16.8, 12.9, -1, 1]]) { const g = new T.Group(); g.position.set(x, 0.36, z); g.rotation.y = sd * PI / 2 + C(-0.15, 0.15); scene.add(g); const m = new T.Mesh(shieldG, mShield[k]); m.rotation.x = -0.24; m.castShadow = true; g.add(m); }
+    // sharpened stakes either side of the breach, on the dune side
+    for (const sd of [-1, 1]) { for (let k = 0; k < 6; k++) { const st = add(new T.CylinderGeometry(0.02, 0.075, 1.9, 5), mWood, sd * (4.7 + k * 0.75), 0.62, 25.7 + C(-0.15, 0.15)); st.rotation.set(0.95 + C(-0.1, 0.1), 0, C(-0.12, 0.12)); }
+      add(new T.CylinderGeometry(0.09, 0.1, 4.6, 7), mWood, sd * 6.6, 0.3, 25.3).rotation.z = PI / 2; }
+    // the ground: sand blown in over the flags, ash under every fire, dirt trodden in between the breach, the ring and the Narrows, cracked slabs, boot prints, damp
+    const sand = decals(DECAL.soft, 0xd9c394, 0.75), ash = decals(DECAL.soft, 0x1c1815, 0.75), dirt = decals(DECAL.soft, 0x4c3a28, 0.3), crack = decals(DECAL.crack, 0x241b14, 0.6), prints = decals(DECAL.prints, 0x34281c, 0.55), damp = decals(DECAL.soft, 0x2c2a2c, 0.4);
+    for (let i = 0; i < 46; i++) { const k = (cq() * 4) | 0, o = C(0.2, 1.3), s = C(1.6, 3.8), [x, z] = k === 0 ? [C(-16.5, 16.5), 22 - o] : k === 1 ? [-17 + o, C(-9, 21.5)] : k === 2 ? [17 - o, C(-9, 21.5)] : [C(4.5, 16.5) * (cq() < 0.5 ? -1 : 1), -10 + o]; sand.at(x, z, s, s * C(0.5, 0.9), k === 1 || k === 2 ? PI / 2 : 0); }
+    for (let i = 0; i < 9; i++) sand.at(C(-4.2, 4.2), C(17.5, 22), C(2.5, 4.6), C(2.2, 3.6), C(0, 6.3)); for (let i = 0; i < 4; i++) sand.at(C(14, 16.8), C(-4.6, -1.4), C(2, 3.4), C(1.6, 2.6), C(0, 6.3)); // through the breach and the east gap
+    ash.at(fx, fz, 3.6, 3.4, 0.4); ash.at(fx + 0.3, fz - 0.2, 2.0, 2.2, 2.0); for (const [x, z] of [[-5.6, 1.6], [5.6, 10.4], [5.6, 1.6], [-5.6, 10.4], [-4.9, -8.3], [4.9, -8.3], [-5.6, 20.6], [5.6, 20.6]]) ash.at(x + C(-0.15, 0.15), z + C(-0.15, 0.15), C(1.5, 2.1), C(1.5, 2.1), C(0, 6.3));
+    for (let i = 0; i < 12; i++) dirt.at(C(-2.4, 2.4), C(10.5, 21), C(2.4, 4.4), C(2.4, 4.4), C(0, 6.3)); for (let i = 0; i < 9; i++) dirt.at(C(-2.2, 2.2), C(-8.0, 1.5), C(2.2, 4), C(2.2, 4), C(0, 6.3));
+    for (let i = 0; i < 10; i++) { const a = C(0, 6.3), d = C(3.6, 6.2); dirt.at(RING.x + Math.sin(a) * d, RING.z + Math.cos(a) * d, C(2, 3.6), C(2, 3.6), C(0, 6.3)); } dirt.at(-8.4, 6, 3.4, 5, 0); dirt.at(-7.0, 17.6, 4.2, 3.4, 0.25);
+    for (let i = 0; i < 16; i++) { const s = C(1.4, 3.2); crack.at(C(-15.5, 15.5), C(-9, 21), s, s, C(0, 6.3), 0.032); }
+    for (const [x0, z0, x1, z1] of [[-10.2, 12.2, -4.2, 8.2], [9.6, 14.0, 4.0, 8.6], [-10.2, -2.2, -3.6, 3.0], [0.6, 20.5, 0.2, 11.5], [-0.6, 1.2, -0.3, -8.4], [8.0, -1.2, 3.6, 3.4], [-6.4, 16.2, -1.5, 10.4], [14.8, 3.0, 9.8, -1.4], [-13.4, 9.9, -9.0, 5.2]]) {
+      const a = Math.atan2(x1 - x0, z1 - z0), L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(L / 3.2)); for (let k = 0; k < n; k++) { const u = (k + 0.5) / n; prints.at(lerp(x0, x1, u) + C(-0.15, 0.15), lerp(z0, z1, u) + C(-0.15, 0.15), 0.9, 3.4, a + PI + C(-0.08, 0.08), 0.034); } }
+    damp.at(-14.0, 10.2, 2.4, 2.2, 0.6); damp.at(-9.2, -4.8, 1.3, 1.2, 0);
+    for (const d of [sand, ash, dirt, crack, prints, damp]) d.done(scene); }
 
   // scatter: rubble at the wall feet, pebbles, dry grass. Instanced, so three draw calls in all.
   { const M = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), sv = V(1, 1, 1), pv = V(0, 0, 0);
