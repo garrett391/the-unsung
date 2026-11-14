@@ -42,6 +42,7 @@ In use (Nov 2026): **20 Sword Sound Effects (Attacks and Clashes)** by StarNinja
 - `hit1-5` (sword 1, 2, 3, 4, 7): a blow landing. `big1-3` (sword 5, 8, 10): heavy blows and ripostes. `clang1-4` (clash 2, 3, 4, 5): a block. `parry1-4` (clash 1, 6, 8, 10): a parry.
 - `SFX.hit`, `big`, `clang` and `parry` play a random take (never the same twice running, pitch varied a little) over a low synthesized thump; the old synthesized versions remain as the fallback until the files load. Everything else (swings, rolls, the boom, the horn) is still synthesized.
 - Chosen by measurement (length, onset, decay), not by ear: the session can't listen. If a take sounds wrong, delete its file and lower the count in `TAKES`.
+- `quake.mp3`: the vault shaking in the false ending, supplied by the owner (Nov 2026; source not recorded). Loudness-normalized to -16 LUFS, true peak -1.5 dB (two-pass `loudnorm`, linear), 24 kHz, 128 kbps. Twelve seconds: it hits at about 0.5 s and holds; `SFX.quake()` starts it with the first tremor and the scene fades it over 1.2 s when the Usurper lands. Its level (1.6 in `SFX.quake`) is unheard.
 
 Other sources, not yet used:
 

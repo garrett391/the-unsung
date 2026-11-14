@@ -132,7 +132,7 @@ stage('door', {
     });
     const look = (y, p, dur) => { const y0 = P.lookY, p0 = P.lookP; return d.tween(dur, (u) => { const e = u * u * (3 - 2 * u); P.lookY = y0 + (y - y0) * e; P.lookP = p0 + (p - p0) * e; }); };
     const fx = Math.sin(P.face), fz = Math.cos(P.face), rel = (f, r, y) => [P.pos.x + fx * f + fz * r, y, P.pos.z + fz * f - fx * r], head = [P.pos.x, 1.62, P.pos.z]; // rel: f metres ahead of him, r to his right
-    SFX.boom(); P.walk = null; // he stops where he is
+    SFX.boom(); const hush = SFX.quake(); P.walk = null; // he stops where he is; the rumble runs until the Usurper lands
     { const sd = side(P.pos.x + fx * 2.2, fz * 0.8), c = pick(rel(2.2, 0.8 * sd, 1.5), rel(2.2, -0.8 * sd, 1.5), rel(1.5, 0, 1.5)); cam.shot(c, head); cam.shot([c[0] + (head[0] - c[0]) * 0.12, 1.52, c[2] + (head[2] - c[2]) * 0.12], head, 2.2);
       await d.wait(0.45); await look(0.8 * sd, 0.06, 0.45); await d.wait(0.75); // from in front: his head comes round to the wall
       SFX.boom(); quake = 0.11;
@@ -152,7 +152,7 @@ stage('door', {
     U.face = U.angleTo(P); U.play(CL.rise, 0.3);
     await d.tween(2.4, (u) => { U.yoff = 0.34 * U.scale * Math.sin(Math.min(1, u / 0.85) * PI / 2); U.hp = Math.max(U.hp, U.maxHp * 0.6 * u); if (Math.random() < 0.5) FX.sparks.emit(new T.Vector3(U.pos.x + rnd(-0.9, 0.9), 0.1, U.pos.z + rnd(-0.9, 0.9)), 1, 0.6, 0x9ff0e0, 0.9, { grav: -3.5, spread: 0.1 }); });
     await d.tween(0.2, (u) => { U.yoff = 0.34 * U.scale * (1 - u * u); });
-    U.yoff = 0; quake = 0; G.shake = 0.3; SFX.boom(); playMusic('blade', { fade: 0.4, cross: 0.2 }); shock(U.pos, 3.4, 0x9ff0e0); FX.dust.emit(U.pos, 16, 2.6, 0x8a93a6, 0.7, { flat: 1, grav: -1 }); G.level.flare = 0.7; // he lands
+    U.yoff = 0; quake = 0; G.shake = 0.3; SFX.boom(); hush(1.2); playMusic('blade', { fade: 0.4, cross: 0.2 }); shock(U.pos, 3.4, 0x9ff0e0); FX.dust.emit(U.pos, 16, 2.6, 0x8a93a6, 0.7, { flat: 1, grav: -1 }); G.level.flare = 0.7; // he lands
     await d.wait(0.75); rumble();
     U.stop(0.3); U.set('circle'); U.hurtAmt = 0.55; U.eyeK = 1.5; U.phase2 = true; U.cd = 1.3; U.hp = Math.max(U.hp, U.maxHp * 0.6); // up again, straighter, and angrier
     P.face = P.angleTo(U); wall = Math.max(VAULT, P.pos.z + 0.05);

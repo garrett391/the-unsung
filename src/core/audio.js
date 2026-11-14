@@ -15,7 +15,7 @@ function makeContext() {
     nbuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = nbuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    loadTakes();
+    loadTakes(); loadLongs();
   } catch (e) { AC = null; }
 }
 
@@ -75,6 +75,16 @@ const TAKES = { hit: 5, big: 3, clang: 4, parry: 4 }, takes = {}, lastTake = {};
 function loadTakes() {
   for (const k in TAKES) { takes[k] = []; for (let i = 1; i <= TAKES[k]; i++) fetch(`${BASE}sfx/${k}${i}.wav`).then((r) => r.arrayBuffer()).then((b) => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then((buf) => takes[k].push(buf)).catch(() => {}); }
 }
+// Longer recorded effects that a scene starts and stops: SFX.quake() returns a stop(fade).
+const LONG = { quake: 'sfx/quake.mp3' }, longs = {};
+function loadLongs() { for (const k in LONG) fetch(BASE + LONG[k]).then((r) => r.arrayBuffer()).then((b) => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then((buf) => { longs[k] = buf; }).catch(() => {}); }
+function long(name, vol) {
+  const none = () => {}; if (!AC || !longs[name]) return none;
+  try {
+    const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = longs[name]; g.gain.value = vol; s.connect(g); g.connect(master); s.start();
+    return (fade = 1) => { try { const t = AC.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade); s.stop(t + fade + 0.05); } catch (e) { /* ignore */ } };
+  } catch (e) { return none; }
+}
 function take(kind, vol, rate = 1) {
   const list = takes[kind]; if (!AC || !list || !list.length) return false;
   try {
@@ -120,6 +130,7 @@ export const SFX = {
   // an enemy draws back to strike: a short breath of cloth and leather, not a beep
   tele: () => noise(0.16, 0.12, 380, 1100, 'bandpass', 0.9),
   charged: () => { noise(0.4, 0.14, 500, 2600, 'bandpass', 2); tone(220, 0.4, 'triangle', 0.1, 330); },
+  quake: () => long('quake', 1.6), // the vault shaking; the file is normalized to -16 LUFS, quieter than the blows, so it is lifted here
   boom: () => { noise(0.55, 0.7, 500, 50, 'lowpass', 0.7); tone(74, 0.5, 'sine', 0.6, 30); },
   die: () => noise(0.7, 0.22, 2600, 160, 'bandpass', 0.5),
   blip: () => noise(0.035, 0.05, 1800, 1400, 'bandpass', 1.5),
