@@ -25,6 +25,8 @@ const CAMP = [['fire', [5.2, 1.9, 0.6], [9, 0.8, -2.6]], ['ring', [3, 3.4, 16], 
 await setup({ player: [0, 8, 0], corin: null }); await shoot('camp', CAMP);
 await setup({ player: [0, 8, 0], corin: null }, 1); await shoot('camp-dawn', CAMP);
 // the yard's own coordinates (x east, z north from its middle); it stands at z = 120
-await setup({ site: 'way', sky: 'day', player: [0, 120, 0], corin: null });
-await shoot('yard', [['gate', [0.8, 1.8, 3], [0.3, 0.4, 12]], ['stall', [7.2, 1.9, -1.6], [12.4, 0.9, -5]], ['well', [-1.6, 2.2, 6.2], [-8.5, 0.8, 3.6]], ['door', [4.6, 1.8, -5.4], [0.5, 1.0, -11.6]], ['stable', [-6.2, 1.9, -1.2], [-12, 0.6, -5]], ['ladder', [6.2, 1.8, -6.6], [10, 1.6, -11.6]], ['road', [1.5, 2.4, 40], [0, 1, 14]], ['road-out', [0.6, 1.9, 13.5], [3, 2.5, 60]], ['bend', [-2, 2.2, 36], [20, 3, 74]], ['west', [6, 2.2, -4], [-30, 5, 40]], ['country', [-10, 42, -40], [14, 0, 50]], ['over', [9, 15, 22], [0, 0, 0]]], 120);
+const YARD = [['gate', [0.8, 1.8, -1], [0.2, 2.2, 12]], ['long', [0.6, 2.0, -9.5], [0, 2.4, 12]], ['stall', [3.6, 1.9, 0.6], [9.6, 1.0, 3.6]], ['well', [-1.0, 2.0, 1.6], [-7.5, 1.2, 6.6]], ['door', [3.6, 1.8, -3.4], [0.2, 1.4, -11.6]], ['stable', [-2.6, 1.9, -1.0], [-9, 0.8, -5]], ['stores', [4.4, 1.8, -5.6], [9.6, 1.4, -11]], ['in', [0.3, 1.7, 17], [0, 1.6, 0]], ['road', [1.5, 2.4, 40], [0, 2, 14]], ['road-out', [0.6, 1.9, 9], [3, 2.5, 60]], ['bend', [-2, 2.2, 36], [20, 3, 74]], ['country', [-10, 42, -40], [14, 0, 50]], ['over', [9, 15, -19], [0, 0, 2]], ['over-n', [-8, 14, 24], [0, 0, 0]]];
+await setup({ site: 'way', player: [0, 120, 0], corin: null }); await shoot('yard', YARD, 120);
+await setup({ site: 'way', player: [0, 120, 0], corin: null }, 1); await shoot('yard-dusk', YARD.slice(0, 8), 120);
+await setup({ site: 'way', sky: 'morning', muster: true, player: [0, 120, 0], corin: null }); await shoot('yard-muster', [['ring', [-4.5, 2.6, -8.5], [2.5, 1.2, -2]], ['clerk', [9.9, 1.8, -3.2], [7.4, 1.3, -8.2]]], 120);
 await browser.close(); server.close();

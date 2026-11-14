@@ -105,7 +105,7 @@ export class Enemy extends Char {
         if (Math.random() < 0.5) FX.dust.emit(this.pos, 1, 1.5, 0xb8a37c, 0.4, { flat: 1, spread: 0.4, grav: -1 });
         if (this.st >= 0.9) { this.yoff = 0; this.set('chase'); } break;
       case 'chase': { const via = route(this.pos, P_.pos); // round by the gate, if a wall stands between
-        this.turnTo(steer(this.pos, this.radius, via ? Math.atan2(via[0] - this.pos.x, via[1] - this.pos.z) : ang, d), 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt);
+        this.turnTo(steer(this.pos, this.radius, via ? Math.atan2(via[0] - this.pos.x, via[1] - this.pos.z) : ang, d, this), 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt);
         if (d < 3.6 * this.scale && !via) this.set('circle'); break; }
       case 'circle': {
         this.turnTo(ang, 7, dt); const want = 2.7 + this.radius, rad = clamp((d - want) * 2.2, -1.6, speed), tan = this.dir * 1.35, nx = dx / d, nz = dz / d;
@@ -144,7 +144,7 @@ export class Enemy extends Char {
       case 'down': brake(8); if (this.st >= 1.0) { this.set('getup'); this.stop(0.4); } break;
       case 'getup': brake(8); if (this.st >= 0.4) { this.set('circle'); this.cd = rnd(0.4, 1.2); } break;
       case 'flee': {
-        this.turnTo(steer(this.pos, this.radius, Math.atan2(-dx, -dz), 6), 8, dt);
+        this.turnTo(steer(this.pos, this.radius, Math.atan2(-dx, -dz), 6, this), 8, dt);
         this.vel.x = damp(this.vel.x, f.x * 5.5, 6, dt); this.vel.z = damp(this.vel.z, f.z * 5.5, 6, dt); if (this.st > 4) this.gone = true; break; }
       case 'dead':
         brake(5); eye = Math.max(0, 1 - this.st);

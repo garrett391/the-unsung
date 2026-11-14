@@ -347,12 +347,12 @@ stage('waystation', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'way', look: 'labourer', player: [...wy(-2.4, -9.6), 0.75], corin: null });
     const P = G.player, L = G.level, R = []; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; preloadMusic('blade');
-    const guard = new Extra(LOOKS.wayguard, ...wy(1.7, 9.4), 0), drover = new Extra(LOOKS.drover, ...wy(7.4, 2.0), 0.6);
-    const loot = [[7.2, 7.2, 2.44], [11.2, 8.4, 0.68], [-6.4, 9.6, -1.04]]; // where the first three stand over the goods, and which way they face
+    const guard = new Extra(LOOKS.wayguard, ...wy(1.7, 9.4), 0), drover = new Extra(LOOKS.drover, ...wy(6.3, 2.4), 1.2);
+    const loot = [[6.2, 4.3, 1.45], [5.6, -1.2, 1.8], [-6.6, 9.3, -0.9]]; // at the stall, the cart and the carter's load // where the first three stand over the goods, and which way they face
     if (!G.seenWay) {
       G.seenWay = true;
       // The end of a working day. He crosses the yard, and nobody looks at him.
-      cam.shot(wy3(-11, 2.4, -9), wy3(0, 1.3, -3)); cam.shot(wy3(-9.5, 2.0, -6.5), wy3(1.5, 1.3, -1.5), 7); ui.fade(0, 2.4);
+      cam.shot(wy3(-6.4, 2.3, -10.4), wy3(0.6, 1.5, -2)); cam.shot(wy3(-5.6, 2.0, -8.8), wy3(1.2, 1.5, 0), 7); ui.fade(0, 2.4); // from beside the house door, past the awning post, up the yard to the gate
       stroll(d, ...wy(2.4, -2.2), 1.25, 9).catch(() => {});
       await d.wait(5.2);
       // A horn, out in the dunes. At the gate, raiders come running in off the road; the guard meets them, and is cut down.

@@ -12,9 +12,11 @@ import { buildHalls, HALLS, GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W } from './
 // breach in the north wall and a gap in the east wall. South, a slot canyon
 // ("the Narrows") runs through the rock to the sanctum gate.
 export const COURT = { x0: -17, x1: 17, z0: -10, z1: 22 };
-export const NARROWS = { x0: -2.8, x1: 2.8, z0: -27, z1: -9 };
-export const BREACH = { x0: -3.6, x1: 3.6, z0: 21, z1: 40 };
-export const EAST = { x0: 16, x1: 28, z0: -4.8, z1: -1.2 };
+export const NARROWS = { x0: -2.8, x1: 2.8, z0: -27, z1: -6.5 };
+// The two ways in reach well inside the court: confine() keeps a walker's whole circle inside one rectangle, so
+// two that only just overlap leave nothing for a big one to stand on between them (the Breaker stuck in both).
+export const BREACH = { x0: -3.6, x1: 3.6, z0: 18.5, z1: 40 };
+export const EAST = { x0: 13.5, x1: 28, z0: -4.8, z1: -1.2 };
 export const MOUTH = { x: 0, z: -8.6 };
 export const RING = { x: 0, z: 6, r: 4.2 };
 const FIRE = 16;
@@ -23,10 +25,10 @@ const FIRE = 16;
 // raiders come in. A site is its walkable rectangles, its obstacles and where the sun is aimed;
 // `level.setSite` switches between them.
 export const WAY = { x: 0, z: 120 };
-export const YARD = { x0: WAY.x - 15, x1: WAY.x + 15, z0: WAY.z - 12, z1: WAY.z + 12 };
-export const WSIDE = { x0: WAY.x - 14, x1: WAY.x + 14, z0: WAY.z + 14.3, z1: WAY.z + 21 }; // along the outside of the north wall: raiders come round to the gate from here, out of sight of the yard
-export const WROAD = { x0: WAY.x - 3, x1: WAY.x + 3, z0: WAY.z + 10, z1: WAY.z + 34 };
-const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARROWS, BREACH, EAST], obs: [], sky: ['night', 'dawn'] }, way: { at: [WAY.x, WAY.z], player: [YARD], all: [YARD, WROAD, WSIDE], obs: [], sky: ['day', 'dusk'] },
+export const YARD = { x0: WAY.x - 10.9, x1: WAY.x + 10.9, z0: WAY.z - 12, z1: WAY.z + 12 };
+export const WSIDE = { x0: WAY.x - 14, x1: WAY.x + 14, z0: WAY.z + 15.0, z1: WAY.z + 21 }; // along the outside of the north wall: raiders come round to the gate from here, out of sight of the yard
+export const WROAD = { x0: WAY.x - 2.95, x1: WAY.x + 2.95, z0: WAY.z + 9.5, z1: WAY.z + 34 }; // through the gatehouse, between its leaves
+const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARROWS, BREACH, EAST], obs: [], sky: ['night', 'dawn'] }, way: { at: [WAY.x, WAY.z], player: [YARD], all: [YARD, WROAD, WSIDE], obs: [], sky: ['late', 'dusk'], shadow: 30 },
   halls: { at: [HALLS.x, HALLS.z - 29], player: [GALLERY, ROTUNDA, DESCENT], all: [GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W], obs: [], sky: ['night', 'night'], indoor: true } }; // the halls above the vault (world/halls.js): under a roof, with their own light
 let PLAYER_AREA = SITES.ruins.player, ALL_AREA = SITES.ruins.all;
 export const OBSTACLES = []; // the current site's
@@ -48,22 +50,36 @@ export function confine(p, r, isPlayer) {
 // Heading that takes a walker round the nearest crate, tent or column lying on the way to
 // its goal (`ang`, `reach` metres off). Without this, anything walking straight at an
 // obstacle is pushed straight back out by confine() and stays there.
-export function steer(p, r, ang, reach) {
-  const fx = Math.sin(ang), fz = Math.cos(ang); let best = null, bd = Math.min(reach, 5);
-  for (const o of OBSTACLES) {
-    const dx = o.x - p.x, dz = o.z - p.z, along = dx * fx + dz * fz, m = o.r + r + 0.25; if (along <= 0 || along - m > bd) continue;
-    const side = dx * fz - dz * fx; if (Math.abs(side) >= m) continue;
-    bd = along - m; best = { d: Math.hypot(dx, dz), a: Math.atan2(dx, dz), m, side };
-  }
-  if (!best) return ang;
-  // aim at the tangent on the side the walker is already leaning to
-  return best.a + (best.side > 0 ? -1 : 1) * Math.asin(Math.min(1, best.m / Math.max(best.d, best.m))) * 1.15;
+export function steer(p, r, ang, reach, who) {
+  // the nearest obstacle across heading `h`, within `far` metres
+  const hit = (h, far) => { const fx = Math.sin(h), fz = Math.cos(h); let best = null, bd = far;
+    for (const o of OBSTACLES) {
+      const dx = o.x - p.x, dz = o.z - p.z, along = dx * fx + dz * fz, m = o.r + r + 0.25; if (along <= 0 || along - m > bd) continue;
+      const side = dx * fz - dz * fx; if (Math.abs(side) >= m) continue;
+      bd = along - m; best = { d: Math.hypot(dx, dz), a: Math.atan2(dx, dz), m, side };
+    }
+    return best; };
+  const first = hit(ang, Math.min(reach, 5)); if (!first) return ang;
+  // Aim at the tangent on one side; if another obstacle stands across that line (crates in a stack, the log
+  // seats by the fire), go round that one too, on the same side. Walkers used to turn into the gap between two and stay there.
+  const round = (sg) => { let b = first, h = ang; for (let k = 0; k < 4 && b; k++) { h = b.a + sg * Math.asin(Math.min(1, b.m / Math.max(b.d, b.m))) * 1.15; b = hit(h, 2.2); } return h; };
+  const lean = first.side > 0 ? -1 : 1, h0 = round(lean), h1 = round(-lean), dev = (h) => Math.abs(Math.atan2(Math.sin(h - ang), Math.cos(h - ang)));
+  // `who` (the walker) keeps to the side it chose for a moment: head-on to a cluster the choice would flip every step, and it would dither there.
+  if (who && who.steerT > G.time) return who.steerSide === lean ? h0 : h1;
+  const sg = dev(h0) <= dev(h1) + 0.6 ? lean : -lean; // the side it is already leaning to, unless that is much the longer way round
+  if (who) { who.steerSide = sg; who.steerT = G.time + 1.5; }
+  return sg === lean ? h0 : h1;
 }
 // Where a walker outside the waystation's wall must head to reach someone inside it: the gate.
 // (Walking straight at them would only press it against the wall.) Null when the way is clear.
 export function route(p, t) {
   const s = G.level && G.level.site;
   if (s === 'way') return p.z < WAY.z + 12.6 || t.z > WAY.z + 12.6 ? null : [WAY.x, WAY.z + (Math.abs(p.x - WAY.x) > 2.3 ? 16.6 : 10.5)];
+  if (s === 'ruins') {
+    if (p.x > 16.3 && t.x < 16 && (t.z > -1.8 || t.z < -4.2)) return [14.6, -3]; // in the east gap: on through its middle before turning for him, not into the jamb
+    if (t.z < -10.2 && p.z > -9.4 && Math.abs(p.x) > 1.8) return [0, -8.4]; // he is in the Narrows: by its mouth, not into the cliff beside it
+    return null;
+  }
   if (s !== 'halls') return null;
   // the halls: out of a side passage by its middle, and through the arches to the gallery and the descent by theirs, not along the wall beside them
   const x = p.x - HALLS.x, z = p.z - HALLS.z, tz = t.z - HALLS.z;
@@ -87,9 +103,14 @@ export function clampCamera(p, look) {
 const NIGHT = { zen: 0x04060f, hor: 0x1d2a55, fog: 0x121a36, hemiS: 0x5f7fe0, hemiG: 0x1c1a26, hemiI: 0.95, sun: 0x9fb6ff, sunI: 1.7, sunP: [-22, 34, 26], warm: 0, stars: 1, moon: 1, fire: 1, fogF: 150 };
 const DAWN = { zen: 0x35528e, hor: 0xf2a56c, fog: 0xc9907a, hemiS: 0xffd8b8, hemiG: 0x7a5038, hemiI: 1.7, sun: 0xffb27a, sunI: 3.2, sunP: [40, 14, 24], warm: 1, stars: 0, moon: 0.15, fire: 0.3, fogF: 150 };
 const DAY = { zen: 0x3a6fb4, hor: 0xd9c9a4, fog: 0xd6c19c, hemiS: 0xfff1da, hemiG: 0x8f6f4c, hemiI: 1.55, sun: 0xffe2b0, sunI: 3.1, sunP: [-34, 30, 12], warm: 0.2, stars: 0, moon: 0, fire: 0.3, fogF: 105 };
-const DUSK = { zen: 0x2c3f7a, hor: 0xe9925e, fog: 0xc4927a, hemiS: 0xd9b8b4, hemiG: 0x6a4c40, hemiI: 1.35, sun: 0xffb486, sunI: 2.5, sunP: [-42, 12, 16], warm: 0.55, stars: 0, moon: 0, fire: 0.6, fogF: 105 };
+const DUSK = { zen: 0x27386e, hor: 0xee8a52, fog: 0xb9826a, hemiS: 0xa3a0d0, hemiG: 0x5e4438, hemiI: 1.45, sun: 0xff9858, sunI: 3.0, sunP: [-9, 8, 40], warm: 0.75, stars: 0, moon: 0, fire: 0.6, fogF: 95 };
 const MORN = { zen: 0x4f86c8, hor: 0xf1dcc0, fog: 0xdcccb4, hemiS: 0xf4f0ea, hemiG: 0x8a7458, hemiI: 1.5, sun: 0xfff0dc, sunI: 3.1, sunP: [36, 22, -14], warm: 0.25, stars: 0, moon: 0, fire: 0.3, fogF: 105 };
-const SKIES = { night: NIGHT, dawn: DAWN, day: DAY, dusk: DUSK, morning: MORN };
+// The waystation's raid begins late in the afternoon and ends at dusk. The sun stands low beyond the gate (north, a
+// shade west): the gatehouse and the north wall are dark against it, their shadow lies down half the yard, and the
+// light comes in through the gate as one bright path that lengthens toward the house as the sun drops. Warm sun,
+// cool shade from the sky, dust in the air (the fog is near and warm).
+const LATE = { zen: 0x3d5f9e, hor: 0xf3c68c, fog: 0xdcb48a, hemiS: 0xb7c6ee, hemiG: 0x94704e, hemiI: 1.55, sun: 0xffc488, sunI: 3.5, sunP: [-6, 15, 40], warm: 0.45, stars: 0, moon: 0, fire: 0.3, fogF: 100 };
+const SKIES = { night: NIGHT, dawn: DAWN, day: DAY, late: LATE, dusk: DUSK, morning: MORN };
 
 export function buildLevel() {
   const scene = G.scene, r = rng(1234), R = (a, b) => a + r() * (b - a);
@@ -102,7 +123,7 @@ export function buildLevel() {
   const mBanner = toon(0xffffff, { map: TEX.banner, side: T.DoubleSide, alphaTest: 0.5 });
   const V = (x, y, z) => new T.Vector3(x, y, z), UP = V(0, 1, 0);
   // The dunes start past the walls, except along the raiders' road north of the breach, which stays level.
-  const dune = (x, z) => { const road = 1 - clamp((Math.abs(x) - 5.5) / 6, 0, 1), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - lerp(26, 44, road * road * (3 - 2 * road))), d = Math.min(Math.hypot(dx, dz), Math.hypot(Math.max(WAY.x - 24 - x, 0, x - WAY.x - 24), Math.max(WAY.z - 21 - z, 0, z - WAY.z - 37))); const rk = z > WAY.z + 30 ? clamp((roadOff(x - WAY.x, z - WAY.z) - 8) / 14, 0, 1) : 1; // level along the caravan road, too, out to where it is lost to sight
+  const dune = (x, z) => { const road = 1 - clamp((Math.abs(x) - 5.5) / 6, 0, 1), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - lerp(26, 44, road * road * (3 - 2 * road))), d = Math.min(Math.hypot(dx, dz), Math.hypot(Math.max(WAY.x - 17 - x, 0, x - WAY.x - 17), Math.max(WAY.z - 19 - z, 0, z - WAY.z - 37)) /* the dunes come close in round the waystation's walls */); const rk = z > WAY.z + 30 ? clamp((roadOff(x - WAY.x, z - WAY.z) - 8) / 14, 0, 1) : 1; // level along the caravan road, too, out to where it is lost to sight
     return rk * Math.min(1, d / 14) * (Math.sin(x * 0.045 + z * 0.02) * 3 + Math.sin(z * 0.06 - x * 0.03) * 2.2 + Math.sin(x * 0.13) * 0.8) - (d > 0 && rk > 0 ? 0.2 : 0); };
   const add = (geo, mat, x, y, z, ry) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); if (ry) m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
   const box = (w, h, d, mat, x, y, z, ry) => add(new T.BoxGeometry(w, h, d), mat, x, y, z, ry);
@@ -309,7 +330,7 @@ export function buildLevel() {
     else { const d = add(new T.CylinderGeometry(0.46, 0.46, 1.5, 16), mCol, x + R(-1.4, 1.4), 0.46, z + R(1.2, 1.9)); d.rotation.z = PI / 2; d.rotation.y = R(0, 3); }
     OBSTACLES.push({ x, z, r: 0.75 });
   };
-  for (const z of [-4, 3, 10, 17]) { column(-15.2, z, r() < 0.4 ? R(1.6, 3) : 5.4, false); column(15.2, z + 2.5, r() < 0.5 ? R(1.6, 3) : 5.4, r() < 0.5); }
+  for (const z of [-4, 3, 10, 17]) { column(-15.2, z, r() < 0.4 ? R(1.6, 3) : 5.4, false); column(15.2, z < 0 ? 0.9 : z + 2.5, /* the first stood in the mouth of the east gap */ r() < 0.5 ? R(1.6, 3) : 5.4, r() < 0.5); }
   const tent = (x, z, ry) => {
     // ridge tent: sagging slopes, a closed back, tied-back door flaps, poles, guy ropes and stakes
     const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = Math.atan2(RING.x - x, RING.z - z) + ry - 0.5; scene.add(g);
@@ -341,7 +362,7 @@ export function buildLevel() {
     OBSTACLES.push({ x, z, r: 2.0 });
   };
   tent(-11.5, 13.5, 0.5); tent(11, 15.5, 0.9); tent(-11.5, -3.5, 0.2);
-  for (let i = 0; i < 9; i++) { const x = [-8.5, 12.5, 9.5][i % 3] + R(-1.3, 1.3), z = [10.5, 11.5, -6.5][i % 3] + R(-1.3, 1.3), s = R(0.55, 0.85); box(s, s, s, mCrate, x, s / 2, z, R(0, 1.5)); OBSTACLES.push({ x, z, r: s * 0.7 });
+  for (let i = 0; i < 9; i++) { const x = [-8.5, 12.5, 13.6][i % 3] + R(-1.3, 1.3) /* the third stack is in the south-east corner: by the fire it made a pocket with the log seats, on the line from the east gap to the Narrows, and raiders walked into it and stayed */, z = [10.5, 11.5, -8.1][i % 3] + R(-1.3, 1.3), s = R(0.55, 0.85); box(s, s, s, mCrate, x, s / 2, z, R(0, 1.5)); OBSTACLES.push({ x, z, r: s * 0.7 });
     if (dr() < 0.35) { const t = s * D(0.55, 0.7); box(t, t, t, mCrate, x + D(-0.06, 0.06), s + t / 2, z + D(-0.06, 0.06), D(0, 1.5)); }
     else if (dr() < 0.4) { const sk = add(new T.SphereGeometry(s * 0.42, 8, 6), mSack, x, s + s * 0.2, z, D(0, 3)); sk.scale.set(1, 0.55, 0.8); } }
   // barrels, sacks and a spear rack against the walls
@@ -525,7 +546,7 @@ export function buildLevel() {
     const door = W.doorMode; for (const b of gateBanners) b.visible = !door; mRock.color.setHex(door ? 0x6f86b8 : 0xffffff); mBlock.color.setHex(door ? 0x8f9bb4 : 0xffffff); mStone.color.setHex(door ? 0x7c8698 : 0xb09a78); mGold.color.setHex(door ? 0x8f7a3c : 0xd9b24a); // and its gilding is old and dull, so the thin fillets don't sparkle as the camera moves // the Door's surround is the vault's cold stone, not the camp's sandstone
     endCliff.castShadow = !door; for (const l of W.fires) l.visible = !door && site === SITES.ruins; gateL.visible = site === SITES.ruins;
     for (const m of [mBlock, mStone, mGold, mDark, mIron]) m.shadowSide = door ? T.FrontSide : null; // the Door's surround is seen from its unlit side: cast its shadow from the faces toward the light, so the faces toward us lie well inside it (cast from themselves, they speckled)
-    const k = door ? 13 : 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : 2; /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(site.at[0], 0, site.at[1] + (door ? -19 : 0));
+    const k = door ? 13 : site.shadow || 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : 2; /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(site.at[0], 0, site.at[1] + (door ? -19 : 0));
     if (door) { sun.color.setHex(0xd2efe9); sun.intensity = 2.3; sun.position.set(0, 4.14, -29.5); /* just behind the glass, so nothing outside the vault shadows it */ hemi.color.setHex(0x7284a8); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.95; }
     else if (W.setDawn) W.setDawn(W.dawn);
     // Under a roof (the halls): no ground or sky to light. The one strong light is the Door's, coming up
@@ -569,6 +590,7 @@ export function buildLevel() {
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6); for (const l of W.vault.lights) l.intensity = l.userData.base * (0.85 + pulse * 0.3 + fl * 4);
     }
     if (site.indoor) halls.update(t);
+    if (site === SITES.way) way.update(t, SA === LATE ? W.dawn : SA === DUSK ? 1 : 0, sun.position.x - site.at[0], sun.position.y, sun.position.z - site.at[1]);
     if (site.indoor && W.after) { for (const m of W.vault.veined) m.emissiveIntensity = 0; }
     else if (site.indoor) { const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; sun.intensity = 2.0 + fl * 3;
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6);
