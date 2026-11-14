@@ -126,10 +126,10 @@ export function buildLevel() {
   const mIron = toon(0x23262e);
   {
     for (const s of [-1, 1]) { // surround: jambs with a gold fillet, plinth and capital on each pillar
-      box(0.3, 6.5, 0.6, mStone, s * 2.05, 3.25, -27.45); box(0.06, 6.3, 0.05, mGold, s * 1.93, 3.25, -27.14);
+      box(0.3, 6.5, 0.6, mStone, s * 2.05, 3.25, -27.45); box(0.1, 6.3, 0.05, mGold, s * 1.95, 3.25, -27.14);
       box(1.5, 0.45, 1.5, mStone, s * 2.5, 0.22, -27.8); box(1.42, 0.14, 1.42, mDark, s * 2.5, 0.52, -27.8); box(1.5, 0.4, 1.5, mStone, s * 2.5, 6.75, -27.8);
     }
-    box(4.4, 0.32, 0.6, mStone, 0, 6.62, -27.45); box(3.9, 0.06, 0.05, mGold, 0, 6.48, -27.14);
+    box(4.4, 0.32, 0.6, mStone, 0, 6.62, -27.45); box(3.9, 0.1, 0.05, mGold, 0, 6.5, -27.14);
     box(0.8, 0.95, 0.5, mStone, 0, 7.25, -27.05); box(0.3, 0.3, 0.08, mGold, 0, 7.25, -26.78).rotation.z = PI / 4;
     box(4.3, 0.1, 1.1, mStone, 0, 0.03, -27.3);
   }
@@ -177,7 +177,7 @@ export function buildLevel() {
     // The Door stands in a vault under the ruins, not in the Narrows: a barrel-vaulted hall of
     // dressed stone, with half-columns down both walls carrying ribs across the roof. Glass has
     // spread from the Door through the joints of the stone (the veins glow, and burn with W.flare).
-    const Z0 = -28.45, Z1 = -11.2, LEN = Z1 - Z0, ZC = (Z0 + Z1) / 2, HW = 2.95, SPR = 5.2, vr = rng(23);
+    const Z0 = -28.45, Z1 = -11.2, LEN = Z1 - Z0, ZC = (Z0 + Z1) / 2, HW = 2.95, SPR = 7.0, vr = rng(23); // the roof springs from the height of the Door's pillars, so its whole surround stands clear under the vault
     const ashlar = canvasTex(256, (g, n) => {
       speck(g, n, [104, 112, 128], 12, vr);
       for (let i = 0; i < 46; i++) { g.fillStyle = vr() < 0.5 ? 'rgba(40,46,60,.12)' : 'rgba(170,180,200,.08)'; g.beginPath(); g.arc(vr() * n, vr() * n, 8 + vr() * 30, 0, 7); g.fill(); }
@@ -211,13 +211,13 @@ export function buildLevel() {
     const tex = (t, rx, ry) => { const c = t.clone(); c.repeat.set(rx, ry); c.needsUpdate = true; return c; };
     const VEIN = new T.Color(0.3, 0.86, 0.76), veined = [];
     const vmat = (map, vein, o) => { const m = toon(0xffffff, { map, emissive: vein ? VEIN : 0x000000, emissiveMap: vein || null, ...(o || {}) }); if (vein) veined.push(m); return m; };
-    const mWallW = vmat(tex(ashlar, 4.4, 2), veinTex(1024, 256, 30, 5)), mWallE = vmat(tex(ashlar, 4.4, 2), veinTex(1024, 256, 30, 6));
+    const mWallW = vmat(tex(ashlar, 4.4, 2.8), veinTex(1024, 256, 30, 5)), mWallE = vmat(tex(ashlar, 4.4, 2.8), veinTex(1024, 256, 30, 6));
     const floorVein = (() => { // the floor's veins run out from the foot of the Door: the same painting, turned to lie along the hall
       const cv = document.createElement('canvas'); cv.width = 256; cv.height = 1024; const g = cv.getContext('2d'); g.translate(0, 1024); g.rotate(-PI / 2); g.drawImage(veinTex(1024, 256, 22, 9).image, 0, 0);
       const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t; })();
-    const mFloor = vmat(tex(paving, 2, 6), floorVein), mRoof = vmat(tex(ashlar, 4.4, 2.4), null, { side: T.BackSide }), mEnd = vmat(tex(ashlar, 1.5, 3.2), null), mVault = toon(0x7c8698), mVaultD = toon(0x4a5162);
+    const mFloor = vmat(tex(paving, 2, 6), floorVein), mRoof = vmat(tex(ashlar, 4.4, 2.4), null, { side: T.BackSide }), mEnd = vmat(tex(ashlar, 1.5, 3.9), null), mVault = toon(0x7c8698), mVaultD = toon(0x4a5162);
     const still = (m) => { m.castShadow = false; return m; };
-    const floor = add(new T.PlaneGeometry(HW * 2, LEN), mFloor, 0, 0.03, ZC); floor.rotation.x = -PI / 2; still(floor);
+    const floor = add(new T.PlaneGeometry(HW * 2, LEN), mFloor, 0, 0.012, ZC); floor.rotation.x = -PI / 2; still(floor);
     for (const sd of [-1, 1]) { // walls: u runs toward the Door on both
       const g = new T.PlaneGeometry(LEN, SPR + 0.3); if (sd > 0) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, 1 - uv.getX(i)); }
       still(add(g, sd < 0 ? mWallW : mWallE, sd * HW, (SPR + 0.3) / 2, ZC, -sd * PI / 2));
@@ -225,7 +225,7 @@ export function buildLevel() {
       still(add(new T.CylinderGeometry(0.16, 0.16, LEN, 10), mVaultD, sd * HW, 0.1, ZC)).rotation.x = PI / 2; // skirting
     }
     { const g = new T.CylinderGeometry(HW + 0.05, HW + 0.05, LEN, 28, 1, true, 0, PI); g.rotateZ(PI / 2); g.rotateY(PI / 2); still(add(g, mRoof, 0, SPR, ZC)); } // the barrel vault
-    still(add(new T.PlaneGeometry(HW * 2, 8.6), mEnd, 0, 4.3, Z0)); still(add(new T.PlaneGeometry(HW * 2, 8.6), mEnd, 0, 4.3, Z1, PI));
+    still(add(new T.PlaneGeometry(HW * 2, 10.4), mEnd, 0, 5.2, Z0)); still(add(new T.PlaneGeometry(HW * 2, 10.4), mEnd, 0, 5.2, Z1, PI));
     // half-columns and the ribs they carry
     const shaftG = new T.CylinderGeometry(0.3, 0.34, SPR - 1.0, 18), capG = new T.LatheGeometry([[0.3, 0], [0.31, 0.08], [0.36, 0.2], [0.46, 0.3], [0.48, 0.42]].map(([a, b]) => new T.Vector2(a, b)), 18);
     const baseG = new T.LatheGeometry([[0.5, 0], [0.5, 0.22], [0.44, 0.28], [0.42, 0.36], [0.38, 0.42], [0.4, 0.5], [0.34, 0.58]].map(([a, b]) => new T.Vector2(a, b)), 18), ribG = new T.TorusGeometry(HW - 0.02, 0.2, 10, 30, PI);
@@ -233,6 +233,7 @@ export function buildLevel() {
       for (const sd of [-1, 1]) { add(shaftG, mVault, sd * HW, 0.58 + (SPR - 1.0) / 2, z); add(capG, mVault, sd * HW, SPR - 0.42, z); add(baseG, mVaultD, sd * HW, 0, z); cluster(sd * (HW - 0.42), 0.02, z + Q(-0.5, 0.5), Q(0.3, 0.75) * (z < -20 ? 1.25 : 0.8), -sd * Q(0.15, 0.5)); }
       still(add(ribG, mVault, 0, SPR, z));
     }
+    still(add(new T.TorusGeometry(HW - 0.1, 0.3, 10, 30, PI), mVault, 0, SPR, -27.0)); // a heavier rib over the Door, where its lintel meets the roof
     for (let i = 0; i < 9; i++) { const sd = i % 2 ? 1 : -1, z = Q(-27.2, -15), y = Q(1.2, 4.6), h = Q(0.3, 0.5) * (z < -22 ? 1.25 : 0.85); for (let k = 0; k < 3; k++) shard(sd * (HW + 0.06), y + Q(-0.1, 0.1), z + Q(-0.12, 0.12), h * (k ? Q(0.45, 0.8) : 1), Q(-0.7, 0.7), sd * Q(0.95, 1.5), 0); } // glass pushing out of the joints higher up, in knots of three
     { // the way out, at the far end: a dark arched stair
       const sp = new T.Shape(); sp.moveTo(-1, 0); sp.lineTo(1, 0); sp.lineTo(1, 2.3); sp.absarc(0, 2.3, 1, 0, PI); sp.lineTo(-1, 0);
@@ -241,7 +242,7 @@ export function buildLevel() {
       still(add(new T.BoxGeometry(1.9, 0.16, 0.3), mVaultD, 0, 0.08, Z1 - 0.2)); // threshold
     }
     // cold light off the glass, down the middle of the hall
-    const vaultL = [[-23.2, 5], [-16.2, 3.2]].map(([z, i]) => { const l = new T.PointLight(0x9fdcd2, i, 13, 2); l.position.set(0, 3.7, z); l.userData.base = i; scene.add(l); return l; });
+    const vaultL = [[-23.2, 5], [-16.2, 3.2]].map(([z, i]) => { const l = new T.PointLight(0x9fdcd2, i, 13, 2); l.position.set(0, 4.2, z); l.userData.base = i; scene.add(l); return l; });
     W.vault = { veined, glass: mGlass, lights: vaultL };
     for (const m of scene.children.slice(n0)) doorG.add(m);
   }
@@ -422,7 +423,7 @@ export function buildLevel() {
   // shines down the hall through the doorway, so the leading of the panes falls across the floor
   // and whoever stands in front of it is rim-lit. The camp's fires are switched off down there.
   W.applyGate = () => {
-    const door = W.doorMode; for (const b of gateBanners) b.visible = !door; mRock.color.setHex(door ? 0x6f86b8 : 0xffffff); mBlock.color.setHex(door ? 0x8f9bb4 : 0xffffff); mStone.color.setHex(door ? 0x7c8698 : 0xb09a78); // the Door's surround is the vault's cold stone, not the camp's sandstone
+    const door = W.doorMode; for (const b of gateBanners) b.visible = !door; mRock.color.setHex(door ? 0x6f86b8 : 0xffffff); mBlock.color.setHex(door ? 0x8f9bb4 : 0xffffff); mStone.color.setHex(door ? 0x7c8698 : 0xb09a78); mGold.color.setHex(door ? 0x8f7a3c : 0xd9b24a); // and its gilding is old and dull, so the thin fillets don't sparkle as the camera moves // the Door's surround is the vault's cold stone, not the camp's sandstone
     endCliff.castShadow = !door; for (const l of W.fires) l.visible = !door;
     const k = door ? 13 : 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? 0.3 : 2; sc.updateProjectionMatrix(); sun.target.position.set(0, 0, door ? -19 : 0);
     if (door) { sun.color.setHex(0xd2efe9); sun.intensity = 2.3; sun.position.set(0, 4.14, -29.5); /* just behind the glass, so nothing outside the vault shadows it */ hemi.color.setHex(0x7284a8); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.95; }
@@ -447,7 +448,7 @@ export function buildLevel() {
     W.flare = Math.max(0, (W.flare || 0) - dt * 0.5); // the Door sealing: ward and glass burn bright, then settle
     W.ward.opacity = Math.min(1, 0.55 + Math.sin(t * 2.2 - 0.8) * 0.25 + W.flare);
     if (W.doorMode) {
-      const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; gateL.intensity = 12 + fl * 60; sun.intensity = 2.3 + fl * 5;
+      const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; gateL.intensity = 12 + fl * 30; sun.intensity = 2.3 + fl * 3;
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6); for (const l of W.vault.lights) l.intensity = l.userData.base * (0.85 + pulse * 0.3 + fl * 4);
     }
     if (doorG.visible && Math.random() < dt * 2.5) FX.sparks.emit(tmp.set((Math.random() - 0.5) * 3.4, 0.4 + Math.random() * 5, -27.3), 1, 0.35, 0x9ff0e0, 1.8, { grav: -0.4, spread: 0.3 }); // motes drifting off the glass

@@ -23,7 +23,7 @@ export class Player extends Char {
     this.hp = 100; this.st = 100; this.stDelay = 0; this.state = 'loco'; this.aT = 0; this.at = null; this.hitSet = new Set(); this.buf = { a: '', t: -9 }; this.inv = 0; this.lock = null;
     this.blockT = -9; this.charge = 0; this.runT = 0; this.dead = false; this.clip = null; this.blend = 1; this.hitDur = 0.4; this.wasBlock = false; this.sideT = -9;
     this.controlEnabled = true; this.place(x, z, face); this.stW = 1; this.leadW = 0; this.wet = 0; this._wet = true;
-    this.walk = null; this.calm = false; this.cineTrail = false; this.flashCol = [1, 0.15, 0.1]; // cutscene hooks, see stick() and update()
+    this.walk = null; this.calm = false; this.cineTrail = false; this.flashCol = [1, 0.15, 0.1]; this.lookY = 0; this.lookP = 0; this.gait = 1; // cutscene hooks, see stick() and update()
   }
   // Body layer over every pose (clips and locomotion), so the weight sits in the legs and hips:
   // a lower, wider base; swings that turn from the hips with the torso following; and more
@@ -68,6 +68,7 @@ export class Player extends Char {
         o[an * 3 + 1] += sd * 0.07 * run;
       }
     }
+    if (this.lookY || this.lookP) { o[JI.neck * 3 + 1] += this.lookY * 0.7; o[JI.chest * 3 + 1] += this.lookY * 0.3; o[JI.neck * 3] += this.lookP * 0.8; o[JI.chest * 3] += this.lookP * 0.2; } // a script turns his head: lookY left/right, lookP up (negative) or down
     return o;
   }
   take(a, win) { if (this.buf.a === a && G.time - this.buf.t < (win || 0.3)) { this.buf.a = ''; return true; } return false; }
@@ -146,7 +147,7 @@ export class Player extends Char {
     }
   }
   update(dt) {
-    const now = G.time; this.inv -= dt; this.aT += dt;
+    const now = G.time; this.inv -= dt; this.aT += dt; this.gait = this.walk ? 2.9 : 1; // a walked-to-a-point pace takes real steps: about 0.65 m each
     const blockHeld = I.block && this.controlEnabled;
     if (this.stDelay > 0) this.stDelay -= dt; else this.st = Math.min(100, this.st + (blockHeld && this.state === 'loco' ? 12 : 30) * dt);
     if (this.lock && (this.lock.dead || this.dist(this.lock) > 24 || !this.lock.root.visible)) this.lock = pickLock(true);

@@ -62,7 +62,7 @@ node test/look.mjs                  # close-up turnarounds of the opening foe an
 | --- | --- |
 | `src/main.js` | Boot, game loop, stage runner |
 | `src/core/` | Shared state (`game.js`), input, synthesized sound effects and title music, helpers |
-| `public/music/` | Music files, copied as-is into the build |
+| `public/music/`, `public/sfx/` | Music and recorded sword sounds, copied as-is into the build (sources and credits in `docs/music.md`) |
 | `src/gfx/` | Renderer and post-processing, toon materials and painted textures, particles and sword trails |
 | `src/actors/rig.js` | The procedural armored figure every character is built from |
 | `src/actors/anim.js` | Poses, attack clips and generated locomotion |

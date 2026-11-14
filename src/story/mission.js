@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { G } from '../core/game.js';
-import { SFX, stopMusic } from '../core/audio.js';
+import { SFX, stopMusic, playMusic, preloadMusic, forgetMusic } from '../core/audio.js';
 import { PI, rnd, lerp, clamp, wrap } from '../core/util.js';
 import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
@@ -46,10 +46,12 @@ stage('door', {
   setup() { G.resetWorld({ player: [0, -17, PI], corin: null, gate: 'door' }); },
   async run(d) {
     const P = G.player; G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
+    preloadMusic('blade', 'sealed');
     const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.face = 0; U.hp = U.maxHp * 0.4; // most of the fight is behind them
     if (!G.seenDoor) { G.seenDoor = true; await d.chronicle('Prologue', ['Before the war, the Usurper tried to take the realm.', 'One man stopped him, in a vault under the desert ruins.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
     cam.shot([-1.1, 1.25, -21.6], [0.3, 1.75, -23.2]); // on him first: bent over, breathing hard, the Door at his back
     await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 4.2);
+    playMusic('blade', { cross: 3, fade: 2 }); // the fight's own music takes over from the title theme
     await d.wait(4);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = U; U.cd = 2.0;
     let wall = VAULT; const keep = d.every(() => { if (P.pos.z > wall) P.pos.z = wall; if (U.pos.z > VAULT + 1) U.pos.z = VAULT + 1; });
@@ -59,12 +61,12 @@ stage('door', {
     // over the last blow, because he thinks it is the last; he turns his back and walks away.
     // A few steps on, the vault shakes, and behind him the glass in the Usurper lights.
     // Nothing is said. Every wait on a position also has a time limit, so no shot can strand the scene.
-    const hall = (x) => clamp(x, -2.25, 2.25), deep = (z) => clamp(z, -26.9, -12.2), flat = (a, b) => Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
-    const pick = (...cs) => { const c = cs.find((q) => Math.abs(q[0]) <= 2.3 && q[2] <= -12.2 && q[2] >= -26.9) || cs[cs.length - 1]; return [hall(c[0]), c[1], deep(c[2])]; }; // the first camera position that is inside the hall
+    const hall = (x) => clamp(x, -2.25, 2.25), deep = (z) => clamp(z, -26.9, -11.9), flat = (a, b) => Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
+    const pick = (...cs) => { const c = cs.find((q) => Math.abs(q[0]) <= 2.3 && q[2] <= -11.9 && q[2] >= -26.9) || cs[cs.length - 1]; return [hall(c[0]), c[1], deep(c[2])]; }; // the first camera position that is inside the hall
     const side = (x, off) => (Math.abs(x + off) <= Math.abs(x - off) ? 1 : -1); // which way to step a camera off a line so it stays nearer the middle of the hall
     const go = async (x, z, sp, max) => { const w = (P.walk = { x, z, sp }), t0 = G.time; await d.until(() => P.walk !== w || Math.hypot(P.pos.x - x, P.pos.z - z) < 0.2 || G.time - t0 > max); if (P.walk === w) P.walk = null; };
     const turn = (c, to, dur) => { const f0 = c.face, df = wrap(to - f0); return d.tween(dur, (u) => { c.face = wrap(f0 + df * u * u * (3 - 2 * u)); }); };
-    P.controlEnabled = false; P.lock = null; P.inv = 1e6; P.buf.a = ''; G.cinematic = true; ui.cinematic(true); G.freezeAI = true; G.slow = 0.8; G.shake = 0.3; wall = -12.2;
+    P.controlEnabled = false; P.lock = null; P.inv = 1e6; P.buf.a = ''; G.cinematic = true; ui.cinematic(true); G.freezeAI = true; G.slow = 0.8; G.shake = 0.15; wall = -12.2; stopMusic(1.4); // and the music stops with him
     U.open = false; U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; U.stagDur = 1e9; U.set('stagger'); U.hurtAmt = 0.3; U.play(CL.kneel, 0.25); // to his knees, the sword hand on the floor
     { const nx = (P.pos.x - U.pos.x) / (flat(P, U) || 1), nz = (P.pos.z - U.pos.z) / (flat(P, U) || 1); const sd = side(U.pos.x + nx * 3.2, -nz * 2.6), at = (f, l) => [U.pos.x + nx * f - nz * l, 1.3, U.pos.z + nz * f + nx * l];
       cam.shot(pick(at(3.2, 2.6 * sd), at(3.2, -2.6 * sd), at(4.6, 1.7 * sd), at(4.6, -1.7 * sd), at(5.4, 0)), [U.pos.x, 0.95, U.pos.z], 1.8); }
@@ -88,7 +90,7 @@ stage('door', {
     P.flashCol = [1, 0.15, 0.1]; P.cineTrail = true; P.play(CL.exec, 0.03); SFX.swing(0.45);
     { const t0 = G.time; await d.until(() => P.ct >= 0.1 || G.time - t0 > 0.5); }
     { const dir = new T.Vector3(U.pos.x - P.pos.x, 0, U.pos.z - P.pos.z).normalize(), at = new T.Vector3(U.pos.x, 0.95, U.pos.z);
-      SFX.big(); SFX.boom(); G.hitstop = 0.24; G.shake = 0.75; G.slow = 1.5; U.flash = 1; P.charge = 0;
+      SFX.big(); SFX.boom(); G.hitstop = 0.24; G.shake = 0.35; G.slow = 1.5; U.flash = 1; P.charge = 0;
       FX.sparks.emit(at, 40, 8, 0xffe890, 0.4, { vx: dir.x * 3, vz: dir.z * 3, up: 1, boost: 1.8 }); FX.dust.emit(U.pos, 14, 2.4, 0x8a93a6, 0.7, { flat: 1, grav: -1 }); blood(at, dir, 3, true, P);
       const mid = [(P.pos.x + U.pos.x) / 2, (P.pos.z + U.pos.z) / 2], sd = side(mid[0], -dir.z * 3.3);
       const off = (l) => [mid[0] - dir.z * l, 1.05, mid[1] + dir.x * l], c = pick(off(3.3 * sd), off(-3.3 * sd), off(2.4 * sd), off(-2.4 * sd), [P.pos.x - dir.x * 2.8 - dir.z * 1.1, 1.5, P.pos.z - dir.z * 2.8 + dir.x * 1.1]);
@@ -99,22 +101,32 @@ stage('door', {
     P.cineTrail = false; P.calm = true; P.stop(1.0); // he straightens up over the body. It's done.
     await d.wait(2.4);
     // He walks away, seen from the floor behind the body.
-    const tz = Math.min(P.pos.z + 4.2, -13.6), tx = hall(U.pos.z > P.pos.z + 0.3 ? U.pos.x + (P.pos.x >= U.pos.x ? 1.5 : -1.5) : P.pos.x * 0.5);
-    cam.shot([hall(U.pos.x + (tx >= U.pos.x ? -0.9 : 0.9)), 0.42, deep(U.pos.z - 2.5)], [(U.pos.x + tx) / 2, 0.95, U.pos.z + 2.2]);
-    cam.shot([hall(U.pos.x + (tx >= U.pos.x ? -0.7 : 0.7)), 0.4, deep(U.pos.z - 2.2)], [(U.pos.x + tx) / 2, 0.9, U.pos.z + 2.6], 5);
+    const tz = Math.min(P.pos.z + 4.2, -14.3), tx = hall(U.pos.z > P.pos.z + 0.3 ? U.pos.x + (P.pos.x >= U.pos.x ? 1.5 : -1.5) : P.pos.x * 0.5);
+    const floorCam = [hall(U.pos.x + (tx >= U.pos.x ? -0.9 : 0.9)), 0.42, deep(U.pos.z - 2.5)], floorLook = [(U.pos.x + tx) / 2, 0.95, U.pos.z + 2.2];
+    cam.shot(floorCam, floorLook); cam.shot([hall(U.pos.x + (tx >= U.pos.x ? -0.7 : 0.7)), 0.4, deep(U.pos.z - 2.2)], [(U.pos.x + tx) / 2, 0.9, U.pos.z + 2.6], 5);
     P.state = 'loco'; go(tx, tz, 1.3, 6).catch(() => {});
     await d.wait(2.7); // a few steps
-    // The vault shakes.
-    let quake = 0.3, lit = false; const dustAt = new T.Vector3(), rumble = d.every((dt) => {
+    // The vault shakes: a tremor more than a jolt (owner: keep the camera steadier). He stops and
+    // looks about him, at the wall beside him and then up into the roof, in two closer shots.
+    let quake = 0.07, lit = false; const dustAt = new T.Vector3(), rumble = d.every((dt) => {
       if (lit && Math.random() < dt * 30) FX.sparks.emit(dustAt.set(U.pos.x + rnd(-0.7, 0.7), 0.25, U.pos.z + rnd(-0.7, 0.7)), 1, 0.5, 0x9ff0e0, 1.0, { grav: -2.6, spread: 0.1, boost: 1.6 });
-      G.shake = Math.max(G.shake, quake); G.level.flare = Math.max(G.level.flare, quake * 0.9);
-      if (Math.random() < dt * 26) FX.dust.emit(dustAt.set(rnd(-2.6, 2.6), rnd(5.6, 7.6), rnd(P.pos.z - 7, P.pos.z + 3)), 2, 0.5, 0x9aa3b6, 1.5, { grav: 6, spread: 0.25 }); // grit off the roof
+      G.shake = Math.max(G.shake, quake); G.level.flare = Math.max(G.level.flare, quake * 3);
+      if (Math.random() < dt * 30) FX.dust.emit(dustAt.set(rnd(-2.6, 2.6), rnd(6.5, 9), rnd(P.pos.z - 7, P.pos.z + 3)), 2, 0.5, 0x9aa3b6, 1.8, { grav: 6, spread: 0.25 }); // grit off the roof
     });
+    const look = (y, p, dur) => { const y0 = P.lookY, p0 = P.lookP; return d.tween(dur, (u) => { const e = u * u * (3 - 2 * u); P.lookY = y0 + (y - y0) * e; P.lookP = p0 + (p - p0) * e; }); };
+    const fx = Math.sin(P.face), fz = Math.cos(P.face), rel = (f, r, y) => [P.pos.x + fx * f + fz * r, y, P.pos.z + fz * f - fx * r], head = [P.pos.x, 1.62, P.pos.z]; // rel: f metres ahead of him, r to his right
     SFX.boom(); P.walk = null; // he stops where he is
-    await d.wait(0.9); SFX.boom(); SFX.flame(); quake = 0.42;
-    lit = true; U.flash = 1; shock(U.pos, 2.6, 0x9ff0e0); FX.sparks.emit(new T.Vector3(U.pos.x, 0.4, U.pos.z), 50, 3, 0x9ff0e0, 1.3, { grav: -2, spread: 0.6, boost: 2 }); // behind him, the glass lights
+    { const sd = side(P.pos.x + fx * 2.2, fz * 0.8), c = pick(rel(2.2, 0.8 * sd, 1.5), rel(2.2, -0.8 * sd, 1.5), rel(1.5, 0, 1.5)); cam.shot(c, head); cam.shot([c[0] + (head[0] - c[0]) * 0.12, 1.52, c[2] + (head[2] - c[2]) * 0.12], head, 2.2);
+      await d.wait(0.45); await look(0.8 * sd, 0.06, 0.45); await d.wait(0.75); // from in front: his head comes round to the wall
+      SFX.boom(); quake = 0.11;
+      const c2 = pick(rel(1.0, -1.7 * sd, 0.75), rel(1.0, 1.7 * sd, 0.75), rel(1.9, 0, 0.75)), up = [P.pos.x, 2.2, P.pos.z]; cam.shot(c2, up); cam.shot([c2[0], 0.7, c2[2]], [P.pos.x, 2.5, P.pos.z], 2.4);
+      await look(-0.55 * sd, -0.5, 0.6); await d.wait(1.0); } // from low at his other side: up at the roof, grit coming down past him
+    // Back on the floor behind the body: he has his back to it, and the glass in it lights.
+    cam.shot(floorCam, [floorLook[0], 0.8, floorLook[2]]); cam.shot([floorCam[0], 0.46, floorCam[2] + 0.3], floorLook, 3);
+    look(0, 0, 0.5).catch(() => {}); await d.wait(0.5);
+    SFX.flame(); lit = true; U.flash = 1; shock(U.pos, 2.6, 0x9ff0e0); FX.sparks.emit(new T.Vector3(U.pos.x, 0.4, U.pos.z), 50, 3, 0x9ff0e0, 1.3, { grav: -2, spread: 0.6, boost: 2 });
     d.tween(1.2, (u) => { U.eyeK = u * 2.4; }).catch(() => {});
-    await d.wait(0.9);
+    await d.wait(1.3);
     // He turns. Over his shoulder: the Usurper is hauled up off the floor by the glass in him, hangs, and drops onto his feet.
     P.calm = false;
     { const ax = (U.pos.x - P.pos.x) / (flat(P, U) || 1), az = (U.pos.z - P.pos.z) / (flat(P, U) || 1), sd = side(P.pos.x - ax * 2.1, -az * 0.9);
@@ -123,7 +135,7 @@ stage('door', {
     U.face = U.angleTo(P); U.play(CL.rise, 0.3);
     await d.tween(2.4, (u) => { U.yoff = 0.34 * U.scale * Math.sin(Math.min(1, u / 0.85) * PI / 2); U.hp = Math.max(U.hp, U.maxHp * 0.36 * u); if (Math.random() < 0.5) FX.sparks.emit(new T.Vector3(U.pos.x + rnd(-0.9, 0.9), 0.1, U.pos.z + rnd(-0.9, 0.9)), 1, 0.6, 0x9ff0e0, 0.9, { grav: -3.5, spread: 0.1 }); });
     await d.tween(0.2, (u) => { U.yoff = 0.34 * U.scale * (1 - u * u); });
-    U.yoff = 0; quake = 0; G.shake = 0.6; SFX.boom(); shock(U.pos, 3.4, 0x9ff0e0); FX.dust.emit(U.pos, 16, 2.6, 0x8a93a6, 0.7, { flat: 1, grav: -1 }); G.level.flare = 0.7; // he lands
+    U.yoff = 0; quake = 0; G.shake = 0.3; SFX.boom(); playMusic('blade', { fade: 0.4, cross: 0.2 }); shock(U.pos, 3.4, 0x9ff0e0); FX.dust.emit(U.pos, 16, 2.6, 0x8a93a6, 0.7, { flat: 1, grav: -1 }); G.level.flare = 0.7; // he lands
     await d.wait(0.75); rumble();
     U.stop(0.3); U.set('circle'); U.hurtAmt = 0.55; U.eyeK = 1.5; U.phase2 = true; U.cd = 1.3; U.hp = Math.max(U.hp, U.maxHp * 0.36); // up again, straighter, and angrier
     P.face = P.angleTo(U); wall = Math.max(VAULT, P.pos.z + 0.05);
@@ -131,12 +143,13 @@ stage('door', {
     await d.until(() => U.hp <= 1);
     // the sealing
     keep(); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
-    U.stagDur = 99; U.open = false; U.set('stagger'); U.play(CL.stun, 0.08); U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; G.slow = 1.0; G.shake = 0.4;
+    playMusic('sealed', { loop: false, cross: 1.5, fade: 0.6 }); // it opens very quietly and builds through the sealing and the cards that follow
+    U.stagDur = 99; U.open = false; U.set('stagger'); U.play(CL.stun, 0.08); U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; G.slow = 1.0; G.shake = 0.25;
     cam.shot([P.pos.x * 0.5 + 1.9, 1.7, Math.min(-19, U.pos.z + 5)], [0, 2.4, -27.6], 1.1);
     const x0 = U.pos.x, z0 = U.pos.z; U.face = 0;
     await d.tween(1.5, (u) => { U.pos.x = lerp(x0, 0, u); U.pos.z = lerp(z0, -26.2, u * u); });
     const at = new T.Vector3(0, 2.6, -27.2);
-    SFX.flame(); SFX.boom(); G.shake = 0.7; G.level.flare = 1; shock(new T.Vector3(0, 0, -26.4), 4.5, 0x9ff0e0);
+    SFX.flame(); SFX.boom(); G.shake = 0.4; G.level.flare = 1; shock(new T.Vector3(0, 0, -26.4), 4.5, 0x9ff0e0);
     FX.sparks.emit(at, 140, 8, 0x9ff0e0, 1.4, { grav: -1, spread: 1.2, boost: 2 });
     U.gone = true; G.boss = null;
     cam.shot([0.6, 1.6, -20.5], [0, 3.1, -27.8], 4);
@@ -198,7 +211,7 @@ stage('spar', {
       n = 0; C.setMode(mode, want); const off = count(kind); const tick = d.every(() => ui.objective(need > 1 ? `${objective} (${Math.min(n, need)}/${need})` : objective));
       ui.hint(hint); await d.until(() => n >= need); off(); tick(); ui.hint(''); await d.wait(0.7);
     };
-    stopMusic(18); // the title theme carries through the cards and dies away as the lesson begins
+    stopMusic(18); forgetMusic(); // whatever carried through the cards (the sealing's music, or the title theme on CONTINUE) dies away as the lesson begins
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; // talk() holds him still, then hands control back
     await d.talk([
       ['Corin', 'Captain! You promised me one lesson before the night watch.'],

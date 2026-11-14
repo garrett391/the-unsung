@@ -38,7 +38,7 @@ export class Char {
       this.twist = damp(this.twist, clamp((-wrap(this.face - this.pface) / dt) * 0.04, -0.32, 0.32), 10, dt);
       this.pvx = this.vel.x; this.pvz = this.vel.z; this.pface = this.face;
     }
-    this.strafe = sa; this.strafeS = damp(this.strafeS, f, 12, dt); this.phase += (sp * 1.72 * dt * bk) / this.scale;
+    this.strafe = sa; this.strafeS = damp(this.strafeS, f, 12, dt); this.phase += (sp * 1.72 * dt * bk * (this.gait || 1)) / this.scale; // gait > 1: more steps for the ground covered (a slow scripted walk, which otherwise glides)
   }
   animate(dt, time) {
     this.root.position.set(this.pos.x, this.yoff, this.pos.z); this.root.rotation.y = this.face;

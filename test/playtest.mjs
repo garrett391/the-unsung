@@ -58,8 +58,8 @@ if (!only) {
   log('to his knees', await play(60, { bot: true, god: true, until: "G.boss&&G.boss.hp<=1" })); await play(2.2); await shot('00b3-kneels');
   await play(60, { until: "G.player.state==='cine'" }); await play(1.5); await shot('00b4-the-blow-raised');
   await play(60, { until: "G.enemies[0].state==='down'" }); await play(0.5); await shot('00b5-the-blow'); await play(2.6); await shot('00b6-done');
-  await play(60, { until: "G.player.walk" }); await play(2.4); await shot('00b7-walks-away');
-  await play(60, { until: "G.level.flare>0.2" }); await play(1.5); await shot('00b8-shakes'); await play(2.2); await shot('00b9-rises');
+  await play(60, { until: "G.player.calm&&G.player.walk" }); await play(1.5); await shot('00b7-walks-away'); await play(0.45); await shot('00b7b-walks-away');
+  await play(60, { until: "G.level.flare>0.15" }); await play(1.2); await shot('00b8a-looks-round'); await play(1.7); await shot('00b8b-looks-up'); await play(2.3); await shot('00b8c-the-glass-lights'); await play(3.2); await shot('00b9-rises');
   log('round two', await play(60, { until: "G.player.controlEnabled" })); await play(0.3); await shot('00b10-up-again');
   log('sealing', await play(60, { bot: true, god: true, until: "G.level.flare>0.9" })); await play(0.6); await shot('00c-sealing');
   await play(3.4); await shot('00d-sealed'); await page.evaluate(() => { G.auto = true; });

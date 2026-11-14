@@ -146,7 +146,7 @@ G.resetWorld({ player: [0.6, 12.5, PI], corin: null, gate: 'door' }); player.set
  cam.shot([0.5, 1.5, -11.5], [0, 3.2, -27.8]); cam.shot([-0.3, 1.7, -18], [0, 3.3, -27.8], 70); ui.fade(0, 1.5);
 // Title music. Browsers keep sound off until the player first taps, clicks or presses a
 // key, so it is queued now and fades in on that first touch; PLAY / CONTINUE fade it out.
-playMusic(import.meta.env.BASE_URL + 'music/title.mp3');
+playMusic('title');
 for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(ev, initAudio, { passive: true });
 
 // rdt is clamped at zero: the first frame can carry a timestamp earlier than this one.

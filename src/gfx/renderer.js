@@ -30,7 +30,10 @@ export function initRenderer(canvas) {
   renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new T.Scene();
   const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
-  const composer = new EffectComposer(renderer);
+  // The scene is drawn into the composer's own target, which is not antialiased unless asked:
+  // without samples every thin edge (door leading, gilt fillets, blade) crawls as the camera moves.
+  const small = Math.min(innerWidth, innerHeight) < 500;
+  const composer = new EffectComposer(renderer, new T.WebGLRenderTarget(innerWidth, innerHeight, { type: T.HalfFloatType, samples: small ? 2 : 4 }));
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new T.Vector2(256, 256), 0.42, 0.55, 0.9);
   composer.addPass(bloom);

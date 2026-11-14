@@ -63,6 +63,7 @@ PZ.d2=P({hips:[1.45,0,0],pos:[0,-.74,.2],spine:[.1],neck:[.2],thL:[-.1,0,.15],kn
 PZ.air=P({hips:[-.9,0,0],pos:[0,-.1,0],spine:[-.3],neck:[-.4],thL:[-.7,0,.3],knL:[.8],thR:[-.2,0,-.3],knR:[.9],shL:[-.5,0,1.3],elL:[-.4],shR:[-.3,0,-1.4],elR:[-.3],haR:[1]});
 PZ.down=P({hips:[-1.5,0,0],pos:[0,-.72,-.15],spine:[-.05],neck:[-.1],thL:[-.25,0,.2],knL:[.3],thR:[-.1,0,-.2],knR:[.15],shL:[-.2,0,1.1],elL:[-.3],shR:[-.1,0,-1.2],elR:[-.2],haR:[1]});
 // The false ending at the Glass Door (story/mission.js): beaten to his knees, cut down, and hauled back up by the glass in him.
+PZ.prone=P({hips:[1.5,0,0],pos:[0,-.56,.2],spine:[.02],neck:[-.3,.7,0]},PZ.d2); // face down on the floor, head turned: d2 raised so a big armoured body lies on the stone, not in it
 PZ.kneel=P({spine:[.42],chest:[.16],neck:[.6],shR:[.22,0,-.22],elR:[-.12],haR:[1.45],shL:[.15,0,.3],elL:[-.35]},PZ.d1);
 PZ.kneelHit=P({spine:[.1,.25,0],chest:[0,.2,0],neck:[-.25,.3,.2],shR:[.3,0,-.6],shL:[.2,0,.6]},PZ.kneel);
 PZ.exw=P({shR:[-2.8,0,-.12],elR:[-.75],haR:[.25],spine:[-.26,-.1,0],neck:[.3,.4,0]},PZ.hw); // sword high, both eyes on the man at his feet
@@ -93,8 +94,8 @@ export const CL={
   air:C(.2,[.12,PZ.air,'o']),
   down:C(.2,[.14,PZ.down,'i']),
   kneel:C(1.1,[.4,PZ.d1],[1.1,PZ.kneel]),
-  fall:C(.85,[0,PZ.kneel],[.1,PZ.kneelHit,'o'],[.85,PZ.d2,'i']),
-  rise:C(3.1,[0,PZ.d2],[1.15,PZ.rise1],[2.05,PZ.rise2],[2.4,PZ.rise2],[2.62,PZ.rise3,'i'],[3.1,PZ.guard]),
+  fall:C(.85,[0,PZ.kneel],[.1,PZ.kneelHit,'o'],[.85,PZ.prone,'i']),
+  rise:C(3.1,[0,PZ.prone],[1.15,PZ.rise1],[2.05,PZ.rise2],[2.4,PZ.rise2],[2.62,PZ.rise3,'i'],[3.1,PZ.guard]),
   raise:C(.3,[.3,PZ.exw]),
   exec:C(1.5,[0,PZ.exw],[.11,PZ.ex,'i'],[.3,PZ.ex2,'o'],[1.5,PZ.ex2]), // the heavy overhead, held where it lands
 };
