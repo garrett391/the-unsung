@@ -61,8 +61,14 @@ export function steer(p, r, ang, reach) {
 // Where a walker outside the waystation's wall must head to reach someone inside it: the gate.
 // (Walking straight at them would only press it against the wall.) Null when the way is clear.
 export function route(p, t) {
-  if (!G.level || G.level.site !== 'way' || p.z < WAY.z + 12.6 || t.z > WAY.z + 12.6) return null;
-  return [WAY.x, WAY.z + (Math.abs(p.x - WAY.x) > 2.3 ? 16.6 : 10.5)];
+  const s = G.level && G.level.site;
+  if (s === 'way') return p.z < WAY.z + 12.6 || t.z > WAY.z + 12.6 ? null : [WAY.x, WAY.z + (Math.abs(p.x - WAY.x) > 2.3 ? 16.6 : 10.5)];
+  if (s !== 'halls') return null;
+  // the halls: out of a side passage by its middle, and through the arches to the gallery and the descent by theirs, not along the wall beside them
+  const x = p.x - HALLS.x, z = p.z - HALLS.z, tz = t.z - HALLS.z;
+  if (Math.abs(x) > 7.2 && z < -30) return [HALLS.x + Math.sign(x) * 5.6, HALLS.z - 38];
+  if (z < -30.6 && z > -45.4) { if (tz > -29.5 && Math.abs(x) > 2.4) return [HALLS.x, HALLS.z - 31.2]; if (tz < -46.5 && Math.abs(x) > 1.5) return [HALLS.x, HALLS.z - 44.8]; }
+  return null;
 }
 const inAny = (x, z, m) => ALL_AREA.some((R) => x >= R.x0 + m && x <= R.x1 - m && z >= R.z0 + m && z <= R.z1 - m);
 // Pull the camera toward its target until it is no longer inside a wall.
@@ -406,6 +412,7 @@ export function buildLevel() {
   // the halls above the vault, at their own site: built into the scene, then gathered into one group
   W.kit.fire = fire; const hn0 = scene.children.length, halls = buildHalls(scene, W.kit), hallsG = new T.Group(); SITES.halls.obs = halls.obs;
   for (const m of scene.children.slice(hn0)) hallsG.add(m); scene.add(hallsG);
+  const warG = new T.Group(); for (const m of halls.war) warG.add(m); hallsG.add(warG); // the war's traces: not there when he walks back up
   // the waystation, at its own site
   SITES.ruins.obs = OBSTACLES.slice();
   const way = buildWaystation(scene, WAY.x, WAY.z); SITES.way.obs = way.obs; W.banners.push(...way.banners);
@@ -468,13 +475,16 @@ export function buildLevel() {
     const ind = !!site.indoor; ground.visible = !ind; scene.fog.near = ind ? 9 : 26;
     if (ind) {
       sun.color.setHex(0xbfe6e0); sun.intensity = 2.0; sun.position.set(site.at[0], 5.5, site.at[1] - 36); hemi.color.setHex(0x6878a0); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.85;
-      scene.fog.color.setHex(0x0a0f18); scene.fog.far = 80; G.renderer.setClearColor(scene.fog.color); sc.left = -16; sc.right = 16; sc.top = 16; sc.bottom = -16; sc.near = 0.5; sc.updateProjectionMatrix();
+      scene.fog.color.setHex(0x0a0f18); scene.fog.far = 80;
+      if (W.after) { sun.color.setHex(0xffe2b8); sun.intensity = 2.3; sun.position.set(site.at[0], 7.5, site.at[1] + 40); hemi.color.setHex(0xa39c90); hemi.groundColor.setHex(0x4a443c); hemi.intensity = 1.9; scene.fog.color.setHex(0x1c1a15); } // afterwards the only light is daylight, down the stair at the other end
+      G.renderer.setClearColor(scene.fog.color); sc.left = -16; sc.right = 16; sc.top = 16; sc.bottom = -16; sc.near = 0.5; sc.updateProjectionMatrix();
     }
   };
   // Which place the game is in: 'ruins' (the camp, the Narrows and the vault) or 'way' (the
   // waystation). o.sky overrides the site's pair of skies with one; o.muster adds the muster's dressing.
   W.setSite = (name, o = {}) => {
-    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls';
+    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls'; W.after = !!o.after; warG.visible = !W.after; // after: the halls as they are once the Usurper is sealed and his years never happened
+    halls.day.material.color.setRGB(...(W.after ? [1.7, 1.4, 1.0] : [0.047, 0.04, 0.035])); halls.glow.material.color.setRGB(...(W.after ? [0.02, 0.02, 0.025] : [0.2, 0.62, 0.56]));
     OBSTACLES.length = 0; OBSTACLES.push(...site.obs, ...(o.muster ? way.obsMuster : []));
     SA = SKIES[o.sky || site.sky[0]]; SB = SKIES[o.sky || site.sky[1]];
   };
@@ -486,7 +496,7 @@ export function buildLevel() {
       const f = W.flames[i], q = f.userData, p = q.ph;
       f.scale.set(q.w * (1 + Math.sin(t * 13 + p) * 0.16), q.h * (1 + Math.sin(t * 17 + p * 2) * 0.24 + Math.sin(t * 31 + p) * 0.08), q.w * (1 + Math.cos(t * 11 + p) * 0.16));
       f.rotation.y += dt * 3; f.rotation.z = Math.sin(t * 6.3 + p) * 0.11; f.rotation.x = Math.cos(t * 5.1 + p * 1.7) * 0.09;
-      if (!q.spark) continue;
+      if (!q.spark || !f.parent.visible || (f.parent.parent && !f.parent.parent.visible)) continue; // no sparks off a fire that isn't there
       tmp.copy(f.position).y += q.h * 0.6;
       if (Math.random() < dt * 5) FX.sparks.emit(tmp, 1, 0.6, 0xff9a40, 1.1, { grav: -1.6, spread: 0.12, up: 0.6 });
       if (Math.random() < dt * 1.5) { tmp.y += q.h * 0.5; FX.dust.emit(tmp, 1, 0.25, 0x2c2826, 1.8, { grav: -1.1, spread: 0.08, up: 0.7 }); }
@@ -500,7 +510,8 @@ export function buildLevel() {
       const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; gateL.intensity = 12 + fl * 30; sun.intensity = 2.3 + fl * 3;
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6); for (const l of W.vault.lights) l.intensity = l.userData.base * (0.85 + pulse * 0.3 + fl * 4);
     }
-    if (site.indoor) { const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; sun.intensity = 2.0 + fl * 3;
+    if (site.indoor && W.after) { for (const m of W.vault.veined) m.emissiveIntensity = 0; }
+    else if (site.indoor) { const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; sun.intensity = 2.0 + fl * 3;
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6);
       for (const l of halls.cold) l.intensity = l.userData.base * (0.85 + pulse * 0.3 + fl * 4); halls.lights.forEach((l, i) => { l.intensity = l.userData.base * (0.86 + Math.sin(t * 9 + i * 3) * 0.08 + Math.sin(t * 23 + i) * 0.06); }); }
     if (doorG.visible && Math.random() < dt * 2.5) FX.sparks.emit(tmp.set((Math.random() - 0.5) * 3.4, 0.4 + Math.random() * 5, -27.3), 1, 0.35, 0x9ff0e0, 1.8, { grav: -0.4, spread: 0.3 }); // motes drifting off the glass

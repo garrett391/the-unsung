@@ -10,6 +10,7 @@ A man nobody knows saves the realm, and nobody sees it. Years later he is a guar
 
 1. **The halls**: down through the dead of both sides to the vault; lock on, strike and shield are taught on the way.
 2. **The Glass Door**: the end of the fight with the Usurper, and the sealing.
+3. **The walk back up**: the same halls, and none of it happened.
 3. **The road**: the years between, as cards.
 4. **The waystation**: raiders hit the yard where he works; he takes up a fallen guard's sword. Three waves, as the light goes.
 5. **The muster**: a trial bout against the column's sergeant, and the clerk asks his name.

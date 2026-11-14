@@ -6,7 +6,7 @@ import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
 import { MOUTH, RING, WAY } from '../world/level.js';
 import { HALLS } from '../world/halls.js';
-import { PZ, C } from '../actors/anim.js';
+import { PZ, C, P as pose, eClip } from '../actors/anim.js';
 import { FX, shock, clearBlood, blood } from '../gfx/fx.js';
 import { coarse, opts } from '../core/input.js';
 import { makeStretchers } from './stretchers.js';
@@ -68,14 +68,22 @@ stage('halls', {
     ui.fade(1, 0); G.resetWorld({ site: 'halls', player: [...hx(0, -0.4), PI], corin: null });
     const P = G.player, L = G.level; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.maxAtk = 1; preloadMusic('blade', 'sealed');
     const K = new Extra(LOOKS.knight, ...hx(-2.95, -25.2), PI / 2); K.play(C(0.1, [0, PZ.sit]), 0.01);
-    const F = G.spawn('glassguard', ...hx(0.6, -13.4), { spare: true }); F.hold = true; F.face = 2.7; // the first of them, standing over a man he has just killed
+    const F = G.spawn('glassguard', ...hx(0.6, -13.4), { spare: true }); F.hold = true; // the first of them, standing over a soldier who is down and not yet dead
+    const V = new Extra(LOOKS.line, ...hx(1.25, -14.45), 2.4); V.dead = true; V.play(C(0.1, [0, PZ.down]), 0.01); F.face = F.angleTo(V);
+    const plead = pose({ shL: [-1.25, 0, 0.45], elL: [-0.9], neck: [-0.35, 0.3, 0], chest: [-0.12] }, PZ.down), chop = eClip('over', 0.9, 1.3);
     const stair = [G.spawn('glasswarden', ...hx(0, -55.0)), G.spawn('glassguard', ...hx(-1.4, -53.4)), G.spawn('glassguard', ...hx(1.4, -53.7))]; for (const e of stair) { e.hold = true; e.face = 0; } // and the last, at the head of the stair from the start: far off, against the Door's light
     const left = () => G.enemies.filter((e) => !e.dead && !e.hold).length, south = (z) => P.pos.z < HALLS.z + z;
     const loose = d.every(() => { if (stair[0].hold && south(-46.8)) { for (const e of stair) { e.hold = false; e.cd = rnd(1, 2); } G.boss = stair[0]; G.maxAtk = 2; } });
     if (!G.seenHalls) { G.seenHalls = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
     // He comes down into the gallery, seen from the floor among the dead.
     cam.shot(hx3(1.9, 0.55, -8.6), hx3(-0.2, 1.5, -1.5)); cam.shot(hx3(1.5, 0.8, -7.6), hx3(-0.1, 1.45, -2.5), 6); ui.fade(0, 2.6);
-    await d.wait(1.0); await stroll(d, ...hx(0, -3.8), 1.4, 6); await d.wait(0.5);
+    await d.wait(1.0); await stroll(d, ...hx(0, -3.8), 1.4, 6);
+    // Down the gallery, one of the Usurper's guard is finishing a man off. (Shown, so the first foe is already someone to stop.)
+    cam.shot(hx3(-1.9, 1.2, -9.4), hx3(0.9, 0.9, -14.0)); cam.shot(hx3(-1.6, 1.1, -10.2), hx3(0.9, 0.8, -14.0), 4);
+    V.play(C(0.7, [0.7, plead]), 0.2); await d.wait(0.6);
+    F.play(chop, 0.2); SFX.tele(); await d.wait(0.9); SFX.swing(0.5); await d.wait(0.12);
+    { const at = new T.Vector3(V.pos.x, 0.35, V.pos.z), dir = new T.Vector3(V.pos.x - F.pos.x, 0, V.pos.z - F.pos.z).normalize(); SFX.big(); G.hitstop = 0.08; G.shake = 0.2; blood(at, dir, 2, true, F); V.flash = 0.8; V.play(C(0.5, [0.12, pose({ chest: [-0.3], neck: [-0.5] }, PZ.down), 'o'], [0.5, PZ.down]), 0.04); }
+    await d.wait(1.5); F.stop(0.4); await d.wait(0.4);
     G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; ui.objective('Find the way down to the vault');
     // The first guard turns from his work. The three basics, once (not again on a retry).
     await d.until(() => P.dist(F) < 8.5 || F.hp < F.maxHp); turnTo(d, F, F.angleTo(P), 0.5).catch(() => {});
@@ -277,6 +285,25 @@ stage('door', {
     await d.wait(1.1); rev(); P.hp = 100; P.wet = 0;
     await d.talk([['The Usurper', 'Only you will remember this.']]);
     await d.wait(0.8); ui.fade(1, 1.6); await d.wait(1.8);
+  },
+});
+
+// Back up through the halls (owner, Nov 2026: "we walk back out the hallway and everything is
+// different"). The seal has taken the Usurper's years with it, so none of it happened: no dead,
+// no glass, no blood, no torches, the Door's light gone, and daylight coming down the stair he
+// came in by. Nothing is said. He walks out; the camera looks once at the column where the knight died.
+stage('ascent', {
+  async run(d) {
+    ui.fade(1, 0); G.resetWorld({ site: 'halls', after: true, player: [...hx(0, -52.6), 0], corin: null });
+    const P = G.player; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true;
+    const motes = d.every((dt) => { if (Math.random() < dt * 14) FX.dust.emit(new T.Vector3(P.pos.x + rnd(-3, 3), rnd(0.4, 4.5), P.pos.z + rnd(-2, 12)), 1, 0.12, 0xd8c8a8, 3.2, { grav: 0.05, spread: 0.3 }); }); // dust hanging in the light
+    cam.shot(hx3(0.9, 1.5, -49.6), hx3(0, 1.4, -57)); cam.shot(hx3(1.4, 1.7, -48.2), hx3(-0.3, 2.2, -36), 6.5); ui.fade(0, 3); // from the dark stair where the light was, round to the empty halls
+    await d.wait(1.6); P.face = 0; await d.wait(4.4);
+    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true;
+    await d.until(() => P.pos.z > HALLS.z - 27.2);
+    await glance(d, ...hx(-2.95, -25.2), { from: hx3(0.9, 1.5, -22.0), y: 0.7, hold: 2.6 }); // where she sat: bare stone
+    await d.until(() => P.pos.z > HALLS.z - 1.4);
+    P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4); motes();
   },
 });
 

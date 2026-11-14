@@ -153,7 +153,7 @@ for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener
 
 // rdt is clamped at zero: the first frame can carry a timestamp earlier than this one.
 let last = performance.now();
-function frame(now) { const rdt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; step(rdt); requestAnimationFrame(frame); }
+function frame(now) { const rdt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; if (G.manual) G.composer.render(); else step(rdt); requestAnimationFrame(frame); } // G.manual: the playtest steps the game itself, and this loop only draws
 requestAnimationFrame(frame);
 
 // handles for the headless playtest and for poking at things in the console

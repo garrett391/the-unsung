@@ -63,13 +63,14 @@ export function buildHalls(scene, kit) {
   };
   const mWall = () => toon(0xffffff, { map: tex(ashlar, 1 / 3.9, 1 / 2.6) }); // for shape walls, whose texture coordinates are in metres
 
+  let day, glow; // the stair he came down by (dark; daylight once the war is undone) and the stair to the vault (the Door's light; dark afterwards)
   // ---- the gallery
   const GH = 3.6, GS = 4.6;
   hall(1.4, -30, GH, GS, { veins: 7, seed: 31, bays: [-2.5, -7.5, -12.5, -17.5, -22.5, -27.5] });
   { // the north end: the stair he came down, dark
     still(add(new T.PlaneGeometry(GH * 2, GS + GH + 0.4), toon(0xffffff, { map: tex(ashlar, 1.8, 3.2) }), 0, (GS + GH + 0.4) / 2, 1.4, PI));
     const sp = new T.Shape(); sp.moveTo(-1.1, 0); sp.lineTo(1.1, 0); sp.lineTo(1.1, 2.4); sp.absarc(0, 2.4, 1.1, 0, PI); sp.lineTo(-1.1, 0);
-    const d = new T.Mesh(new T.ShapeGeometry(sp, 16), mInside); d.position.set(X(0), 0.04, Z(1.37)); d.rotation.y = PI; scene.add(d);
+    day = new T.Mesh(new T.ShapeGeometry(sp, 16), new T.MeshBasicMaterial({ color: 0x0c0a09, fog: false })); day.position.set(X(0), 0.04, Z(1.37)); day.rotation.y = PI; scene.add(day);
     still(add(new T.TorusGeometry(1.22, 0.17, 8, 22, PI), mVault, 0, 2.4, 1.35)); for (const sd of [-1, 1]) add(new T.CylinderGeometry(0.17, 0.17, 2.4, 12), mVault, sd * 1.22, 1.2, 1.35);
   }
   // ---- the rotunda: four walls with their openings, a ceiling with a dome let into it, four standing columns
@@ -103,10 +104,12 @@ export function buildHalls(scene, kit) {
   hall(-46, -58, 2.6, 4.0, { veins: 30, seed: 71, bays: [-48.5, -52.5, -56.2] });
   { still(add(new T.PlaneGeometry(5.2, 7), toon(0xffffff, { map: tex(ashlar, 1.3, 2.7) }), 0, 3.5, -58));
     const sp = new T.Shape(); sp.moveTo(-1.25, 0); sp.lineTo(1.25, 0); sp.lineTo(1.25, 2.5); sp.absarc(0, 2.5, 1.25, 0, PI); sp.lineTo(-1.25, 0);
-    const glow = new T.Mesh(new T.ShapeGeometry(sp, 16), new T.MeshBasicMaterial({ color: new T.Color(0.2, 0.62, 0.56), fog: false })); glow.position.set(X(0), 0.04, Z(-57.96)); scene.add(glow); // the stair down: the Door's light comes up it
+    glow = new T.Mesh(new T.ShapeGeometry(sp, 16), new T.MeshBasicMaterial({ color: new T.Color(0.2, 0.62, 0.56), fog: false })); glow.position.set(X(0), 0.04, Z(-57.96)); scene.add(glow); // the stair down: the Door's light comes up it
     still(add(new T.TorusGeometry(1.38, 0.19, 8, 22, PI), mVault, 0, 2.5, -57.93)); for (const sd of [-1, 1]) { add(new T.CylinderGeometry(0.19, 0.19, 2.5, 12), mVault, sd * 1.38, 1.25, -57.93); add(new T.CylinderGeometry(0.26, 0.26, 0.16, 12), mVaultD, sd * 1.38, 0.08, -57.93); }
     for (let k = 0; k < 3; k++) still(add(new T.BoxGeometry(2.4, 0.16, 0.4), mVaultD, 0, 0.06 - k * 0.1, -57.75 + k * 0.1)); }
 
+  // Everything from here on is the war: glass, light, wreckage and the dead. It is all gone when he walks back up (`war`, hidden by level.setSite's `after`).
+  const w0 = scene.children.length;
   // ---- glass: almost none at the entrance, thick by the stair
   const glassAt = (z) => Math.max(0, Math.min(1, (-z - 6) / 50));
   for (let i = 0; i < 26; i++) { const z = -Q(8, 57), k = glassAt(z), sd = i % 2 ? 1 : -1, hw = z > -30 ? GH : z > -46 ? RW : 2.6; if (q() > 0.25 + k) continue; cluster(X(sd * (hw - 0.4)), 0.02, Z(z), (0.3 + k * 0.9) * Q(0.7, 1.2), -sd * Q(0.15, 0.5)); }
@@ -143,7 +146,7 @@ export function buildHalls(scene, kit) {
   const mBlood = new T.MeshBasicMaterial({ color: 0x2a0709, transparent: true, opacity: 0.86, depthWrite: false });
   const pool = (x, z, s) => { for (let k = 0; k < 3; k++) { const m = new T.Mesh(new T.CircleGeometry(s * Q(0.35, 0.7), 14), mBlood); m.rotation.x = -PI / 2; m.scale.set(1, Q(0.6, 1), 1); m.rotation.z = Q(0, 3); m.position.set(X(x + (k ? Q(-0.5, 0.5) * s : 0)), 0.02 + k * 0.001, Z(z + (k ? Q(-0.5, 0.5) * s : 0))); m.renderOrder = 1; scene.add(m); } };
   // Looks: the realm's knights wear what he wears (he is one of them); its line soldiers are in plain steel; the Usurper's guard in pale plate with glass in it.
-  const KNIGHT = LOOKS.captain, LINE = { armor: 0x8f96a2, trim: 0x4a5a8a, under: 0x2a3050, dark: 0x25262e, steel: 0xdfe3ea, rim: 0x23305a, shield: 2 }, GLASS = LOOKS.glass;
+  const KNIGHT = LOOKS.captain, LINE = LOOKS.line, GLASS = LOOKS.glass;
   const body = (look, pose, x, z, face, o = {}) => { const f = bakeFigure(look, pose, o.scale || 1); f.position.set(X(x), 0, Z(z)); f.rotation.y = face; scene.add(f); if (!o.dry) pool(x + Math.sin(face) * 0.5, z + Math.cos(face) * 0.5, o.pool || 0.9); };
   const D = PZ.d2, B = PZ.down, PR = PZ.prone;
   [ [KNIGHT, D, -2.3, -3.6, 2.2], [GLASS, B, 1.9, -5.2, 0.6], [LINE, D, 2.6, -9.4, -1.9], [LINE, B, -2.6, -10.6, 1.1], [GLASS, PR, 0.9, -11.8, 2.8], [GLASS, D, -1.4, -15.8, -0.5],
@@ -151,5 +154,5 @@ export function buildHalls(scene, kit) {
     [GLASS, B, -4.6, -33.2, 0.9], [LINE, D, 5.4, -34.6, -2.2], [KNIGHT, D, -5.6, -41.5, 2.6], [GLASS, PR, 3.1, -42.6, -0.8], [GLASS, B, -1.2, -36.2, 2.0], [KNIGHT, B, 1.5, -49.5, 3.0], [LINE, PR, -1.5, -53.2, 2.9],
   ].forEach(([look, pose, x, z, face]) => body(look, pose, x, z, face));
   sword(-0.9, -4.6, 0.8); sword(2.1, -13.3, 2.6); sword(1.0, -6.6, 1.7, true); sword(-2.0, -17.0, -1.2, true); sword(-0.6, -24.6, 2.2); sword(3.4, -37.6, 0.3, true); sword(-3.9, -39.7, -2.0); sword(0.8, -51.0, 1.1);
-  return { obs, lights, cold };
+  return { obs, lights, cold, day, glow, war: scene.children.slice(w0) };
 }
