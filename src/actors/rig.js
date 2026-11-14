@@ -75,7 +75,8 @@ export function buildHumanoid(o) {
   const mats = [];
   const M = (c, x) => { const m = toon(c, { rim: o.rim == null ? 0x1c2a55 : o.rim, ...(x || {}) }); mats.push(m); return m; };
   const plate = o.plain ? clothTex : plateTex, mail = o.plain ? clothTex : mailTex; // o.plain: quilted cloth and leather, not plate over mail
-  const mA = M(o.armor, { map: plate }), mT = M(o.trim), mU = M(o.under, { map: mail }), mUF = M(o.under, { map: mail, side: T.DoubleSide }), mD = M(o.dark || 0x24252d), mS = M(o.steel || 0xdfe3ea);
+  const SH = o.plain ? 0 : 0.55; // plate, trim and steel catch the light; cloth and leather don't
+  const mA = M(o.armor, { map: plate, shine: SH }), mT = M(o.trim, { shine: SH }), mU = M(o.under, { map: mail }), mUF = M(o.under, { map: mail, side: T.DoubleSide }), mD = M(o.dark || 0x24252d), mS = M(o.steel || 0xdfe3ea, { shine: 0.9 });
   const mEye = new T.MeshBasicMaterial({ color: o.eye || 0x08080c });
   const PLN = !!o.plain, bare = PLN || o.helm === 'open' || o.helm === 'none' || o.helm === 'wrap', mSkin = bare ? M(o.skin || 0xd9a77e) : null, mHair = bare ? M(o.hair || 0x7a5228) : null;
   // The Usurper's glass (crown, growths, blade): unlit and just bright enough to bloom. The blade has its own material because blood tints it.
@@ -83,7 +84,7 @@ export function buildHumanoid(o) {
   const root = new T.Group(), J = {};
   const hips = (J.hips = joint(root, 0, HIP, 0));
   mk(rbox(0.33, 0.18, 0.22, 0.06), mU, hips, 0, -0.03, 0);
-  const mF = M(o.armor, { side: T.DoubleSide, map: plate });
+  const mF = M(o.armor, { side: T.DoubleSide, map: plate, shine: SH });
   if (PLN) mk(memo('tunic', () => new T.LatheGeometry(new T.SplineCurve([[0.2, 0.06], [0.215, -0.04], [0.245, -0.16], [0.262, -0.25]].map(([a, b]) => new T.Vector2(a, b))).getPoints(8), SEG)), mF, hips, 0, 0, 0).scale.z = 0.8; // the skirt of a tunic, flaring to mid-thigh
   else mk(new T.CylinderGeometry(0.215, 0.3, 0.27, SEG, 1, true), mF, hips, 0, -0.1, 0).scale.z = 0.8;
   mk(new T.CylinderGeometry(PLN ? 0.212 : 0.225, PLN ? 0.212 : 0.225, PLN ? 0.045 : 0.06, SEG), mT, hips, 0, 0.05, 0).scale.z = 0.8;

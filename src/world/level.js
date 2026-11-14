@@ -475,7 +475,7 @@ export function buildLevel() {
     const ind = !!site.indoor; ground.visible = !ind; scene.fog.near = ind ? 9 : 26;
     if (ind) {
       sun.color.setHex(0xbfe6e0); sun.intensity = 2.0; sun.position.set(site.at[0], 5.5, site.at[1] - 36); hemi.color.setHex(0x6878a0); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.85;
-      scene.fog.color.setHex(0x0a0f18); scene.fog.far = 80;
+      scene.fog.color.setHex(0x0c131f); scene.fog.far = 62; // blue-grey and close enough to bite: the far end of a hall sinks into it
       if (W.after) { sun.color.setHex(0xffe2b8); sun.intensity = 2.3; sun.position.set(site.at[0], 7.5, site.at[1] + 40); hemi.color.setHex(0xa39c90); hemi.groundColor.setHex(0x4a443c); hemi.intensity = 1.9; scene.fog.color.setHex(0x1c1a15); } // afterwards the only light is daylight, down the stair at the other end
       G.renderer.setClearColor(scene.fog.color); sc.left = -16; sc.right = 16; sc.top = 16; sc.bottom = -16; sc.near = 0.5; sc.updateProjectionMatrix();
     }
@@ -510,6 +510,7 @@ export function buildLevel() {
       const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; gateL.intensity = 12 + fl * 30; sun.intensity = 2.3 + fl * 3;
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6); for (const l of W.vault.lights) l.intensity = l.userData.base * (0.85 + pulse * 0.3 + fl * 4);
     }
+    if (site.indoor) halls.update(t);
     if (site.indoor && W.after) { for (const m of W.vault.veined) m.emissiveIntensity = 0; }
     else if (site.indoor) { const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; sun.intensity = 2.0 + fl * 3;
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6);

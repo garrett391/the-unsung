@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { PI, rng } from '../core/util.js';
-import { toon, TEX } from '../gfx/materials.js';
+import { toon, TEX, canvasTex, plateTex, shieldTex } from '../gfx/materials.js';
 import { bakeFigure } from '../actors/rig.js';
 import { PZ, P } from '../actors/anim.js';
 import { LOOKS } from '../actors/data.js';
@@ -21,6 +21,10 @@ export const GALLERY = R(-3.6, 3.6, -31.3, 1.4), ROTUNDA = R(-8, 8, -46, -30), D
 PZ.sit = P({ hips: [-0.32, 0, 0], pos: [0, -0.77, 0], spine: [0.2], chest: [0.12], neck: [0.5, 0.25, 0.1], thL: [-1.22, 0, 0.12], knL: [0.1], anL: [0.35], thR: [-1.0, 0, -0.2], knR: [1.05], anR: [0.1],
   shL: [-0.2, -1.05, 0], elL: [-1.5], shR: [0.2, 0, -0.32], elR: [-0.25], haR: [0.9], shield: [-1.3] }); // slumped against a column, a hand pressed to the wound
 PZ.sitUp = P({ neck: [-0.12, 0.5, 0], spine: [0.1], chest: [0.05] }, PZ.sit); // the head lifted to speak
+// More ways to lie dead, so the fallen don't all look alike (the first three are PZ.d2, PZ.down and PZ.prone).
+PZ.side = P({ hips: [0.25, 0, 1.35], pos: [0, -0.62, 0], spine: [0.4], chest: [0.15], neck: [0.35, 0, 0.3], thL: [-1.0, 0, 0.1], knL: [1.45], thR: [-0.45], knR: [0.8], shL: [-0.7, 0, 0.25], elL: [-1.3], shR: [-0.9, 0, -0.1], elR: [-0.7], haR: [1.2] }); // curled on his sword side
+PZ.back2 = P({ thL: [-1.05, 0, 0.2], knL: [1.6], shL: [-0.55, 0, 0.35], elL: [-1.7], shR: [-0.3, 0, -0.5], neck: [-0.1, 0.7, 0] }, PZ.down); // on his back, a knee up and a hand on his chest
+PZ.crawl = P({ shL: [-2.9, 0, 0.25], elL: [-0.25], shR: [-0.5, 0, -0.8], elR: [-1.3], neck: [-0.45, -0.6, 0] }, PZ.prone); // face down, one arm reaching ahead: he was still going
 PZ.sitDead = P({ neck: [0.75, -0.2, 0.25], spine: [0.3], shL: [0.25, 0, 0.3], elL: [-0.3] }, PZ.sit); // and gone: the head down, the hand fallen from the wound
 
 export function buildHalls(scene, kit) {
@@ -108,6 +112,36 @@ export function buildHalls(scene, kit) {
     still(add(new T.TorusGeometry(1.38, 0.19, 8, 22, PI), mVault, 0, 2.5, -57.93)); for (const sd of [-1, 1]) { add(new T.CylinderGeometry(0.19, 0.19, 2.5, 12), mVault, sd * 1.38, 1.25, -57.93); add(new T.CylinderGeometry(0.26, 0.26, 0.16, 12), mVaultD, sd * 1.38, 0.08, -57.93); }
     for (let k = 0; k < 3; k++) still(add(new T.BoxGeometry(2.4, 0.16, 0.4), mVaultD, 0, 0.06 - k * 0.1, -57.75 + k * 0.1)); }
 
+  // ---- age: damp and dirt on the stone, cracks in it, and dust hanging in the air. Painted patches, merged into one mesh per kind.
+  const dq = rng(91), DQ = (a, b) => a + dq() * (b - a); // its own numbers, so the layout below stays where it was
+  const dtex = (draw) => { const t = canvasTex(128, (g, n) => { g.clearRect(0, 0, n, n); draw(g, n); }); t.wrapS = t.wrapT = T.ClampToEdgeWrapping; return t; };
+  const grimeT = dtex((g) => { for (let i = 0; i < 11; i++) { const x = DQ(36, 92), y = DQ(36, 92), r = DQ(14, 34), gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(255,255,255,${DQ(0.2, 0.5).toFixed(2)})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
+    g.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 60; i++) { g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(DQ(10, 118), DQ(10, 118), DQ(1, 5), 0, 7); g.fill(); } }); // worn through in spots
+  const crackT = dtex((g) => { g.lineCap = g.lineJoin = 'round'; g.strokeStyle = 'rgba(255,255,255,.9)';
+    const run = (x, y, a, n, w) => { g.lineWidth = w; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < n; k++) { a += DQ(-0.7, 0.7); x = Math.max(8, Math.min(120, x + Math.cos(a) * 11)); y = Math.max(8, Math.min(120, y + Math.sin(a) * 11)); g.lineTo(x, y); if (w > 1 && dq() < 0.3) { g.stroke(); run(x, y, a + (dq() < 0.5 ? 1 : -1), (n / 2) | 0, w * 0.6); g.lineWidth = w; g.beginPath(); g.moveTo(x, y); } } g.stroke(); };
+    for (let i = 0; i < 3; i++) run(DQ(50, 78), DQ(50, 78), DQ(0, 6.3), 6, 2); });
+  const smearT = dtex((g) => { // blood dragged down a wall or along a floor: where it began at the top, thinning as it goes
+    for (let i = 0; i < 5; i++) { g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.ellipse(DQ(46, 82), DQ(16, 30), DQ(8, 18), DQ(5, 10), DQ(0, 3), 0, 7); g.fill(); }
+    for (let i = 0; i < 9; i++) { const x = DQ(34, 94), w = DQ(3, 11), l = DQ(50, 98), gr = g.createLinearGradient(0, 20, 0, 20 + l); gr.addColorStop(0, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(x - w / 2, 20); g.lineTo(x + w / 2, 20); g.lineTo(x + w / 4 + DQ(-5, 5), 20 + l); g.closePath(); g.fill(); } });
+  const decal = (map, color, opacity, order) => { const parts = [], put = (g, x, y, z) => { g.translate(X(x), y, Z(z)); parts.push(g); };
+    return { floor: (x, z, w, h, ry, y = 0.024) => { const g = new T.PlaneGeometry(w, h); g.rotateX(-PI / 2); g.rotateY(ry); put(g, x, y, z); },
+      wall: (sd, hw, y, z, w, h, rz = 0) => { const g = new T.PlaneGeometry(w, h); g.rotateZ(rz); g.rotateY(-sd * PI / 2); put(g, sd * (hw - 0.012), y, z); },
+      done: () => { const m = new T.Mesh(mergeGeometries(parts), new T.MeshBasicMaterial({ map, color, transparent: true, opacity, depthWrite: false })); m.renderOrder = order; scene.add(m); } }; };
+  const hwAt = (z) => (z > -30 ? GH : z > -46 ? RW : 2.6), wallOK = (z) => !(z < -29 && z > -31) && !(z < -35.6 && z > -40.4) && !(z < -45 && z > -47); // not across an arch
+  { const grime = decal(grimeT, 0x07090d, 0.62, 1), crack = decal(crackT, 0x040507, 0.8, 1);
+    for (let i = 0; i < 44; i++) { const z = -DQ(-1, 57.4), hw = hwAt(z) - 0.2, x = dq() < 0.65 ? (dq() < 0.5 ? -1 : 1) * (hw - DQ(0.3, 1.1)) : DQ(-hw, hw), s = DQ(1.3, 3.4); grime.floor(x, z, s, s * DQ(0.6, 1), DQ(0, 6.3)); } // thickest along the walls, where nobody walks
+    for (let i = 0; i < 20; i++) { const z = -DQ(0, 57), sd = i % 2 ? 1 : -1; if (!wallOK(z)) continue; const h = DQ(1.2, 2.6); grime.wall(sd, hwAt(z), h * 0.42, z, DQ(1.6, 3.4), h, DQ(-0.2, 0.2)); } // damp rising from the skirting
+    for (let i = 0; i < 18; i++) { const z = -DQ(0, 57.4), hw = hwAt(z) - 0.8, s = DQ(1.1, 2.6); crack.floor(DQ(-hw, hw), z, s, s, DQ(0, 6.3), 0.026); }
+    for (let i = 0; i < 10; i++) { const z = -DQ(1, 57), sd = i % 2 ? 1 : -1; if (!wallOK(z)) continue; const s = DQ(1.2, 2.4); crack.wall(sd, hwAt(z), DQ(1.0, 3.4), z, s, s, DQ(0, 6.3)); }
+    grime.done(); crack.done(); }
+  const NM = 280, mp = new Float32Array(NM * 3), mb = new Float32Array(NM * 4), mc = new Float32Array(NM * 3);
+  for (let i = 0; i < NM; i++) { const z = -DQ(-1, 57.5), hw = hwAt(z) - 0.4, x = DQ(-hw, hw), y = DQ(0.3, z > -30 ? 4.6 : z > -46 ? 7 : 4); mb.set([X(x), y, Z(z), DQ(0, 6.3)], i * 4);
+    const warm = Math.max(0, ...[[-3.3, -2.5], [3.3, -12.5], [-3.3, -22.5]].map(([tx, tz]) => 1 - Math.hypot(x - tx, z - tz) / 6)); mc.set([0.5 + warm * 0.9, 0.62 + warm * 0.1, 0.66 - warm * 0.4], i * 3); } // gold in the torchlight, pale in the Door's
+  const moteG = new T.BufferGeometry(); moteG.setAttribute('position', new T.BufferAttribute(mp, 3)); moteG.setAttribute('color', new T.BufferAttribute(mc, 3));
+  const motes = new T.Points(moteG, new T.PointsMaterial({ size: 0.055, map: TEX.glow, vertexColors: true, transparent: true, opacity: 0.5, blending: T.AdditiveBlending, depthWrite: false })); motes.frustumCulled = false; scene.add(motes);
+  const update = (t) => { for (let i = 0; i < NM; i++) { const ph = mb[i * 4 + 3]; mp[i * 3] = mb[i * 4] + Math.sin(t * 0.13 + ph) * 0.4; mp[i * 3 + 1] = mb[i * 4 + 1] + Math.sin(t * 0.09 + ph * 1.7) * 0.35; mp[i * 3 + 2] = mb[i * 4 + 2] + Math.cos(t * 0.11 + ph * 2.3) * 0.4; } moteG.attributes.position.needsUpdate = true; };
+  update(0);
+
   // Everything from here on is the war: glass, light, wreckage and the dead. It is all gone when he walks back up (`war`, hidden by level.setSite's `after`).
   const w0 = scene.children.length;
   // ---- glass: almost none at the entrance, thick by the stair
@@ -140,9 +174,23 @@ export function buildHalls(scene, kit) {
     for (let i = 0; i < 46; i++) { const z = -Q(1, 57), hw = (z > -30 ? GH : z > -46 ? RW : 2.6) - 0.3, x = (q() < 0.7 ? (q() < 0.5 ? -1 : 1) * (hw - Q(0, 0.8)) : Q(-hw, hw)), s = Q(0.06, 0.24), g = new T.DodecahedronGeometry(s, 0);
       g.applyMatrix4(M.makeRotationFromEuler(e.set(Q(0, 3), Q(0, 3), 0)).setPosition(X(x), s * 0.5, Z(z))); parts.push(g); }
     const m = new T.Mesh(mergeGeometries(parts), mVault); m.castShadow = m.receiveShadow = true; scene.add(m); }
-  const mSteel = toon(0xc9ccd2), mGrip = toon(0x3a2c22), mGl = new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) });
-  const sword = (x, z, ry, glass) => { const g = new T.Group(); g.position.set(X(x), 0.035, Z(z)); g.rotation.y = ry; scene.add(g);
-    const b = new T.Mesh(new T.BoxGeometry(0.06, 0.016, 0.95), glass ? mGl : mSteel); b.position.z = 0.55; const c = new T.Mesh(new T.BoxGeometry(0.26, 0.03, 0.04), mGrip); c.position.z = 0.07; const h = new T.Mesh(new T.BoxGeometry(0.035, 0.03, 0.2), mGrip); h.position.z = -0.04; g.add(b, c, h); for (const m of [b, c, h]) m.castShadow = !glass; };
+  const mSteel = toon(0xc9ccd2, { shine: 0.9 }), mGrip = toon(0x3a2c22), mGl = new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) });
+  const sword = (x, z, ry, glass, len = 0.95) => { const g = new T.Group(); g.position.set(X(x), 0.035, Z(z)); g.rotation.y = ry; scene.add(g); // len < 0.95: snapped; the rest of the blade lies somewhere near (`piece`)
+    const b = new T.Mesh(new T.BoxGeometry(0.06, 0.016, len), glass ? mGl : mSteel); b.position.z = 0.075 + len / 2; const c = new T.Mesh(new T.BoxGeometry(0.26, 0.03, 0.04), mGrip); c.position.z = 0.07; const h = new T.Mesh(new T.BoxGeometry(0.035, 0.03, 0.2), mGrip); h.position.z = -0.04; g.add(b, c, h); for (const m of [b, c, h]) m.castShadow = !glass; };
+  const piece = (x, z, ry, glass, len) => add(new T.BoxGeometry(0.06, 0.016, len), glass ? mGl : mSteel, x, 0.035, z, ry);
+  const spear = (x, z, ry, len, head = true) => { const g = new T.Group(); g.position.set(X(x), 0.03, Z(z)); g.rotation.y = ry; scene.add(g);
+    const sh = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, len, 6), mGrip); sh.rotation.x = PI / 2; sh.castShadow = true; g.add(sh);
+    if (head) { const h = new T.Mesh(new T.ConeGeometry(0.045, 0.32, 4), mSteel); h.rotation.x = PI / 2; h.position.z = len / 2 + 0.16; h.scale.x = 0.4; g.add(h); } };
+  const shieldG = (() => { const sp = new T.Shape(); sp.moveTo(-0.22, 0.27); sp.lineTo(0.22, 0.27); sp.lineTo(0.22, -0.04); sp.lineTo(0, -0.35); sp.lineTo(-0.22, -0.04); sp.closePath(); return new T.ExtrudeGeometry(sp, { depth: 0.035, bevelEnabled: false }); })();
+  const mShield = [0, 1, 2].map((k) => toon(0xffffff, { map: shieldTex(k) })); // 0 the knights', 1 the guard's iron, 2 the line's blue
+  const shield = (x, z, ry, kind, tip = 0) => add(shieldG, mShield[kind], x, 0.02 + 0.36 * Math.sin(Math.abs(tip)), z).rotation.set(-PI / 2 + tip, 0, ry); // face up; `tip` props one end on something
+  // a helm knocked off, on its side: the shell, the comb over its crown, the dark of the slit and of the inside
+  const helmG = (() => { const a = new T.CylinderGeometry(0.15, 0.16, 0.24, 16, 1, true), b = new T.SphereGeometry(0.15, 16, 8, 0, PI * 2, 0, PI / 2); a.translate(0, 0.12, 0); b.scale(1, 0.75, 1); b.translate(0, 0.24, 0); return mergeGeometries([a, b]); })();
+  const slitG = new T.CylinderGeometry(0.157, 0.157, 0.042, 10, 1, true, -0.95, 1.9), combG = new T.TorusGeometry(0.152, 0.013, 4, 10, PI), mHollow = new T.MeshBasicMaterial({ color: 0x08080c }), mHelm = new Map();
+  const helm = (x, z, ry, look) => { if (!mHelm.has(look)) mHelm.set(look, [toon(look.armor, { map: plateTex, shine: 0.55 }), toon(look.trim, { shine: 0.55 })]); const [mA, mT] = mHelm.get(look);
+    const g = new T.Group(), h = new T.Group(); g.position.set(X(x), 0.158, Z(z)); g.rotation.y = ry; h.rotation.set(-0.7, 0, PI / 2); g.add(h); scene.add(g);
+    const sh = new T.Mesh(helmG, mA), sl = new T.Mesh(slitG, mHollow), cb = new T.Mesh(combG, mT), bt = new T.Mesh(new T.CircleGeometry(0.158, 16), mHollow); sh.castShadow = true;
+    sl.position.y = 0.165; cb.position.y = 0.24; cb.rotation.y = PI / 2; cb.scale.y = 0.78; bt.rotation.x = PI / 2; bt.position.y = 0.004; h.add(sh, sl, cb, bt); };
   const mBlood = new T.MeshBasicMaterial({ color: 0x2a0709, transparent: true, opacity: 0.86, depthWrite: false });
   const pool = (x, z, s) => { for (let k = 0; k < 3; k++) { const m = new T.Mesh(new T.CircleGeometry(s * Q(0.35, 0.7), 14), mBlood); m.rotation.x = -PI / 2; m.scale.set(1, Q(0.6, 1), 1); m.rotation.z = Q(0, 3); m.position.set(X(x + (k ? Q(-0.5, 0.5) * s : 0)), 0.02 + k * 0.001, Z(z + (k ? Q(-0.5, 0.5) * s : 0))); m.renderOrder = 1; scene.add(m); } };
   // Looks: the realm's knights wear what he wears (he is one of them); its line soldiers are in plain steel; the Usurper's guard in pale plate with glass in it.
@@ -153,6 +201,17 @@ export function buildHalls(scene, kit) {
     [KNIGHT, B, 2.5, -17.2, -2.4], [LINE, D, -2.7, -19.6, 0.4], [GLASS, B, 2.4, -22.0, 1.9], [GLASS, D, 0.4, -20.6, -2.9], [KNIGHT, PR, 1.7, -27.3, 3.0], [GLASS, D, -1.6, -28.8, 1.4],
     [GLASS, B, -4.6, -33.2, 0.9], [LINE, D, 5.4, -34.6, -2.2], [KNIGHT, D, -5.6, -41.5, 2.6], [GLASS, PR, 3.1, -42.6, -0.8], [GLASS, B, -1.2, -36.2, 2.0], [KNIGHT, B, 1.5, -49.5, 3.0], [LINE, PR, -1.5, -53.2, 2.9],
   ].forEach(([look, pose, x, z, face]) => body(look, pose, x, z, face));
+  // and more of them, lying as they fell: slid down a wall, curled up, crawling for the way out; some with empty hands
+  const bare = (l) => ({ ...l, shield: undefined, weapon: 'none' }), blood = decal(smearT, 0x2a0709, 0.8, 2);
+  [ [bare(LINE), PZ.sitDead, -3.2, -6.3, PI / 2], [GLASS, PZ.sitDead, 3.2, -24.7, -PI / 2], [bare(KNIGHT), PZ.side, -0.9, -8.0, 1.0], [GLASS, PZ.side, -2.3, -13.0, -2.0], [LINE, PZ.side, 2.2, -33.6, 0.5],
+    [bare(GLASS), PZ.back2, -3.0, -43.6, -0.6], [KNIGHT, PZ.back2, -6.3, -34.2, 2.2], [bare(LINE), PZ.crawl, 6.3, -42.9, -0.5],
+  ].forEach(([look, pose, x, z, face]) => body(look, pose, x, z, face, { scale: Q(0.96, 1.04), pool: pose === PZ.crawl ? 0.5 : 0.8 }));
+  for (const [sd, z] of [[-1, -6.3], [1, -24.7], [-1, -25.2]]) blood.wall(sd, GH, 0.95, z, 0.8, 1.7, Q(-0.12, 0.12)); // where they slid down the wall (the last is the dying knight's)
+  blood.floor(7.35, -44.75, 0.8, 2.6, -0.5, 0.028); blood.floor(-0.2, -9.6, 0.7, 1.8, 1.0 + PI, 0.028); blood.wall(1, RW, 1.3, -43.2, 1.1, 1.5, 0.4); blood.wall(-1, 2.6, 1.2, -50.6, 0.9, 1.4, -0.2); blood.done();
+  shield(-1.9, -7.2, 0.7, 0); shield(-1.2, -5.9, 2.5, 2, 0.16); shield(2.9, -19.0, -0.9, 0); shield(-1.0, -26.2, 1.9, 2); shield(5.2, -41.0, 0.4, 2); shield(-5.0, -35.6, -2.2, 0, 0.14); shield(0.9, -47.9, 3.0, 2); shield(-0.8, -18.6, 1.2, 1); shield(4.0, -34.4, 2.0, 1, 0.12);
+  helm(0.2, -7.3, 0.6, LINE); helm(-2.6, -22.6, 2.3, GLASS); helm(6.9, -41.2, -0.8, LINE); helm(-2.2, -44.9, 1.4, GLASS); helm(1.7, -52.2, 0.2, KNIGHT);
+  sword(-1.6, -9.3, 2.0, false, 0.4); piece(-0.8, -10.2, 0.5, false, 0.5); sword(2.6, -25.6, -0.7, true, 0.35); piece(1.9, -26.3, 1.9, true, 0.55); sword(5.6, -43.9, 1.2, false, 0.45); piece(4.7, -44.5, -0.4, false, 0.45); sword(-4.2, -42.9, 2.8, true);
+  spear(-2.9, -12.0, 0.2, 2.3); spear(2.2, -30.2, 1.3, 1.0, false); spear(3.1, -31.2, 2.4, 1.1); spear(-6.6, -36.0, -0.3, 2.3); spear(1.6, -50.3, 0.15, 2.3);
   sword(-0.9, -4.6, 0.8); sword(2.1, -13.3, 2.6); sword(1.0, -6.6, 1.7, true); sword(-2.0, -17.0, -1.2, true); sword(-0.6, -24.6, 2.2); sword(3.4, -37.6, 0.3, true); sword(-3.9, -39.7, -2.0); sword(0.8, -51.0, 1.1);
-  return { obs, lights, cold, day, glow, war: scene.children.slice(w0) };
+  return { obs, lights, cold, day, glow, update, war: scene.children.slice(w0) };
 }

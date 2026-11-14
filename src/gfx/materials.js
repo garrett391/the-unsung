@@ -9,15 +9,26 @@ ramp.minFilter = ramp.magFilter = T.NearestFilter; ramp.needsUpdate = true;
 T.ShaderChunk.gradientmap_pars_fragment = T.ShaderChunk.gradientmap_pars_fragment.replace('dotNL * 0.5 + 0.5', 'dotNL * 0.5 + 0.495');
 
 // Toon material with an optional fresnel rim, so figures read against a dark scene.
+// `shine` (0..1) makes it metal: each light adds a hard-edged highlight in two steps, tinted
+// toward the metal's own colour and broken up by the texture (scratches and grime are duller),
+// and the lit side darkens a little so the highlight has something to stand against.
+const SHINE = T.ShaderChunk.lights_toon_pars_fragment.replace('reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );',
+  `float nh = pow( saturate( dot( geometryNormal, normalize( directLight.direction + geometryViewDir ) ) ), 22.0 ) * step( 0.0, dot( geometryNormal, directLight.direction ) );
+	float sp = ( smoothstep( 0.34, 0.4, nh ) * 0.45 + smoothstep( 0.8, 0.85, nh ) * 0.55 ) * uShine * shineK;
+	reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseColor ) * ( 1.0 - 0.22 * uShine ) + directLight.color * RECIPROCAL_PI * sp * mix( vec3( 1.0 ), material.diffuseColor, 0.45 );`);
 export function toon(color, o = {}) {
-  const { rim, ...rest } = o;
+  const { rim, shine, ...rest } = o;
   const m = new T.MeshToonMaterial({ color, gradientMap: ramp, ...rest });
-  if (rim != null) {
-    const u = { value: new T.Color(rim) };
-    m.userData.rim = u;
+  if (rim != null || shine) {
+    const u = { value: new T.Color(rim || 0) };
+    if (rim != null) m.userData.rim = u;
+    m.customProgramCacheKey = () => 'toon' + (rim != null ? 'r' : '') + (shine ? 's' : ''); // the default key is this function's text, which is the same for every variant
     m.onBeforeCompile = (sh) => {
-      sh.uniforms.uRim = u;
-      sh.fragmentShader = sh.fragmentShader
+      sh.uniforms.uRim = u; sh.uniforms.uShine = { value: shine || 0 };
+      if (shine) sh.fragmentShader = sh.fragmentShader
+        .replace('#include <lights_toon_pars_fragment>', 'uniform float uShine;\nfloat shineK = 1.0;\n' + SHINE)
+        .replace('#include <map_fragment>', '#include <map_fragment>\n#ifdef USE_MAP\n shineK = smoothstep( 0.55, 0.95, sampledDiffuseColor.g );\n#endif');
+      if (rim != null) sh.fragmentShader = sh.fragmentShader
         .replace('void main() {', 'uniform vec3 uRim;\nvoid main() {')
         .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += uRim * pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.6);');
     };
@@ -176,6 +187,10 @@ export const plateTex = canvasTex(128, (g, n) => {
   blotch(g, n, ['rgba(0,0,0,.05)', 'rgba(255,255,255,.07)'], 26, 6, 22);
   for (const y of [0, n - 9]) { g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(0, y, n, 9); g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, y === 0 ? 8 : y, n, 1.5); g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(0, y === 0 ? 10 : y - 2, n, 1.5); }
   for (let x = 8; x < n; x += 16) for (const y of [16, n - 16]) { g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.arc(x, y, 2.4, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.arc(x - 0.7, y - 0.7, 1, 0, 7); g.fill(); }
+  // wear: grime gathered toward the rolled edges, dull scuffed patches, and a few dents
+  for (const y of [14, n - 14]) for (let k = 0; k < 14; k++) { g.fillStyle = 'rgba(40,30,22,.07)'; g.beginPath(); g.ellipse(R0() * n, y + (R0() - 0.5) * 10, 8 + R0() * 16, 3 + R0() * 6, 0, 0, 7); g.fill(); }
+  for (let k = 0; k < 7; k++) { g.fillStyle = 'rgba(60,56,50,.10)'; g.beginPath(); g.ellipse(R0() * n, 26 + R0() * (n - 52), 5 + R0() * 12, 3 + R0() * 7, R0() * 3, 0, 7); g.fill(); }
+  for (let k = 0; k < 5; k++) { const x = R0() * n, y = 28 + R0() * (n - 56), s = 1.5 + R0() * 2.5; g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.arc(x, y, s, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.beginPath(); g.arc(x + s * 0.35, y + s * 0.35, s * 0.55, 0, 7); g.fill(); }
   g.lineWidth = 1;
   for (let k = 0; k < 16; k++) { const x = R0() * n, y = 22 + R0() * (n - 44), l = 6 + R0() * 18, a = R0() * 3; g.strokeStyle = R0() < 0.6 ? 'rgba(0,0,0,.2)' : 'rgba(255,255,255,.4)'; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
 });
