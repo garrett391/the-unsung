@@ -51,10 +51,11 @@ const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
 await page.evaluate((from) => { G.auto = true; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.runFrom(from); } else G.begin(); }, only);
 if (!only) {
-  await play(0.2); await page.evaluate(() => { G.auto = false; }); // past the opening card, then real timing through the prologue so the shots catch it
+  await play(0.3); await page.evaluate(() => { G.auto = false; }); // past the opening card, then real timing through the prologue so the shots catch it
   await play(2.6); await shot('00a-door');
   log('door opens', await play(2.6, {})); await shot('00b-usurper');
-  log('usurper', await play(8, { bot: true, god: true, until: "G.boss&&G.boss.state==='wind'" })); await play(0.9); await shot('00b2-swing');
+  log('usurper', await play(6, { bot: true, god: true, until: "G.player.lock" })); await play(0.4); await shot('00b1-lesson'); // the lessons: the bot locks and strikes; he stands until it has
+  log('unleashed', await play(20, { bot: true, god: true, until: "G.boss&&G.boss.state==='wind'" })); await play(0.9); await shot('00b2-swing');
   log('to his knees', await play(60, { bot: true, god: true, until: "G.boss&&G.boss.hp<=1" })); await play(2.2); await shot('00b3-kneels');
   await play(60, { until: "G.player.state==='cine'" }); await play(1.5); await shot('00b4-the-blow-raised');
   await play(60, { until: "G.enemies[0].state==='down'" }); await play(0.5); await shot('00b5-the-blow'); await play(2.6); await shot('00b6-done');

@@ -36,9 +36,10 @@ async function glance(d, x, z, o = {}) {
 }
 
 // Prologue: the climax nobody saw. The Glass Door dressing turns the end of the Narrows into
-// the vault. It opens on the end of the fight with one card of footing, no hints and nothing else explained
-// (owner's note: don't spell the theme out, don't sneak a tutorial in): the Usurper is already
-// beaten (TYPES.usurper), and all that is left is to put him behind the glass.
+// the vault. It opens on the end of the fight with a few cards of footing (owner's note: don't
+// spell the theme out): the Usurper is cornered and already beaten (TYPES.usurper), and all that
+// is left is to put him behind the glass. The first round is a short tutorial (owner, Nov 2026:
+// lock on, strike, shield, and no more); after he gets up again there are no hints, only the fight.
 // Two things are shown and never said (docs/story.md, The Usurper and the Glass Door): he can't
 // be killed (the captain cuts him down, takes it for the end and walks away; the vault shakes and
 // he gets up), and the seal takes the years he took in with him (the vault runs backwards: the
@@ -50,15 +51,28 @@ stage('door', {
   async run(d) {
     const P = G.player; G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
     preloadMusic('blade', 'sealed');
-    const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.face = 0; U.hp = U.maxHp * 0.4; // most of the fight is behind them
-    if (!G.seenDoor) { G.seenDoor = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
+    const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.face = 0; U.hp = U.maxHp * 0.75; // some of the fight is behind them; enough is left to learn on
+    if (!G.seenDoor) { G.seenDoor = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.', 'He had the Usurper cornered, in the vault of the Glass Door.'], TAP); ui.chronClose(); } // three lines of footing, once; not again on a retry
     cam.shot([-1.1, 1.25, -21.6], [0.3, 1.75, -23.2]); // on him first: bent over, breathing hard, the Door at his back
     await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 4.2);
     playMusic('blade', { cross: 2.5, fade: 3 }); // the title theme fades out, then the fight's own music fades in
     await d.wait(4);
-    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = U; U.cd = 2.0;
+    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.boss = U; U.cd = 2.0;
     let wall = VAULT; const keep = d.every(() => { if (P.pos.z > wall) P.pos.z = wall; if (U.pos.z > VAULT + 1) U.pos.z = VAULT + 1; });
-    await d.until(() => U.hp <= 1);
+    // The first round teaches the three basics, once (not again on a retry). He is cornered and
+    // spent, and only stands there while the player finds the lock and lands a few blows; then
+    // he comes on, and the shield is taught against real swings. Any lesson ends early if he is beaten.
+    const beaten = () => U.hp <= 1;
+    if (!G.taughtDoor) {
+      ui.hint('Lock on to the Usurper with {k}'); await d.until(() => P.lock === U || beaten());
+      let n = 0, hp = U.hp; const hits = d.every(() => { if (U.hp < hp) n++; hp = U.hp; });
+      ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); hits();
+      n = 0; const off = G.on((k, e) => { if (k === 'struck' && (e.result === 'block' || e.result === 'parry')) n++; });
+      G.freezeAI = false; U.cd = 1.2; ui.hint(beaten() ? '' : 'Hold {b} to raise your shield when he swings');
+      await d.until(() => n >= 2 || beaten()); off(); ui.hint(''); G.taughtDoor = true;
+    }
+    G.freezeAI = false;
+    await d.until(beaten);
 
     // The false ending (owner, Nov 2026). He is beaten to his knees; the captain takes his time
     // over the last blow, because he thinks it is the last; he turns his back and walks away.

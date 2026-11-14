@@ -122,7 +122,7 @@ export class Enemy extends Char {
       case 'strike': {
         const sp = this.st < 0.15 ? m.lunge : 0; this.vel.x = damp(this.vel.x, f.x * sp, 25, dt); this.vel.z = damp(this.vel.z, f.z * sp, 25, dt); this.trailOn = this.st < 0.2; eye = 2.6;
         if (m.leap) this.yoff = Math.sin(PI * clamp((0.2 + this.st) / 0.42, 0, 1)) * 1.5;
-        if (!this.hitDone && this.st > 0.04 && this.st < 0.17 && d < m.range && Math.abs(wrap(ang - this.face)) < 0.95) { this.hitDone = true; P_.receive(this, m.dmg); }
+        if (!this.hitDone && this.st > 0.04 && this.st < 0.17 && d < m.range && Math.abs(wrap(ang - this.face)) < 0.95) { this.hitDone = true; G.emit('struck', { enemy: this, result: P_.receive(this, m.dmg) }); }
         if (m.slam && !this.slam && this.st > 0.1) {
           this.slam = true; const c = tmpB.copy(this.pos).addScaledVector(f, 1.6 * this.scale); shock(c, m.slam, t.boss ? 0xc79bff : 0xffe2a0); SFX.boom(); G.shake = Math.max(G.shake, 0.3);
           if (!this.hitDone && P_.pos.distanceTo(c) < m.slam + 0.3) { this.hitDone = true; P_.receive(this, m.dmg * 0.7); }

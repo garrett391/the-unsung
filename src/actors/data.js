@@ -35,8 +35,8 @@ export const TYPES = {
     look: { ...RAIDER, armor: 0x3e3230, trim: 0x8b3a34, steel: 0x77706a, eye: 0xff5a30, weapon: 'maul', blade: 1.0, horns: 1 },
     moves: [{ style: 'over', wind: 1.0, rec: 1.2, dmg: 30, range: 3.1, lunge: 5, slam: 1.6 }] },
   // The prologue's fight at the Glass Door. The game opens on the last moments of it: he is
-  // already beaten (`hurt`: hunched, panting, bleeding; see Enemy) and slow, so nothing needs
-  // explaining to a player who has not been taught anything yet. He is still dangerous: an
+  // already beaten (`hurt`: hunched, panting, bleeding; see Enemy) and slow, so the first round can
+  // teach the basics (the `door` stage: lock on, strike, shield). He is still dangerous: an
   // overhead cut and a quicker sweep, both telegraphed, and blows that cost a careless player.
   // (Owner, Nov 2026: a little harder than the first pass, which had one weak swing.)
   // A pale, crowned figure in bone-coloured plate, with glass (his sign) for crown and blade.
