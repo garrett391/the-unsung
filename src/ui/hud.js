@@ -39,9 +39,11 @@ export const ui = {
   // chronicle: full-screen text between scenes. Every entry is laid out up front and
   // revealed in turn, so nothing on the page moves as new lines appear.
   chronOpen(head, lines, tap) {
-    $('chead').textContent = head; const box = $('clines'); box.innerHTML = ''; $('ctap').textContent = tap; $('ctap').style.visibility = 'hidden'; $('chron').style.display = 'flex';
+    $('chead').textContent = head; const box = $('clines'); box.innerHTML = ''; $('ctap').textContent = tap; $('ctap').classList.remove('on');
+    const c = $('chron'); c.classList.remove('on', 'out'); c.style.display = 'flex'; void c.offsetWidth; c.classList.add('on'); // the reflow lets the header fade in, not just appear
     return lines.map((html) => { const p = document.createElement('p'); p.innerHTML = html; box.appendChild(p); return p; });
   },
-  chronShow(el) { el.classList.add('on'); $('ctap').style.visibility = 'visible'; },
+  chronShow(el) { void el.offsetWidth; el.classList.add('on'); $('ctap').classList.add('on'); }, // the prompt fades in once the first line is in
+  chronFade() { $('chron').classList.add('out'); }, // the page fades to the dark behind it before it is closed
   chronClose() { $('chron').style.display = 'none'; },
 };

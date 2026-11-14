@@ -39,10 +39,12 @@ export class Director {
   }
   async chronicle(head, lines, tap) {
     const els = ui.chronOpen(head, lines, tap);
+    await this.wait(0.8); // the header comes in first
     for (const el of els) {
       ui.chronShow(el);
       await this.wait(0.5); G.confirm = false;
       await this.until(() => this.confirmed());
     }
+    ui.chronFade(); await this.wait(1.1); // the whole page fades out before the scene goes on
   }
 }

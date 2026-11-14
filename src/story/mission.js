@@ -51,7 +51,7 @@ stage('door', {
     if (!G.seenDoor) { G.seenDoor = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
     cam.shot([-1.1, 1.25, -21.6], [0.3, 1.75, -23.2]); // on him first: bent over, breathing hard, the Door at his back
     await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 4.2);
-    playMusic('blade', { cross: 3, fade: 2 }); // the fight's own music takes over from the title theme
+    playMusic('blade', { cross: 2.5, fade: 3 }); // the title theme fades out, then the fight's own music fades in
     await d.wait(4);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = U; U.cd = 2.0;
     let wall = VAULT; const keep = d.every(() => { if (P.pos.z > wall) P.pos.z = wall; if (U.pos.z > VAULT + 1) U.pos.z = VAULT + 1; });
@@ -66,7 +66,7 @@ stage('door', {
     const side = (x, off) => (Math.abs(x + off) <= Math.abs(x - off) ? 1 : -1); // which way to step a camera off a line so it stays nearer the middle of the hall
     const go = async (x, z, sp, max) => { const w = (P.walk = { x, z, sp }), t0 = G.time; await d.until(() => P.walk !== w || Math.hypot(P.pos.x - x, P.pos.z - z) < 0.2 || G.time - t0 > max); if (P.walk === w) P.walk = null; };
     const turn = (c, to, dur) => { const f0 = c.face, df = wrap(to - f0); return d.tween(dur, (u) => { c.face = wrap(f0 + df * u * u * (3 - 2 * u)); }); };
-    P.controlEnabled = false; P.lock = null; P.inv = 1e6; P.buf.a = ''; G.cinematic = true; ui.cinematic(true); G.freezeAI = true; G.slow = 0.8; G.shake = 0.15; wall = -12.2; stopMusic(1.4); // and the music stops with him
+    P.controlEnabled = false; P.lock = null; P.inv = 1e6; P.buf.a = ''; G.cinematic = true; ui.cinematic(true); G.freezeAI = true; G.slow = 0.8; G.shake = 0.15; wall = -12.2; stopMusic(2.5); // and the music stops with him
     U.open = false; U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; U.stagDur = 1e9; U.set('stagger'); U.hurtAmt = 0.3; U.play(CL.kneel, 0.25); // to his knees, the sword hand on the floor
     { const nx = (P.pos.x - U.pos.x) / (flat(P, U) || 1), nz = (P.pos.z - U.pos.z) / (flat(P, U) || 1); const sd = side(U.pos.x + nx * 3.2, -nz * 2.6), at = (f, l) => [U.pos.x + nx * f - nz * l, 1.3, U.pos.z + nz * f + nx * l];
       cam.shot(pick(at(3.2, 2.6 * sd), at(3.2, -2.6 * sd), at(4.6, 1.7 * sd), at(4.6, -1.7 * sd), at(5.4, 0)), [U.pos.x, 0.95, U.pos.z], 1.8); }
@@ -143,7 +143,7 @@ stage('door', {
     await d.until(() => U.hp <= 1);
     // the sealing
     keep(); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
-    playMusic('sealed', { loop: false, cross: 1.5, fade: 0.6 }); // it opens very quietly and builds through the sealing and the cards that follow
+    playMusic('sealed', { loop: false, cross: 2, fade: 1.2 }); // it opens very quietly and builds through the sealing and the cards that follow
     U.stagDur = 99; U.open = false; U.set('stagger'); U.play(CL.stun, 0.08); U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; G.slow = 1.0; G.shake = 0.25;
     cam.shot([P.pos.x * 0.5 + 1.9, 1.7, Math.min(-19, U.pos.z + 5)], [0, 2.4, -27.6], 1.1);
     const x0 = U.pos.x, z0 = U.pos.z; U.face = 0;

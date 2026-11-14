@@ -22,7 +22,7 @@ function makeContext() {
 // Music. Played through Web Audio rather than an <audio> element so loops have no gap. A
 // track is decoded when first asked for, and only started once the context is really running:
 // a source started while it is still suspended stutters as the context wakes. One track plays
-// at a time; asking for another fades the current one out under it.
+// at a time; asking for another fades the current one out first, and the new one fades in after it.
 const BASE = import.meta.env.BASE_URL, MUSIC_VOL = 0.55;
 export const TRACKS = { title: 'music/title.mp3', blade: 'music/blade.mp3', sealed: 'music/sealed.mp3' };
 const bufs = new Map(); // name -> AudioBuffer, or the promise of one
@@ -37,27 +37,28 @@ function loadTrack(name) {
 function startMusic() {
   if (!want || mus || !AC || AC.state !== 'running') return;
   const buf = bufs.get(want.name); if (!buf || !buf.getChannelData) return;
-  const src = AC.createBufferSource(), g = AC.createGain(), t = AC.currentTime + 0.25, w = want; // a beat for the output to settle
+  const src = AC.createBufferSource(), g = AC.createGain(), w = want, t = Math.max(AC.currentTime + 0.25, w.at); // a beat for the output to settle, and the old track gone
   src.buffer = buf; src.loop = w.loop;
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(MUSIC_VOL * w.vol, t + w.fade);
+  g.gain.setValueAtTime(0, AC.currentTime); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(MUSIC_VOL * w.vol, t + w.fade);
   src.connect(g); g.connect(AC.destination); src.start(t);
   mus = { src, g, name: w.name };
   if (!w.loop) src.onended = () => { if (mus && mus.src === src) { mus = null; want = null; } };
 }
-function fadeOut(fade) {
-  if (!mus || !AC) return;
+function fadeOut(fade) { // returns when the track will be silent
+  if (!mus || !AC) return 0;
   const { src, g } = mus, t = AC.currentTime; mus = null;
   try {
     // Fade from wherever the volume is now, including part-way through the fade-in.
     if (g.gain.cancelAndHoldAtTime) g.gain.cancelAndHoldAtTime(t); else { const v = g.gain.value; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(v, t); }
     g.gain.linearRampToValueAtTime(0, t + fade); src.stop(t + fade + 0.05);
   } catch (e) { /* ignore */ }
+  return t + fade;
 }
-// playMusic('blade', { loop, fade: seconds to come in, cross: seconds for the old track to go out, vol })
+// playMusic('blade', { loop, fade: seconds to come in, cross: seconds for the old track to go out first, vol })
 export function playMusic(name, o = {}) {
   makeContext(); if (!AC || (want && want.name === name)) return;
-  fadeOut(o.cross == null ? 2 : o.cross);
-  want = { name, loop: o.loop !== false, fade: o.fade == null ? 3 : o.fade, vol: o.vol == null ? 1 : o.vol };
+  const at = fadeOut(o.cross == null ? 2 : o.cross);
+  want = { name, at, loop: o.loop !== false, fade: o.fade == null ? 3 : o.fade, vol: o.vol == null ? 1 : o.vol };
   AC.removeEventListener('statechange', startMusic); AC.addEventListener('statechange', startMusic);
   loadTrack(name).then(startMusic);
 }
