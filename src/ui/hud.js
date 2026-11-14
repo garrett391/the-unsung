@@ -1,12 +1,14 @@
 import { G } from '../core/game.js';
 import { $ } from '../core/util.js';
 import { label } from '../core/input.js';
+import { SFX } from '../core/audio.js';
 
 // DOM overlay: bars, objective, hints, dialogue, the chronicle screens, fades.
 let lastHp = -1, lastSt = -1, lastT = null, lastThp = -1, typing = null;
 const bar = (id, v) => { $(id).style.transform = `scaleX(${Math.max(0, Math.min(1, v))})`; };
 // "{l}" in a hint becomes the right button name for this device.
 const fill = (s) => s.replace(/\{(\w+)\}/g, (_, a) => `<b>${label(a)}</b>`);
+const arrive = (el) => { el.classList.remove('new'); void el.offsetWidth; el.classList.add('new'); if (!G.auto) SFX.cue(); };
 
 // A refused dodge or heavy (not enough stamina) flashes the stamina bar.
 G.on((k) => { if (k !== 'tired') return; const b = $('st').parentNode; b.classList.remove('tired'); void b.offsetWidth; b.classList.add('tired'); });
@@ -21,8 +23,11 @@ export const ui = {
     if (t) { const h = t.hp / t.maxHp; if (h !== lastThp) { lastThp = h; bar('thp', h); } }
     if (G.hold) bar('holdp', G.hold.progress);
   },
-  objective(text) { const el = $('obj'); el.textContent = text || ''; el.style.opacity = text ? 1 : 0; },
-  hint(text) { const el = $('hint'); if (text) el.innerHTML = fill(text); el.style.opacity = text ? 1 : 0; },
+  // A new objective or hint arrives with a short gold flash and a soft cue, so it is seen (a count ticking up inside one is not new).
+  objective(text) { const el = $('obj'), key = (text || '').replace(/\d+/g, ''); el.textContent = text || ''; el.style.opacity = text ? 1 : 0; if (key && key !== ui._obj) arrive(el); ui._obj = key; },
+  hint(text) { const el = $('hint'); if (text) el.innerHTML = fill(text); el.style.opacity = text ? 1 : 0; if (text && text !== ui._hint) arrive(el); ui._hint = text || ''; },
+  // What the captain thinks: a soft cloud over the play for a few seconds. It stops nothing.
+  thought(text, dur = 5) { const el = $('thought'); clearTimeout(ui._th); if (text) el.textContent = text; el.style.opacity = text ? 1 : 0; if (text) ui._th = setTimeout(() => (el.style.opacity = 0), dur * 1000); },
   holdBar(on) { $('hold').style.display = on ? 'block' : 'none'; },
   banner(text, dur = 2) { const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 16); b.style.opacity = 1; clearTimeout(ui._bh); ui._bh = setTimeout(() => (b.style.opacity = 0), dur * 1000); },
   fade(to, sec = 1) { const f = $('fade'); f.style.transitionDuration = sec + 's'; f.style.opacity = to; },

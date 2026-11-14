@@ -102,14 +102,15 @@ stage('halls', {
     await d.until(() => south(-22.2)); await settled(d);
     P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); ui.objective('');
     K.play(C(1.0, [1.0, PZ.sitUp]), 0.2);
-    cam.shot(hx3(1.5, 1.5, -22.4), hx3(-2.4, 0.8, -25.6)); cam.shot(hx3(0.7, 1.2, -23.3), hx3(-2.5, 0.8, -25.7), 7); // she is on the left of the shot, and he comes to stand beyond her
-    await stroll(d, ...hx(0.2, -26.2), 1.8, 4); await stroll(d, ...hx(-1.5, -26.6), 1.5, 4); await turnTo(d, P, P.angleTo(K), 0.4);
+    const kz = -25.2, s = P.pos.z >= K.pos.z ? 1 : -1; // he goes straight to her and stops on the side he came from (he used to walk round to her far side); the camera takes the other side
+    cam.shot(hx3(1.5, 1.5, kz - 2.8 * s), hx3(-2.4, 0.8, kz + 0.4 * s)); cam.shot(hx3(0.7, 1.2, kz - 1.9 * s), hx3(-2.5, 0.8, kz + 0.5 * s), 7); // she is in the front of the shot, and he comes to stand beyond her
+    await stroll(d, ...hx(-1.5, kz + 1.25 * s), 1.6, 5); await turnTo(d, P, P.angleTo(K), 0.4);
     await d.talk([
       ['Knight', 'You came. ...Then there is one of us left.'],
       ['Knight', 'We cut him. All of us. He bled like a man, and he got up like something else.'],
       ['Knight', 'He does not die. I watched him not die three times.'],
     ]);
-    cam.shot(hx3(-0.5, 1.0, -24.2), hx3(-2.85, 0.9, -25.2)); cam.shot(hx3(-0.8, 0.95, -24.4), hx3(-2.85, 0.9, -25.2), 6); // close on her
+    cam.shot(hx3(-0.5, 1.0, kz - 1.0 * s), hx3(-2.85, 0.9, kz)); cam.shot(hx3(-0.8, 0.95, kz - 0.8 * s), hx3(-2.85, 0.9, kz), 6); // close on her
     await d.talk([
       ['Knight', 'The Door, below. It is his. It is what he came down here for.'],
       ['Knight', 'Put him through it, and shut it. It is the only thing that will hold him.'],
@@ -121,7 +122,7 @@ stage('halls', {
     await d.talk([['Knight', 'Go. They are coming back up.']]);
     K.play(C(1.6, [1.6, PZ.sitDead]), 0.2); playMusic('blade', { cross: 2, fade: 1.5 });
     cam.shot(hx3(1.4, 1.7, -21.8), hx3(0, 1.4, -33)); cam.shot(hx3(1.2, 1.6, -22.6), hx3(0, 1.4, -33), 2.5);
-    await d.wait(2.0);
+    await d.wait(1.3); ui.thought('Gone. ...The Door, then.', 4.5); await d.wait(1.5); // what he thinks (owner, Nov 2026: a thought, so it is plain she has died)
     G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = PI; cam.behind(); P.controlEnabled = true; ui.objective('Cut your way down to the vault');
     await d.until(() => left() === 0);
     // The rotunda: they come out of the side passages, twice.
@@ -260,10 +261,22 @@ stage('door', {
     await d.wait(0.75); rumble();
     U.stop(0.3); U.set('circle'); U.hurtAmt = 0.55; U.eyeK = 1.5; U.phase2 = true; U.cd = 1.3; U.hp = Math.max(U.hp, U.maxHp * 0.6); // up again, straighter, and angrier
     P.face = P.angleTo(U); wall = Math.max(VAULT, P.pos.z + 0.05);
-    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; P.inv = 0; G.freezeAI = false; G.boss = U; ui.objective('Defeat the Usurper');
-    await d.until(() => U.hp <= 1);
+    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; P.inv = 0; G.freezeAI = false; G.boss = U;
+    // Round two (owner, Nov 2026): he gets up as often as he is cut down. The knight said what holds him:
+    // it ends only if he is brought down on the ward before the Door. Anywhere else the glass has him up
+    // again, in play, with less left in him. A thought says so, the objective names the Door and the ward pulses.
+    ui.objective('Bring the Usurper down before the Glass Door'); let bt = 1.5; const beat = d.every((dt) => { if ((bt -= dt) <= 0) { bt = 2.6; shock(new T.Vector3(0, 0, -24), 2.0, 0x9ff0e0); } }); // a ring runs out over the ward every few seconds (the waypoint beam would hide him and the Door)
+    ui.thought('He will not stay dead. ...The Door. It has to be at the Door.', 6);
+    for (let ups = 0; ; ups++) {
+      await d.until(() => U.hp <= 1); if (U.pos.z < -20.8) break;
+      U.open = false; U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; U.set('down'); U.st = -1e6; U.hurtAmt = 0.3; U.play(CL.kneel, 0.25); G.slow = Math.max(G.slow, 0.5); // to his knees again
+      await d.wait(1.4); if (!ups) ui.thought('Not here. At the Door.', 4.5);
+      SFX.flame(); U.flash = 1; G.shake = Math.max(G.shake, 0.15); G.level.flare = Math.max(G.level.flare, 0.5); shock(U.pos, 2.6, 0x9ff0e0); FX.sparks.emit(new T.Vector3(U.pos.x, 0.4, U.pos.z), 36, 3, 0x9ff0e0, 1.1, { grav: -2, spread: 0.6, boost: 2 });
+      U.stop(0.9); await d.tween(1.0, (u) => { U.hp = Math.max(U.hp, U.maxHp * 0.35 * u); }); // and the glass has him up
+      U.set('circle'); U.hurtAmt = 0.55; U.cd = 0.8;
+    }
     // the sealing
-    keep(); ui.objective(''); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
+    keep(); beat(); ui.objective(''); ui.thought(''); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
     playMusic('sealed', { loop: false, cross: 2, fade: 1.2 }); // it opens very quietly and builds through the sealing and the cards that follow
     U.stagDur = 99; U.open = false; U.set('stagger'); U.play(CL.stun, 0.08); U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; G.slow = 1.0; G.shake = 0.25;
     cam.shot([P.pos.x * 0.5 + 1.9, 1.7, Math.min(-19, U.pos.z + 5)], [0, 2.4, -27.6], 1.1);
@@ -382,10 +395,10 @@ stage('waystation', {
     // are taught, as things remembered). One raider comes for him while the others are still at the
     // goods; each skill, the first time he uses it, returns with a flash and its name. Once, not on a retry.
     if (!G.taughtWay) {
-      const foe = R[0]; for (const e of R) e.hold = e !== foe; foe.spare = true; foe.cd = 1.0; ui.objective('Cut down the raider');
+      const foe = R[0]; for (const e of R) e.hold = e !== foe; foe.spare = true; foe.cd = 1.0; // (he can't be cut down until both have come back, so each is the objective in its turn)
       const back = async (name) => { SFX.learn(); ui.banner(name, 1.8); ui.hint(''); P.flashCol = [1, 0.8, 0.3]; P.flash = 0.9; G.slow = Math.max(G.slow, 0.4); shock(P.pos, 2, 0xffe2a0); await d.wait(0.9); P.flashCol = [1, 0.15, 0.1]; };
-      ui.hint('Roll clear of his blade with {d}'); await d.until(() => P.state === 'roll' || P.state === 'back'); await back('THE ROLL');
-      ui.hint('Hold {h} to wind up a heavy blow, then let go'); await d.until(() => P.state === 'atk' && P.at && P.at.heavy && P.hitSet.size > 0); await back('THE HEAVY BLOW');
+      ui.objective("Roll clear of the raider's blade"); ui.hint('Roll clear of his blade with {d}'); await d.until(() => P.state === 'roll' || P.state === 'back'); await back('THE ROLL');
+      ui.objective('Land a heavy blow on the raider'); ui.hint('Hold {h} to wind up a heavy blow, then let go'); await d.until(() => P.state === 'atk' && P.at && P.at.heavy && P.hitSet.size > 0); await back('THE HEAVY BLOW');
       G.taughtWay = true; foe.spare = false; for (const e of R) e.hold = false;
     }
     ui.objective('Drive the raiders out of the yard');

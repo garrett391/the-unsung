@@ -133,6 +133,7 @@ export const SFX = {
   quake: () => long('quake', 1.6), // the vault shaking; the file is normalized to -16 LUFS, quieter than the blows, so it is lifted here
   boom: () => { noise(0.55, 0.7, 500, 50, 'lowpass', 0.7); tone(74, 0.5, 'sine', 0.6, 30); },
   die: () => noise(0.7, 0.22, 2600, 160, 'bandpass', 0.5),
+  cue: () => { tone(587, 0.3, 'sine', 0.05); tone(880, 0.45, 'sine', 0.04, null, 0.1); }, // a new objective or hint: two soft notes
   blip: () => noise(0.035, 0.05, 1800, 1400, 'bandpass', 1.5),
   learn: () => { tone(98, 0.9, 'triangle', 0.16, 96); tone(147, 0.9, 'triangle', 0.08, 145, 0.04); noise(0.3, 0.12, 200, 90, 'lowpass'); },
   fall: () => { [294, 247, 196, 147].forEach((f, i) => tone(f, 0.8, 'triangle', 0.1, null, i * 0.22)); },

@@ -29,6 +29,16 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #hint{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;max-width:min(92vw,620px);text-align:center;font-size:16px;line-height:1.35;
   padding:7px 16px;background:rgba(8,8,14,.55);border-radius:2px;opacity:0;transition:opacity .3s}
 #hint b{color:#e9c15a;font-weight:700}
+#obj{transform-origin:left center}
+#obj.new{animation:objin 2.2s ease-out}#obj.new::before{animation:objmark 2.2s ease-out}
+@keyframes objin{0%{transform:translateX(-12px) scale(1.16);color:#ffe7a0;text-shadow:0 0 16px #e9c15a,0 1px 3px #000}12%,55%{transform:scale(1.16);color:#ffe7a0;text-shadow:0 0 16px #e9c15a,0 1px 3px #000}}
+@keyframes objmark{0%,55%{box-shadow:0 0 10px 3px #e9c15a;background:#ffe7a0}}
+#hint.new{animation:hintin 2.4s ease-out}
+@keyframes hintin{0%{transform:translateX(-50%) translateY(12px) scale(1.18);background:rgba(8,8,14,.9);box-shadow:0 0 0 1px #e9c15a,0 0 26px rgba(233,193,90,.85)}14%,55%{transform:translateX(-50%) scale(1.18);background:rgba(8,8,14,.9);box-shadow:0 0 0 1px #e9c15a,0 0 26px rgba(233,193,90,.85)}100%{box-shadow:0 0 0 1px rgba(233,193,90,0),0 0 26px rgba(233,193,90,0)}}
+#thought{position:absolute;left:50%;transform:translateX(-50%);top:20%;width:max-content;max-width:min(84vw,440px);text-align:center;font-size:19px;font-style:italic;line-height:1.3;color:#f4eee0;
+  padding:13px 28px 15px;background:rgba(26,29,42,.72);border:1px solid rgba(226,230,240,.38);border-radius:999px/60px;box-shadow:0 0 22px 7px rgba(200,208,226,.16),inset 0 0 18px rgba(200,208,226,.12);opacity:0;transition:opacity .9s}
+#thought::before,#thought::after{content:"";position:absolute;left:50%;border-radius:50%;background:rgba(26,29,42,.72);border:1px solid rgba(226,230,240,.38);box-shadow:0 0 10px 2px rgba(200,208,226,.14)}
+#thought::before{width:14px;height:14px;margin-left:-16px;bottom:-21px}#thought::after{width:8px;height:8px;margin-left:-3px;bottom:-34px}
 #dlg{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;width:min(94vw,640px);padding:14px 20px 18px;background:rgba(8,8,14,.82);
   border-top:1px solid rgba(217,178,74,.7);display:none}
 #dlg .who{font-size:13px;letter-spacing:.26em;color:#e9c15a;margin-bottom:5px;text-transform:uppercase}
@@ -81,9 +91,9 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #title dt{color:#e9c15a;text-align:right}#title dd{opacity:.9}
 
 @keyframes pulse{50%{opacity:.3}}
-@media (prefers-reduced-motion:reduce){#dlg .more,#chron .tap{animation:none}}
+@media (prefers-reduced-motion:reduce){#dlg .more,#chron .tap,#obj.new,#hint.new{animation:none}}
 @media (max-width:600px){#bars{width:40vw}#tgt{left:auto;right:62px;transform:none;width:36vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}}
-@media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}}
+@media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}#thought{top:min(196px,34%);font-size:17px}}
 </style>
 </head>
 <body>
@@ -95,6 +105,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
   <div id="tgt"><span id="tname"></span><div class="bar"><i id="thp"></i></div></div>
   <div id="banner"></div>
   <div id="hint"></div>
+  <div id="thought"></div>
   <div id="dlg"><div class="who" id="dwho"></div><div class="txt" id="dtxt"></div><div class="more" id="dmore"></div></div>
 </div>
 <div id="touch">

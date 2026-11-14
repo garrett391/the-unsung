@@ -59,7 +59,7 @@ if (!only) {
   log('first guard', await play(60, { bot: true, god: true, until: "G.taughtDoor" })); await shot('000c-lesson');
   log('the knight', await play(90, { bot: true, god: true, until: "G.cinematic" })); await play(3.2); await shot('000d-knight');
   await play(60, { tap: true, until: "G.enemies.length>4" }); await play(0.6); await shot('000e-knight-close');
-  log('they come', await play(60, { tap: true, until: "G.player.controlEnabled" })); await play(1.2); await shot('000f-they-come');
+  log('they come', await play(60, { tap: true, until: "G.player.controlEnabled" })); await play(1.2); await page.waitForTimeout(1000); await shot('000f-they-come'); // (the wait lets the thought's CSS fade finish)
   log('rotunda', await play(180, { bot: true, god: true, heavy: true, until: "G.player.pos.z<-34" })); await play(2.2); await shot('000g-rotunda'); await play(8, { bot: true, god: true, heavy: true }); await shot('000h-rotunda-fight');
   log('waves', await play(300, { bot: true, god: true, heavy: true, until: "document.getElementById('obj').textContent.startsWith('Go down')" }));
   log('the stair', await play(30, { bot: true, god: true, to: [-110, -48.5], until: "G.boss" })); await play(1.5, { bot: true, god: true }); await shot('000i-warden');
@@ -76,8 +76,8 @@ if (at('door')) {
   await play(60, { until: "G.enemies[0].state==='down'" }); await play(0.5); await shot('00b5-the-blow'); await play(2.6); await shot('00b6-done');
   await play(60, { until: "G.player.calm&&G.player.walk" }); await play(1.5); await shot('00b7-walks-away'); await play(0.45); await shot('00b7b-walks-away');
   await play(60, { until: "G.level.flare>0.15" }); await play(1.2); await shot('00b8a-looks-round'); await play(1.7); await shot('00b8b-looks-up'); await play(2.3); await shot('00b8c-the-glass-lights'); await play(3.2); await shot('00b9-rises');
-  log('round two', await play(60, { until: "G.player.controlEnabled" })); await play(0.3); await shot('00b10-up-again');
-  log('sealing', await play(60, { bot: true, god: true, until: "G.level.flare>0.9" })); await play(0.6); await shot('00c-sealing');
+  log('round two', await play(60, { until: "G.player.controlEnabled" })); await play(0.3); await page.waitForTimeout(1000); await shot('00b10-up-again');
+  log('sealing', await play(240, { bot: true, god: true, home: [0, -25.5], until: "G.level.flare>0.9" })); // he only stays down on the ward before the Door, so the bot fights there await play(0.6); await shot('00c-sealing');
   await play(3.4); await shot('00d-sealed'); await page.evaluate(() => { G.auto = true; });
   log('sealed', await play(8, { until: stageIs('ascent') })); await page.evaluate(() => { G.auto = false; });
   await play(4); await page.waitForTimeout(4500); await shot('00e-after'); await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('00f-after-descent');

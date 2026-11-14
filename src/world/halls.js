@@ -18,7 +18,7 @@ export const HALLS = { x: -110, z: 0 };
 const R = (x0, x1, z0, z1) => ({ x0: HALLS.x + x0, x1: HALLS.x + x1, z0: HALLS.z + z0, z1: HALLS.z + z1 });
 export const GALLERY = R(-3.6, 3.6, -31.3, 1.4), ROTUNDA = R(-8, 8, -46, -30), DESCENT = R(-2.6, 2.6, -57.6, -44.7), PASS_E = R(6.7, 12.4, -39.8, -36.2), PASS_W = R(-12.4, -6.7, -39.8, -36.2);
 
-PZ.sit = P({ hips: [-0.32, 0, 0], pos: [0, -0.77, 0], spine: [0.2], chest: [0.12], neck: [0.5, 0.25, 0.1], thL: [-1.22, 0, 0.12], knL: [0.1], anL: [0.35], thR: [-1.0, 0, -0.2], knR: [1.05], anR: [0.1],
+PZ.sit = P({ hips: [-0.32, 0, 0], pos: [0, -0.77, 0], spine: [0.2], chest: [0.12], neck: [0.5, 0.25, 0.1], thL: [-1.22, 0, 0.12], knL: [0.1], anL: [0.35], thR: [-2.05, 0, -0.2], knR: [1.8], anR: [0.3], // the right knee drawn up, its foot on the floor (it used to hang through it)
   shL: [-0.2, -1.05, 0], elL: [-1.5], shR: [0.2, 0, -0.32], elR: [-0.25], haR: [0.9], shield: [-1.3] }); // slumped against a column, a hand pressed to the wound
 PZ.sitUp = P({ neck: [-0.12, 0.5, 0], spine: [0.1], chest: [0.05] }, PZ.sit); // the head lifted to speak
 // More ways to lie dead, so the fallen don't all look alike (the first three are PZ.d2, PZ.down and PZ.prone).
