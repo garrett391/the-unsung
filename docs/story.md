@@ -16,13 +16,19 @@ Themes to keep:
 
 ## The hero
 
-- **Unnamed.** Not erased or struck out: nobody ever knew his name. When the muster clerk asks, he says "Write whatever you like." From then on he is called by his rank (Captain, later). Nobody in the story ever says his name, except, perhaps, the Usurper.
+- **Unnamed.** Not erased or struck out: nobody ever knew his name, because the years in which anyone did are behind the Door. When the muster clerk asks, he says "Write whatever you like." From then on he is called by his rank (Captain, later). Nobody in the story ever says his name, except, perhaps, the Usurper.
 - Quiet, awkward among ordinary people, at home only in a fight. He doesn't know how to make small talk, and he doesn't tell stories about himself because his only true one sounds like madness.
 - He grows over the game, mostly because Corin won't leave him alone.
 
 ## The Usurper and the Glass Door
 
-- Before the game begins, the Usurper tried to take the realm, and the hero stopped him alone in a vault under the desert ruins, sealing him behind the Glass Door. Nobody saw it, so as far as the world knows it never happened.
+- Before the game begins, the Usurper tried to take the realm, and the hero stopped him in a vault under the desert ruins, sealing him behind the Glass Door.
+- **He can't be killed, only shut out of time.** The Door doesn't hold a body; it holds the years he took. Sealing him puts those years behind the glass with him.
+- **So the world doesn't forget it: it never lived it.** The hero walks out into the realm as it was before the Usurper rose. There was no usurpation for anyone to remember.
+- **The hero did not know the cost.** He closed the Door to end it. Nobody sent him back, and he isn't returned to his own past: he is left in a world that has none for him. Whoever he was in those years, and whoever knew him, went behind the glass too. That is why nobody knows his name.
+- He remembers because he closed the Door. The Usurper remembers because he is inside it.
+- When the Door cracks (Act II), those years leak back out. That is how Vessa comes to know things only the Usurper could, and why the raids find the hero's road and waystation.
+- None of this is said to the player in the prologue. It is shown: a blow that should kill him doesn't take, and the sealing runs the vault backwards.
 - The Usurper is the only one who remembers. That is his weapon: he taunts the hero with it. "You and I are the only ones who know what you did." His enemy is his only witness.
 - Through the war, the Usurper's will leaks out through the Witches of the dunes. The hero is the only one who understands what is really coordinating the desert, and he can't say so.
 - Art: the Door design already in the game (leaded panes, chained gold seal, glass shards, ward ring, the vault dressing) is this place.
@@ -46,7 +52,7 @@ Vessa, the Witches' Hand, is the face of it: a recurring enemy commander who spe
 
 ## Prologue: the climax nobody saw
 
-1. **The Glass Door (cold open, playable).** A short fight in the vault ends with the hero sealing the Usurper behind the glass. Parting words: "Only you will remember this."
+1. **The Glass Door (cold open, playable).** The last moments of the fight in the vault. The Usurper is beaten; he goes down and gets up again. The hero puts him behind the glass, and the vault runs backwards around him. Parting words: "Only you will remember this."
 2. **The road.** He walks out into a world where nothing happened. No crowds, no thanks. A caravan passes him and no one looks twice.
 3. **Drifting (cards or short scenes).** Years of labouring jobs. He can't settle and doesn't fit.
 4. **The waystation.** Desert raiders hit the waystation where he works. He takes up a fallen guard's sword. The first real fight of the game is him, a nobody in their eyes, cutting through them. A guard officer arrives at the end and sees what he did. (Also the first sign of the border war.)
@@ -103,6 +109,7 @@ Vessa, the Witches' Hand, is the face of it: a recurring enemy commander who spe
 - What the Usurper looks like. The game uses a placeholder (black iron, glass-teal trim).
 - The captain's eye wound mid-Vessa fight: keep only if it means something in this story (it could come from the Long Cut instead). Undecided.
 - Does the Usurper ever say the hero's name, and does the player ever hear it?
-- What does the Usurper want, and where did he come from? Not yet written.
+- What does the Usurper want, and where did he come from? Not yet written. (Why he is sealed and not killed is settled: see The Usurper and the Glass Door.)
+- When does the captain understand what closing the Door cost? He doesn't know in the prologue.
 - How many missions per act, and which ones introduce new enemy types (more shield-bearers, allied soldiers who fight).
 - The quiet camp scenes: how much is playable and how much is dialogue.

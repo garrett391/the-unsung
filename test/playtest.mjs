@@ -55,8 +55,9 @@ if (!only) {
   await play(2.6); await shot('00a-door');
   log('door opens', await play(2.6, {})); await shot('00b-usurper');
   log('usurper', await play(8, { bot: true, god: true, until: "G.boss&&G.boss.state==='wind'" })); await play(0.9); await shot('00b2-swing');
-  log('sealing', await play(60, { bot: true, god: true, until: "G.level.flare>0" })); await play(0.25); await shot('00c-sealing');
-  await play(3.2); await shot('00d-sealed'); await page.evaluate(() => { G.auto = true; });
+  log('falls', await play(60, { bot: true, god: true, until: "G.boss&&G.boss.state==='down'" })); await play(2.6); await shot('00b3-down'); await play(2.2); await shot('00b4-rises');
+  log('sealing', await play(60, { bot: true, god: true, until: "G.level.flare>0.9" })); await play(0.6); await shot('00c-sealing');
+  await play(3.4); await shot('00d-sealed'); await page.evaluate(() => { G.auto = true; });
   log('road', await play(8, { until: "G.STAGES[G.stage].name==='spar'" }));
 }
 if (at('spar')) {

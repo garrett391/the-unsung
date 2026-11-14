@@ -32,7 +32,7 @@ export class Enemy extends Char {
   // head hanging, knees soft, the whole trunk heaving with each breath. It eases off while he swings.
   hurtLayer(src) {
     const o = this._lay || (this._lay = new Float32Array(PL)); o.set(src);
-    const sw = this.state === 'wind' || this.state === 'strike'; this.hurtW = this.hurtW == null ? 1 : this.hurtW + ((sw ? 0.35 : 1) - this.hurtW) * 0.08;
+    const sw = this.state === 'wind' || this.state === 'strike'; this.hurtW = this.hurtW == null ? 1 : this.hurtW + ((this.state === 'down' || this.state === 'getup' ? 0 : sw ? 0.35 : 1) - this.hurtW) * 0.08;
     const w = this.hurtW, b = Math.sin(G.time * 4.6), b2 = Math.sin(G.time * 4.6 - 0.9), J = (n) => JI[n] * 3, hp = NJ * 3;
     o[J('hips')] += 0.05 * w; o[hp + 1] -= (0.1 + 0.012 * b) * w;
     o[J('spine')] += (0.15 + 0.04 * b) * w; o[J('spine') + 2] += 0.1 * w; o[J('chest')] += (0.12 + 0.06 * b2) * w; o[J('neck')] += (0.16 - 0.05 * b2) * w;

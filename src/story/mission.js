@@ -5,8 +5,8 @@ import { PI, rnd, lerp } from '../core/util.js';
 import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
 import { MOUTH, RING } from '../world/level.js';
-import { FX, shock } from '../gfx/fx.js';
-import { coarse } from '../core/input.js';
+import { FX, shock, clearBlood } from '../gfx/fx.js';
+import { coarse, opts } from '../core/input.js';
 import { makeStretchers } from './stretchers.js';
 import { CL } from '../actors/anim.js';
 
@@ -36,6 +36,9 @@ async function glance(d, x, z, o = {}) {
 // the vault. It opens on the end of the fight with one card of footing, no hints and nothing else explained
 // (owner's note: don't spell the theme out, don't sneak a tutorial in): the Usurper is already
 // beaten (TYPES.usurper), and all that is left is to put him behind the glass.
+// Two things are shown and never said (docs/story.md, The Usurper and the Glass Door): he can't
+// be killed (the blow that should end him doesn't take, and he gets up), and the seal takes the
+// years he took in with him (the vault runs backwards: the blood lifts, the captain is unmarked).
 const VAULT = -14.5; // the captain can't back out of the vault: its wall is at the canyon mouth
 stage('door', {
   checkpoint: true,
@@ -50,6 +53,18 @@ stage('door', {
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = U; U.cd = 2.4;
     const keep = d.every(() => { if (P.pos.z > VAULT) P.pos.z = VAULT; if (U.pos.z > VAULT + 1) U.pos.z = VAULT + 1; });
     await d.until(() => U.hp <= 1);
+    // He goes down, and it doesn't take: the glass in him lights, and he gets up.
+    P.controlEnabled = false; P.lock = null; P.inv = Math.max(P.inv, 8); G.cinematic = true; ui.cinematic(true); G.slow = 0.9; G.shake = 0.35;
+    U.open = false; U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; U.set('down'); U.st = -3.6; U.play(CL.death, 0.1); // lies there a long moment before the usual get-up
+    { const dx = P.pos.x - U.pos.x, dz = P.pos.z - U.pos.z, l = Math.hypot(dx, dz) || 1; cam.shot([U.pos.x + (dx / l) * 3.4 - (dz / l) * 1.8, 1.1, U.pos.z + (dz / l) * 3.4 + (dx / l) * 1.8], [U.pos.x, 0.6, U.pos.z], 1.4); }
+    await d.wait(2.8);
+    SFX.flame(); U.flash = 1; G.level.flare = 0.4; G.shake = 0.25; shock(U.pos, 2.6, 0x9ff0e0);
+    FX.sparks.emit(new T.Vector3(U.pos.x, 0.5, U.pos.z), 60, 3, 0x9ff0e0, 1.3, { grav: -2, spread: 0.6, boost: 2 });
+    await d.tween(1.4, (u) => { U.hp = Math.max(U.hp, U.maxHp * 0.3 * u); });
+    await d.until(() => U.state !== 'down' && U.state !== 'getup');
+    await d.wait(0.5);
+    G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; P.inv = 0; U.cd = 1.2;
+    await d.until(() => U.hp <= 1);
     // the sealing
     keep(); P.controlEnabled = false; P.lock = null; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
     U.stagDur = 99; U.open = false; U.set('stagger'); U.play(CL.stun, 0.08); U.vel.set(0, 0, 0); U.trailOn = false; U.yoff = 0; G.slow = 1.0; G.shake = 0.4;
@@ -61,7 +76,15 @@ stage('door', {
     FX.sparks.emit(at, 140, 8, 0x9ff0e0, 1.4, { grav: -1, spread: 1.2, boost: 2 });
     U.gone = true; G.boss = null;
     cam.shot([0.6, 1.6, -20.5], [0, 3.1, -27.8], 4);
-    await d.wait(2.2);
+    // What the seal costs: the vault runs backwards. Motes stream into the glass, the blood
+    // lifts off the floor and is gone, and the captain is left clean and unhurt.
+    let rt = 0; const hp0 = P.hp, rev = d.every((dt) => {
+      rt += dt; P.hp = lerp(hp0, 100, Math.min(1, rt / 1.6)); P.wet = Math.max(0, P.wet - dt);
+      FX.sparks.emit(new T.Vector3(rnd(-2.6, 2.6), rnd(0.2, 4), rnd(-25, -17)), 2, 0.4, 0x9ff0e0, 0.9, { grav: 0, vz: -7, spread: 0.1 });
+      if (opts.blood && rt < 1.3) FX.blood.emit(new T.Vector3(rnd(-2.4, 2.4), 0.06, rnd(-26, -16)), 3, 0.2, 0x5e0a0e, 1.1, { grav: -4, spread: 0.02 });
+    });
+    await d.wait(1.1); clearBlood();
+    await d.wait(1.1); rev(); P.hp = 100; P.wet = 0;
     await d.talk([['The Usurper', 'Only you will remember this.']]);
     await d.wait(0.8); ui.fade(1, 1.6); await d.wait(1.8);
   },
