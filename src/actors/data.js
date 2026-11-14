@@ -38,6 +38,9 @@ export const LOOKS = {
   soldier: SOLDIER, officer: { ...SOLDIER, trim: 0xc9a24a, plume: 0xe9e2d0, cape: 0x7a2026, shield: undefined, hair: 0x3a2c22 },
   wayguard: WAYGUARD, wayguardBare: { ...WAYGUARD, weapon: 'none', shield: undefined }, // the waystation's own gate guard, in boiled leather and an iron hat; and after his sword is taken
   drover: { ...PLAIN, armor: 0x9a6a4a, under: 0xb7a888, helm: 'none', hair: 0x7a5228, skin: 0xd9a77e, weapon: 'none', pads: 0.45 },
+  // The halls above the vault: one of the realm's knights, in his colours with her face bare; and the Usurper's guard, pale plate with glass grown into it.
+  knight: { armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, rim: 0x2c3f86, helm: 'open', hair: 0x3a2c22, skin: 0xc99872, legs: 1.1, pads: 0.9, weapon: 'none' },
+  glass: { armor: 0xb4ad9c, trim: 0x7a6636, under: 0x25272c, dark: 0x101114, steel: 0xbfeee6, eye: 0x3fd0bc, rim: 0x3c8f84, glass: 1, pads: 0.92 },
   clerk: { ...PLAIN, armor: 0x3a4466, trim: 0x8a7a5c, under: 0x2a3050, helm: 'none', hair: 0x9a9690, skin: 0xd9a77e, weapon: 'none', pads: 0.4 },
 };
 
@@ -55,6 +58,14 @@ export const TYPES = {
   brute: { name: 'BREAKER', hp: 200, speed: 2.3, poise: 6, scale: 1.4, heavy: true,
     look: { ...HELMED, armor: 0x3e3230, trim: 0x8b3a34, steel: 0x77706a, eye: 0xff5a30, weapon: 'maul', blade: 1.0, horns: 1 },
     moves: [{ style: 'over', wind: 1.0, rec: 1.2, dmg: 30, range: 3.1, lunge: 5, slam: 1.6 }] },
+  // The Usurper's guard, in the halls above the vault (prologue). The first of them is who the basics are taught on.
+  glassguard: { name: 'GLASS GUARD', hp: 60, speed: 3.3, poise: 1, scale: 1.02, trail: 0x8fd8cc, look: LOOKS.glass,
+    moves: [{ style: 'slash', wind: 0.62, rec: 0.75, dmg: 14, range: 2.4, lunge: 6.5 }] },
+  glassshield: { name: 'GLASS SHIELD', hp: 84, speed: 2.7, poise: 2, scale: 1.06, shield: true, trail: 0x8fd8cc, look: { ...LOOKS.glass, shield: 1 },
+    moves: [{ style: 'thrust', wind: 0.72, rec: 0.85, dmg: 14, range: 2.75, lunge: 8 }] },
+  glasswarden: { name: 'WARDEN OF THE STAIR', hp: 210, speed: 2.9, poise: 5, scale: 1.25, heavy: true, trail: 0x8fd8cc,
+    look: { ...LOOKS.glass, crown: 1, cape: 0x14282a, skirt: 0x14282a, blade: 1.15, lames: 1, knees: 1 },
+    moves: [{ style: 'slash', wind: 0.65, rec: 0.85, dmg: 16, range: 2.9, lunge: 7, chain: 0.35, then: 1 }, { style: 'over', wind: 0.9, rec: 1.15, dmg: 24, range: 3.1, lunge: 6, slam: 1.5 }] },
   // Quick and lightly armed: a cut that usually runs straight on into a thrust (`follow`: never used to open).
   runner: { name: 'DUNE RUNNER', hp: 48, speed: 4.9, poise: 1, scale: 0.94,
     look: { ...RAIDER, armor: 0x6f5c44, trim: 0x2f6a70, under: 0xb09a78, wrap: 0x2c5a60, skirt: undefined, blade: 0.78 },
@@ -74,7 +85,7 @@ export const TYPES = {
   // (Owner, Nov 2026: a little harder than the first pass, which had one weak swing.)
   // A pale, crowned figure in bone-coloured plate, with glass (his sign) for crown and blade.
   usurper: { name: 'THE USURPER', hp: 280, speed: 1.9, poise: 3, scale: 1.2, boss: true, heavy: true, hurt: true, trail: 0x8fd8cc,
-    look: { armor: 0xb4ad9c, trim: 0x7a6636, under: 0x25272c, dark: 0x101114, steel: 0xbfeee6, eye: 0x3fd0bc, rim: 0x3c8f84, blade: 1.2, crown: 'glass', glass: 1, cape: 0x14282a, capeLen: 5, tatter: 1, skirt: 0x14282a, pads: 0.82, lames: 1, knees: 1 },
+    look: { armor: 0xb4ad9c, trim: 0x7a6636, under: 0x25272c, dark: 0x101114, steel: 0xbfeee6, eye: 0x3fd0bc, rim: 0x3c8f84, blade: 1.2, crown: 'glass', glass: 1, wound: 1, cape: 0x14282a, capeLen: 5, tatter: 1, skirt: 0x14282a, pads: 0.82, lames: 1, knees: 1 },
     moves: [{ style: 'over', wind: 1.0, rec: 1.45, dmg: 13, range: 2.95, lunge: 4.5 }, { style: 'slash', wind: 0.82, rec: 1.25, dmg: 10, range: 2.7, lunge: 5.5 }] },
   vessa: { name: "VESSA, THE WITCHES' HAND", hp: 820, speed: 4.2, poise: 14, scale: 1.22, boss: true, heavy: true,
     look: { armor: 0x2c2440, trim: 0xb48cff, under: 0x4a4266, dark: 0x16121e, steel: 0xd8ccff, eye: 0xc79bff, rim: 0x5a2c9a, weapon: 'glaive', blade: 1.25, crown: 1, cape: 0x3a1c5c },

@@ -62,8 +62,8 @@ export function buildWaystation(scene, ox, oz) {
   for (const s of [-1, 1]) {
     box(2.2, 5.2, 2.2, mAdobe, s * 4.3, 2.6, 12.6, 0, 3.2); box(2.5, 0.26, 2.5, mCap, s * 4.3, 5.33, 12.6, 0, 3.2);
     for (const a of [-1, 1]) for (const b of [-1, 1]) box(0.6, 0.5, 0.6, mAdobe, s * 4.3 + a * 0.9, 5.7, 12.6 + b * 0.9, 0, 3.2);
-    const leaf = box(3.0, 3.7, 0.14, mWood, s * 4.85, 1.9, 11.4); for (const y of [0.7, 1.9, 3.1]) box(3.02, 0.12, 0.17, mIron, s * 4.85, y, 11.4); leaf.rotation.y = s * 0.04;
-    box(0.2, 4.0, 0.3, mWoodD, s * 3.3, 2.0, 12.6);
+    box(3.0, 3.7, 0.14, mWood, s * 4.85, 1.9, 11.34); for (const y of [0.7, 1.9, 3.1]) box(3.02, 0.12, 0.17, mIron, s * 4.85, y, 11.34); // swung back against the tower, and a few centimetres clear of it: touching faces flicker
+    box(0.2, 4.0, 0.3, mWoodD, s * 3.08, 2.0, 12.6);
   }
   box(6.8, 0.36, 0.5, mWoodD, 0, 4.2, 12.6); box(1.5, 0.5, 0.08, mWood, 0, 4.2, 12.9); // lintel and a weathered signboard, facing the road
 

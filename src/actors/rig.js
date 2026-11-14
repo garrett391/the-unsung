@@ -2,6 +2,7 @@ import * as T from 'three';
 import { PI } from '../core/util.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { toon, shieldTex, tabardTex, plateTex, mailTex, clothTex } from '../gfx/materials.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Procedural armored humanoid. Faces +Z; the sword hand is at -X.
 // Joints are plain groups so the animation system only writes rotations.
@@ -53,6 +54,22 @@ function limb(rt, rb, h) {
   });
 }
 const ball = (r) => memo('s' + r, () => new T.SphereGeometry(r, 16, 12));
+
+// A figure that will never move again (the dead in the halls): built, set in `pose`, and merged
+// into one mesh per material, so a body costs a handful of draw calls instead of a hundred and fifty.
+export function bakeFigure(look, pose, scale = 1) {
+  const rig = buildHumanoid(look), J = rig.J, by = new Map(), out = new T.Group();
+  for (let i = 0; i < NJ; i++) J[JN[i]].rotation.set(pose[i * 3], pose[i * 3 + 1], pose[i * 3 + 2]);
+  J.hips.position.set(pose[NJ * 3], HIP + pose[NJ * 3 + 1], pose[NJ * 3 + 2]); rig.root.scale.setScalar(scale); rig.root.updateMatrixWorld(true);
+  rig.root.traverse((m) => {
+    if (!m.isMesh) return; const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+    if (!g.attributes.normal) g.computeVertexNormals(); if (!g.attributes.uv) g.setAttribute('uv', new T.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+    for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
+    g.applyMatrix4(m.matrixWorld); if (!by.has(m.material)) by.set(m.material, []); by.get(m.material).push(g);
+  });
+  for (const [mat, gs] of by) { const mesh = new T.Mesh(mergeGeometries(gs), mat); mesh.castShadow = !!mat.isMeshToonMaterial; mesh.receiveShadow = true; out.add(mesh); }
+  return out;
+}
 
 export function buildHumanoid(o) {
   const mats = [];
@@ -211,9 +228,9 @@ export function buildHumanoid(o) {
     return ha;
   };
   arm(1, 'shL', 'elL', 'haL'); const haR = arm(-1, 'shR', 'elR', 'haR');
-  if (o.glass) { // glass growing out of the left shoulder and the back, and a wound across the breastplate
+  if (o.glass) { // glass growing out of the left shoulder and the back, and (o.wound) a wound across the breastplate
     for (const [x, y, z, h, rx, rz] of [[0.05, 0.17, 0, 0.3, 0, -0.3], [0.1, 0.1, 0.04, 0.17, 0.3, -0.75], [0.03, 0.12, -0.07, 0.2, -0.45, -0.15]]) mk(new T.ConeGeometry(h * 0.16, h, 4), mGl, J.shL, x, y, z).rotation.set(rx, 0, rz);
-    const mW = M(0x3d0a0d); mk(new T.BoxGeometry(0.26, 0.035, 0.02), mW, chest, -0.02, 0.2, 0.222).rotation.set(0.18, 0, 0.75); mk(new T.BoxGeometry(0.05, 0.12, 0.02), mW, chest, -0.09, 0.08, 0.2).rotation.z = 0.2;
+    const mW = M(0x3d0a0d); if (o.wound) mk(new T.BoxGeometry(0.26, 0.035, 0.02), mW, chest, -0.02, 0.2, 0.222).rotation.set(0.18, 0, 0.75); if (o.wound) mk(new T.BoxGeometry(0.05, 0.12, 0.02), mW, chest, -0.09, 0.08, 0.2).rotation.z = 0.2;
   }
   if (o.skirt) { // long cloth panels hanging from the belt, front and back
     const mK = M(o.skirt, { side: T.DoubleSide, map: clothTex });

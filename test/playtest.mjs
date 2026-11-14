@@ -8,7 +8,7 @@ import { extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..'), dist = join(root, 'dist'), shots = join(root, 'test/shots');
-const phone = process.argv[2] === 'phone', ORDER = ['door', 'road', 'waystation', 'muster', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
+const phone = process.argv[2] === 'phone', ORDER = ['halls', 'door', 'road', 'waystation', 'muster', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
 const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg' };
 const server = http.createServer(async (q, s) => {
   try { const f = join(dist, q.url === '/' ? 'index.html' : q.url.split('?')[0]), d = await readFile(f); s.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); s.end(d); }
@@ -54,7 +54,19 @@ const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
 await page.evaluate(([from, real]) => { G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['waystation', 'muster'].includes(ORDER[only])]);
 if (!only) {
-  await play(0.3); await page.evaluate(() => { G.auto = false; }); // past the opening card, then real timing through the prologue so the shots catch it
+  await play(0.3); await page.evaluate(() => { G.auto = false; }); // past the opening cards, then real timing through the prologue so the shots catch it
+  await play(3.2); await page.waitForTimeout(2500); await shot('000a-gallery'); // the fade is a CSS transition, on the real clock await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('000b-gallery');
+  log('first guard', await play(60, { bot: true, god: true, until: "G.taughtDoor" })); await shot('000c-lesson');
+  log('the knight', await play(90, { bot: true, god: true, until: "G.cinematic" })); await play(3.2); await shot('000d-knight');
+  await play(60, { tap: true, until: "G.enemies.length>4" }); await play(0.6); await shot('000e-knight-close');
+  log('they come', await play(60, { tap: true, until: "G.player.controlEnabled" })); await play(1.2); await shot('000f-they-come');
+  log('rotunda', await play(180, { bot: true, god: true, heavy: true, until: "G.player.pos.z<-34" })); await play(2.2); await shot('000g-rotunda'); await play(8, { bot: true, god: true, heavy: true }); await shot('000h-rotunda-fight');
+  log('waves', await play(300, { bot: true, god: true, heavy: true, until: "document.getElementById('obj').textContent.startsWith('Go down')" }));
+  log('the stair', await play(30, { bot: true, god: true, to: [-110, -48.5], until: "G.boss" })); await play(1.5, { bot: true, god: true }); await shot('000i-warden');
+  log('cleared', await play(300, { bot: true, god: true, heavy: true, until: "!G.enemies.some(e=>!e.dead)" }));
+  log('down', await play(40, { bot: true, god: true, to: [-110, -56.3], until: stageIs('door') }));
+}
+if (at('door')) {
   await play(2.6); await shot('00a-door');
   log('door opens', await play(2.6, {})); await shot('00b-usurper');
   log('usurper', await play(6, { bot: true, god: true, until: "G.player.lock" })); await play(0.4); await shot('00b1-lesson'); // the lessons: the bot locks and strikes; he stands until it has

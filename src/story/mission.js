@@ -5,6 +5,8 @@ import { PI, rnd, lerp, clamp, wrap } from '../core/util.js';
 import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
 import { MOUTH, RING, WAY } from '../world/level.js';
+import { HALLS } from '../world/halls.js';
+import { PZ, C } from '../actors/anim.js';
 import { FX, shock, clearBlood, blood } from '../gfx/fx.js';
 import { coarse, opts } from '../core/input.js';
 import { makeStretchers } from './stretchers.js';
@@ -12,8 +14,8 @@ import { CL } from '../actors/anim.js';
 import { Extra } from '../actors/extra.js';
 import { LOOKS } from '../actors/data.js';
 
-// The campaign, as a list of stages: the prologue (the Glass Door, the road, the waystation,
-// the muster), then the first night at the ruins (Act I). Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
+// The campaign, as a list of stages: the prologue (the halls, the Glass Door, the road, the
+// waystation, the muster), then the first night at the ruins (Act I). Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
 // the world in the state the stage expects and is only used when starting there
 // (first load, or retrying from a checkpoint).
 export const STAGES = [];
@@ -37,6 +39,98 @@ async function glance(d, x, z, o = {}) {
   cam.release(); G.cinematic = false; ui.cinematic(false); P.controlEnabled = was; P.buf.a = '';
 }
 
+// The waystation and the muster (docs/story.md, prologue 4 and 5) are played at the second site
+// (world/waystation.js). Yard coordinates: x east, z north, from the middle of the yard.
+const wy = (x, z) => [WAY.x + x, WAY.z + z], wy3 = (x, y, z) => [WAY.x + x, y, WAY.z + z];
+const flank = (s) => wy(s * rnd(8, 13), rnd(15.6, 19.6)); // outside the north wall, east (1) or west (-1) of the gate: out of sight from the yard, and they come round to the gate (route() in level.js)
+// Walk the captain to a point under a script, and wait until he is there (or `max` seconds have gone).
+async function stroll(d, x, z, sp, max = 8) { const P = G.player, w = (P.walk = { x, z, sp }), t0 = G.time; await d.until(() => P.walk !== w || Math.hypot(P.pos.x - x, P.pos.z - z) < 0.2 || G.time - t0 > max); if (P.walk === w) P.walk = null; }
+const turnTo = (d, c, to, dur) => { const f0 = c.face, df = wrap(to - f0); return d.tween(dur, (u) => { c.face = wrap(f0 + df * u * u * (3 - 2 * u)); }); };
+// Walk a foe to a point under a script. G.freezeAI holds its own mind still meanwhile (and
+// brakes it a little every frame, which the speed here allows for).
+function march(d, e, x, z, sp = 4.2) {
+  const t0 = G.time, far = () => Math.hypot(x - e.pos.x, z - e.pos.z);
+  const stop = d.every(() => { const l = far(); if (l < 0.3 || e.dead) return; e.face = Math.atan2(x - e.pos.x, z - e.pos.z); e.vel.set(((x - e.pos.x) / l) * sp * 1.14, 0, ((z - e.pos.z) / l) * sp * 1.14); });
+  return d.until(() => far() < 0.4 || e.dead || G.time - t0 > 10).then(stop, (err) => { stop(); throw err; });
+}
+const settled = async (d, max = 1.5) => { const P = G.player, t0 = G.time; await d.until(() => P.state === 'loco' || G.time - t0 > max); P.state = 'loco'; P.stop(0.2); P.charge = 0; }; // let a swing play out before a scene takes him over
+
+// The halls above the vault (owner, Nov 2026): the game opens here. He comes down into a gallery
+// lined with the dead of both sides, the many who tried. The basics are taught on the first of
+// the Usurper's guard he meets (lock on, strike, shield: the lessons that used to be at the Door).
+// One of the realm's knights is still alive, and tells him what they learned: the Usurper bleeds
+// and does not die, and the Door below is what he came for. Then the guard come up from the
+// rotunda in waves, and the last of them hold the head of the stair. Her lines are a draft.
+const hx = (x, z) => [HALLS.x + x, HALLS.z + z], hx3 = (x, y, z) => [HALLS.x + x, y, HALLS.z + z];
+stage('halls', {
+  checkpoint: true,
+  async run(d) {
+    ui.fade(1, 0); G.resetWorld({ site: 'halls', player: [...hx(0, -0.4), PI], corin: null });
+    const P = G.player, L = G.level; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.maxAtk = 1; preloadMusic('blade', 'sealed');
+    const K = new Extra(LOOKS.knight, ...hx(-2.95, -25.2), PI / 2); K.play(C(0.1, [0, PZ.sit]), 0.01);
+    const F = G.spawn('glassguard', ...hx(0.6, -13.4), { spare: true }); F.hold = true; F.face = 2.7; // the first of them, standing over a man he has just killed
+    const stair = [G.spawn('glasswarden', ...hx(0, -55.0)), G.spawn('glassguard', ...hx(-1.4, -53.4)), G.spawn('glassguard', ...hx(1.4, -53.7))]; for (const e of stair) { e.hold = true; e.face = 0; } // and the last, at the head of the stair from the start: far off, against the Door's light
+    const left = () => G.enemies.filter((e) => !e.dead && !e.hold).length, south = (z) => P.pos.z < HALLS.z + z;
+    const loose = d.every(() => { if (stair[0].hold && south(-46.8)) { for (const e of stair) { e.hold = false; e.cd = rnd(1, 2); } G.boss = stair[0]; G.maxAtk = 2; } });
+    if (!G.seenHalls) { G.seenHalls = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.'], TAP); ui.chronClose(); } // two lines of footing, once; not again on a retry
+    // He comes down into the gallery, seen from the floor among the dead.
+    cam.shot(hx3(1.9, 0.55, -8.6), hx3(-0.2, 1.5, -1.5)); cam.shot(hx3(1.5, 0.8, -7.6), hx3(-0.1, 1.45, -2.5), 6); ui.fade(0, 2.6);
+    await d.wait(1.0); await stroll(d, ...hx(0, -3.8), 1.4, 6); await d.wait(0.5);
+    G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; ui.objective('Find the way down to the vault');
+    // The first guard turns from his work. The three basics, once (not again on a retry).
+    await d.until(() => P.dist(F) < 8.5 || F.hp < F.maxHp); turnTo(d, F, F.angleTo(P), 0.5).catch(() => {});
+    const beaten = () => F.hp <= 1;
+    if (!G.taughtDoor) {
+      let n = 0, hp = F.hp; const hits = d.every(() => { if (F.hp < hp) n++; hp = F.hp; });
+      ui.hint('Lock on to the guard with {k}'); await d.until(() => P.lock === F || n >= 3 || beaten());
+      if (n < 3) { n = 0; ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); }
+      hits(); n = 0; const off = G.on((k, e) => { if (k === 'struck' && (e.result === 'block' || e.result === 'parry')) n++; });
+      F.hold = false; F.cd = 1.0; ui.hint(beaten() ? '' : 'Hold {b} to raise your shield when he swings');
+      await d.until(() => n >= 2 || beaten()); off(); ui.hint(''); G.taughtDoor = true;
+    }
+    F.hold = false; F.spare = false;
+    await d.until(() => F.dead);
+    // Further down, someone is still alive.
+    await d.until(() => south(-22.2)); await settled(d);
+    P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); ui.objective('');
+    K.play(C(1.0, [1.0, PZ.sitUp]), 0.2);
+    cam.shot(hx3(1.5, 1.5, -22.4), hx3(-2.4, 0.8, -25.6)); cam.shot(hx3(0.7, 1.2, -23.3), hx3(-2.5, 0.8, -25.7), 7); // she is on the left of the shot, and he comes to stand beyond her
+    await stroll(d, ...hx(0.2, -26.2), 1.8, 4); await stroll(d, ...hx(-1.5, -26.6), 1.5, 4); await turnTo(d, P, P.angleTo(K), 0.4);
+    await d.talk([
+      ['Knight', 'You came. ...Then there is one of us left.'],
+      ['Knight', 'We cut him. All of us. He bled like a man, and he got up like something else.'],
+      ['Knight', 'He does not die. I watched him not die three times.'],
+    ]);
+    cam.shot(hx3(-0.5, 1.0, -24.2), hx3(-2.85, 0.9, -25.2)); cam.shot(hx3(-0.8, 0.95, -24.4), hx3(-2.85, 0.9, -25.2), 6); // close on her
+    await d.talk([
+      ['Knight', 'The Door, below. It is his. It is what he came down here for.'],
+      ['Knight', 'Put him through it, and shut it. It is the only thing that will hold him.'],
+    ]);
+    // Below them the glass answers, and the guard come back up.
+    SFX.boom(); G.shake = 0.2; L.flare = 0.55;
+    for (const [x, z] of [[11.6, -38], [-11.6, -38.4], [11.0, -37.2]]) G.spawn('glassguard', ...hx(x, z));
+    await d.wait(0.7);
+    await d.talk([['Knight', 'Go. They are coming back up.']]);
+    K.play(C(1.6, [1.6, PZ.sitDead]), 0.2); playMusic('blade', { cross: 2, fade: 1.5 });
+    cam.shot(hx3(1.4, 1.7, -21.8), hx3(0, 1.4, -33)); cam.shot(hx3(1.2, 1.6, -22.6), hx3(0, 1.4, -33), 2.5);
+    await d.wait(2.0);
+    G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = PI; cam.behind(); P.controlEnabled = true; ui.objective('Cut your way down to the vault');
+    await d.until(() => left() === 0);
+    // The rotunda: they come out of the side passages, twice.
+    await d.until(() => south(-33.5));
+    G.maxAtk = 2; G.spawn('glassguard', ...hx(11.6, -38)); G.spawn('glassguard', ...hx(11.0, -37.2)); G.spawn('glassshield', ...hx(-11.6, -38));
+    if (stair[0].hold) await glance(d, ...hx(7.4, -38), { from: hx3(-3.5, 3.0, -33.5) });
+    await d.until(() => left() === 0); await d.wait(0.8);
+    G.spawn('glassguard', ...hx(-11.6, -38)); G.spawn('glassguard', ...hx(-11.0, -38.8)); G.spawn('glassshield', ...hx(11.6, -38)); G.spawn('glassguard', ...hx(11.0, -37.2));
+    if (stair[0].hold) await glance(d, ...hx(-7.4, -38), { from: hx3(3.5, 3.0, -33.5) });
+    await d.until(() => left() === 0);
+    // The head of the stair.
+    ui.objective('Go down to the vault'); L.marker(...hx(0, -56.3));
+    await d.until(() => live() === 0 && Math.hypot(P.pos.x - hx(0, -56.3)[0], P.pos.z - hx(0, -56.3)[1]) < 1.7);
+    loose(); L.marker(null); ui.objective(''); G.boss = null; P.controlEnabled = false; ui.fade(1, 1.3); await d.wait(1.5);
+  },
+});
+
 // Prologue: the climax nobody saw. The Glass Door dressing turns the end of the Narrows into
 // the vault. It opens on the end of the fight with a few cards of footing (owner's note: don't
 // spell the theme out): the Usurper is cornered and already beaten (TYPES.usurper), and all that
@@ -49,12 +143,11 @@ async function glance(d, x, z, o = {}) {
 const VAULT = -14.5; // the captain can't back out of the vault: its wall is at the canyon mouth
 stage('door', {
   checkpoint: true,
-  setup() { G.resetWorld({ player: [0, -17, PI], corin: null, gate: 'door' }); },
   async run(d) {
-    const P = G.player; G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
+    ui.fade(1, 0); G.resetWorld({ player: [0, -17, PI], corin: null, gate: 'door' }); // behind a black screen: he has come down the stair from the halls
+    const P = G.player; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
     preloadMusic('blade', 'sealed');
     const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.face = 0; U.hp = U.maxHp * 0.75; // some of the fight is behind them; enough is left to learn on
-    if (!G.seenDoor) { G.seenDoor = true; await d.chronicle('Prologue', ['At the end of the war, the Usurper nearly took the realm.', 'Many tried to intervene, but only one succeeded.', 'In the vault of the Glass Door, the Usurper was cornered and near defeat.'], TAP); ui.chronClose(); } // three lines of footing, once; not again on a retry
     cam.shot([-1.1, 1.25, -21.6], [0.3, 1.75, -23.2]); // on him first: bent over, breathing hard, the Door at his back
     await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 4.2);
     playMusic('blade', { cross: 2.5, fade: 3 }); // the title theme fades out, then the fight's own music fades in
@@ -203,22 +296,6 @@ stage('road', {
   },
 });
 
-// The waystation and the muster (docs/story.md, prologue 4 and 5) are played at the second site
-// (world/waystation.js). Yard coordinates: x east, z north, from the middle of the yard.
-const wy = (x, z) => [WAY.x + x, WAY.z + z], wy3 = (x, y, z) => [WAY.x + x, y, WAY.z + z];
-const flank = (s) => wy(s * rnd(8, 13), rnd(15.6, 19.6)); // outside the north wall, east (1) or west (-1) of the gate: out of sight from the yard, and they come round to the gate (route() in level.js)
-// Walk the captain to a point under a script, and wait until he is there (or `max` seconds have gone).
-async function stroll(d, x, z, sp, max = 8) { const P = G.player, w = (P.walk = { x, z, sp }), t0 = G.time; await d.until(() => P.walk !== w || Math.hypot(P.pos.x - x, P.pos.z - z) < 0.2 || G.time - t0 > max); if (P.walk === w) P.walk = null; }
-const turnTo = (d, c, to, dur) => { const f0 = c.face, df = wrap(to - f0); return d.tween(dur, (u) => { c.face = wrap(f0 + df * u * u * (3 - 2 * u)); }); };
-// Walk a foe to a point under a script. G.freezeAI holds its own mind still meanwhile (and
-// brakes it a little every frame, which the speed here allows for).
-function march(d, e, x, z, sp = 4.2) {
-  const t0 = G.time, far = () => Math.hypot(x - e.pos.x, z - e.pos.z);
-  const stop = d.every(() => { const l = far(); if (l < 0.3 || e.dead) return; e.face = Math.atan2(x - e.pos.x, z - e.pos.z); e.vel.set(((x - e.pos.x) / l) * sp * 1.14, 0, ((z - e.pos.z) / l) * sp * 1.14); });
-  return d.until(() => far() < 0.4 || e.dead || G.time - t0 > 10).then(stop, (err) => { stop(); throw err; });
-}
-const settled = async (d, max = 1.5) => { const P = G.player, t0 = G.time; await d.until(() => P.state === 'loco' || G.time - t0 > max); P.state = 'loco'; P.stop(0.2); P.charge = 0; }; // let a swing play out before a scene takes him over
-
 // Prologue 4: the waystation. Years on, he is a yard hand. Raiders come in off the road and
 // cut down the one guard; they take him for nobody and go for the goods; he takes up the dead
 // man's sword and shield. The first open fight of the game, in three waves, as the light goes:
@@ -288,12 +365,12 @@ stage('waystation', {
     await d.until(() => live() === 0); await d.wait(0.9);
     // More of them, and quicker, with the light going.
     d.tween(8, (u) => L.setDawn(u * 0.45)).catch(() => {});
-    G.maxAtk = 2; G.spawn('runner', ...flank(1)); G.spawn('runner', ...flank(1)); G.spawn('raider', ...flank(1));
+    G.maxAtk = 2; G.spawn('runner', ...flank(1)); G.spawn('runner', ...flank(1)); G.spawn('raider', ...flank(1)); G.spawn('raider', ...flank(1));
     await d.wait(1.6); await glance(d, ...wy(0, 14), { from: wy3(-5.5, 3.4, 2.5) }); // they are at the gate by the time the camera is
     await d.until(() => live() === 0); await d.wait(0.9);
     // The one who leads them.
     d.tween(8, (u) => L.setDawn(0.45 + u * 0.55)).catch(() => {});
-    const chief = G.spawn('chief', ...wy(-8.5, 17.5)); G.spawn('raider', ...flank(-1)); G.spawn('raider', ...flank(-1)); G.spawn('runner', ...flank(-1));
+    const chief = G.spawn('chief', ...wy(-8.5, 17.5)); G.spawn('raider', ...flank(-1)); G.spawn('raider', ...flank(-1)); G.spawn('runner', ...flank(-1)); G.spawn('runner', ...flank(-1));
     await d.wait(1.6); await glance(d, ...wy(0, 14), { from: wy3(5.5, 3.4, 2.5) }); G.boss = chief;
     await d.until(() => live() === 0);
 

@@ -5,6 +5,7 @@ import { toon, TEX, canvasTex, speck } from '../gfx/materials.js';
 import { FX } from '../gfx/fx.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildWaystation } from './waystation.js';
+import { buildHalls, HALLS, GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W } from './halls.js';
 
 // Layout (north = +z). A walled camp in front of a cliff. Raiders come through the
 // breach in the north wall and a gap in the east wall. South, a slot canyon
@@ -24,7 +25,8 @@ export const WAY = { x: 0, z: 120 };
 export const YARD = { x0: WAY.x - 15, x1: WAY.x + 15, z0: WAY.z - 12, z1: WAY.z + 12 };
 export const WSIDE = { x0: WAY.x - 14, x1: WAY.x + 14, z0: WAY.z + 14.3, z1: WAY.z + 21 }; // along the outside of the north wall: raiders come round to the gate from here, out of sight of the yard
 export const WROAD = { x0: WAY.x - 3, x1: WAY.x + 3, z0: WAY.z + 10, z1: WAY.z + 34 };
-const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARROWS, BREACH, EAST], obs: [], sky: ['night', 'dawn'] }, way: { at: [WAY.x, WAY.z], player: [YARD], all: [YARD, WROAD, WSIDE], obs: [], sky: ['day', 'dusk'] } };
+const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARROWS, BREACH, EAST], obs: [], sky: ['night', 'dawn'] }, way: { at: [WAY.x, WAY.z], player: [YARD], all: [YARD, WROAD, WSIDE], obs: [], sky: ['day', 'dusk'] },
+  halls: { at: [HALLS.x, HALLS.z - 29], player: [GALLERY, ROTUNDA, DESCENT], all: [GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W], obs: [], sky: ['night', 'night'], indoor: true } }; // the halls above the vault (world/halls.js): under a roof, with their own light
 let PLAYER_AREA = SITES.ruins.player, ALL_AREA = SITES.ruins.all;
 export const OBSTACLES = []; // the current site's
 
@@ -266,6 +268,7 @@ export function buildLevel() {
     // cold light off the glass, down the middle of the hall
     const vaultL = [[-23.2, 5], [-16.2, 3.2]].map(([z, i]) => { const l = new T.PointLight(0x9fdcd2, i, 13, 2); l.position.set(0, 4.2, z); l.userData.base = i; scene.add(l); return l; });
     W.vault = { veined, glass: mGlass, lights: vaultL };
+    W.kit = { tex, ashlar, paving, veinTex, vmat, cluster, shard, mVault, mVaultD, mInside, mIron, still }; // the vault's stone and glass, for the halls that lead to it
     for (const m of scene.children.slice(n0)) doorG.add(m);
   }
   {
@@ -400,6 +403,9 @@ export function buildLevel() {
     }
     scene.add(tufts); }
 
+  // the halls above the vault, at their own site: built into the scene, then gathered into one group
+  W.kit.fire = fire; const hn0 = scene.children.length, halls = buildHalls(scene, W.kit), hallsG = new T.Group(); SITES.halls.obs = halls.obs;
+  for (const m of scene.children.slice(hn0)) hallsG.add(m); scene.add(hallsG);
   // the waystation, at its own site
   SITES.ruins.obs = OBSTACLES.slice();
   const way = buildWaystation(scene, WAY.x, WAY.z); SITES.way.obs = way.obs; W.banners.push(...way.banners);
@@ -457,11 +463,18 @@ export function buildLevel() {
     const k = door ? 13 : 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : 2; /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(site.at[0], 0, site.at[1] + (door ? -19 : 0));
     if (door) { sun.color.setHex(0xd2efe9); sun.intensity = 2.3; sun.position.set(0, 4.14, -29.5); /* just behind the glass, so nothing outside the vault shadows it */ hemi.color.setHex(0x7284a8); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.95; }
     else if (W.setDawn) W.setDawn(W.dawn);
+    // Under a roof (the halls): no ground or sky to light. The one strong light is the Door's, coming up
+    // the stair at the far end and down the whole length of the halls, low, so columns and the dead throw long shadows toward him.
+    const ind = !!site.indoor; ground.visible = !ind; scene.fog.near = ind ? 9 : 26;
+    if (ind) {
+      sun.color.setHex(0xbfe6e0); sun.intensity = 2.0; sun.position.set(site.at[0], 5.5, site.at[1] - 36); hemi.color.setHex(0x6878a0); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.85;
+      scene.fog.color.setHex(0x0a0f18); scene.fog.far = 80; G.renderer.setClearColor(scene.fog.color); sc.left = -16; sc.right = 16; sc.top = 16; sc.bottom = -16; sc.near = 0.5; sc.updateProjectionMatrix();
+    }
   };
   // Which place the game is in: 'ruins' (the camp, the Narrows and the vault) or 'way' (the
   // waystation). o.sky overrides the site's pair of skies with one; o.muster adds the muster's dressing.
   W.setSite = (name, o = {}) => {
-    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster;
+    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls';
     OBSTACLES.length = 0; OBSTACLES.push(...site.obs, ...(o.muster ? way.obsMuster : []));
     SA = SKIES[o.sky || site.sky[0]]; SB = SKIES[o.sky || site.sky[1]];
   };
@@ -487,6 +500,9 @@ export function buildLevel() {
       const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; gateL.intensity = 12 + fl * 30; sun.intensity = 2.3 + fl * 3;
       for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6); for (const l of W.vault.lights) l.intensity = l.userData.base * (0.85 + pulse * 0.3 + fl * 4);
     }
+    if (site.indoor) { const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; sun.intensity = 2.0 + fl * 3;
+      for (const m of W.vault.veined) m.emissiveIntensity = pulse + fl * 3.2; W.vault.glass.color.setScalar(0.9 + pulse * 0.25 + fl * 1.6);
+      for (const l of halls.cold) l.intensity = l.userData.base * (0.85 + pulse * 0.3 + fl * 4); halls.lights.forEach((l, i) => { l.intensity = l.userData.base * (0.86 + Math.sin(t * 9 + i * 3) * 0.08 + Math.sin(t * 23 + i) * 0.06); }); }
     if (doorG.visible && Math.random() < dt * 2.5) FX.sparks.emit(tmp.set((Math.random() - 0.5) * 3.4, 0.4 + Math.random() * 5, -27.3), 1, 0.35, 0x9ff0e0, 1.8, { grav: -0.4, spread: 0.3 }); // motes drifting off the glass
   };
   // waypoint marker

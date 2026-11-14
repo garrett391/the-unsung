@@ -46,7 +46,7 @@ G.resetWorld = (o) => {
 const SAVE = 'the-unsung.checkpoint', OLD = { 2: 'raid', 4: 'hold', 5: 'vessa' };
 const loadSave = () => { try { const v = localStorage.getItem(SAVE), k = STAGES.findIndex((s) => s.name === (OLD[v] || v)); return k > 0 && STAGES[k].checkpoint ? k : 0; } catch (_) { return 0; } };
 const writeSave = (k) => { try { localStorage.setItem(SAVE, STAGES[k].name); } catch (_) { /* storage blocked: play on without saving */ } };
-const LABEL = { waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+const LABEL = { door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {

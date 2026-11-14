@@ -8,10 +8,11 @@ A man nobody knows saves the realm, and nobody sees it. Years later he is a guar
 
 **Prologue.**
 
-1. **The Glass Door**: the end of the fight with the Usurper, and the sealing.
-2. **The road**: the years between, as cards.
-3. **The waystation**: raiders hit the yard where he works; he takes up a fallen guard's sword. Three waves, as the light goes.
-4. **The muster**: a trial bout against the column's sergeant, and the clerk asks his name.
+1. **The halls**: down through the dead of both sides to the vault; lock on, strike and shield are taught on the way.
+2. **The Glass Door**: the end of the fight with the Usurper, and the sealing.
+3. **The road**: the years between, as cards.
+4. **The waystation**: raiders hit the yard where he works; he takes up a fallen guard's sword. Three waves, as the light goes.
+5. **The muster**: a trial bout against the column's sergeant, and the clerk asks his name.
 
 **Act I, the first night at the ruins.**
 
@@ -74,7 +75,7 @@ node test/cast.mjs                  # every look and enemy type, in daylight
 | `src/actors/anim.js` | Poses, attack clips and generated locomotion |
 | `src/actors/data.js` | Attack and enemy numbers: tune combat here |
 | `src/actors/player.js`, `enemy.js`, `ally.js`, `extra.js` | The captain, raiders and Vessa, Corin, scripted bystanders |
-| `src/world/` | Level geometry (the ruins and vault in `level.js`, the waystation in `waystation.js`), collision, sky and lighting; camera |
+| `src/world/` | Level geometry (the ruins and vault in `level.js`, the halls in `halls.js`, the waystation in `waystation.js`), collision, sky and lighting; camera |
 | `src/story/director.js` | Awaitable waits, tweens and dialogue for stage scripts |
 | `src/story/mission.js` | The stages, written as straight-line scripts |
 | `src/story/stretchers.js` | The stretcher bearers crossing the Narrows during the hold |
