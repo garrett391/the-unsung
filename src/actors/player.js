@@ -6,7 +6,7 @@ import { PI, clamp, lerp, wrap, damp } from '../core/util.js';
 import { JI, NJ, PL } from './rig.js';
 import { Char } from './char.js';
 import { CL, stride } from './anim.js';
-import { ATK } from './data.js';
+import { ATK, LOOKS } from './data.js';
 import { FX, Trail, shock, blood } from '../gfx/fx.js';
 import { cam } from '../world/camera.js';
 
@@ -16,7 +16,7 @@ const RUN = 6.3;
 
 export class Player extends Char {
   constructor() {
-    super({ armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, cape: 0x27355e, shield: 0, rim: 0x2c3f86, legs: 1.22, pads: 0.88 });
+    super(LOOKS.captain); this.look = 'captain';
     this.trail = new Trail(0xffe9b0); this.flashCol = [1, 0.15, 0.1]; this.rollDir = new T.Vector3(); this.reset(0, 0, 0);
   }
   reset(x, z, face) {
@@ -25,6 +25,7 @@ export class Player extends Char {
     this.controlEnabled = true; this.place(x, z, face); this.stW = 1; this.leadW = 0; this.wet = 0; this._wet = true;
     this.walk = null; this.calm = false; this.cineTrail = false; this.flashCol = [1, 0.15, 0.1]; this.lookY = 0; this.lookP = 0; this.gait = 1; // cutscene hooks, see stick() and update()
   }
+  wear(name) { if (this.look !== name) { this.look = name; this.dress(LOOKS[name]); } } // 'captain', or one of the prologue's looks (LOOKS in data.js)
   // Body layer over every pose (clips and locomotion), so the weight sits in the legs and hips:
   // a lower, wider base; swings that turn from the hips with the torso following; and more
   // pelvis turn and contact dip when running.
@@ -132,7 +133,7 @@ export class Player extends Char {
       }
       this.st = 0; this.stDelay = 1.4; dmg *= 0.5; this.hitDur = 0.95; SFX.clang();
     } else this.hitDur = 0.42;
-    this.hp -= dmg; this.flash = 1; SFX.hurt(); if (dmg > 0) { (dmg > 20 ? SFX.big : SFX.hit)(); blood(hp, dir, dmg > 20 ? 2 : 1, this.hp <= 0, e); G.hurt = Math.min(1, 0.5 + dmg * 0.02); } // sparring blows (no damage) draw none
+    this.hp -= dmg; if (G.blunt && this.hp < 1) this.hp = 1; /* a bout with blunted steel: nothing bleeds and nobody dies */ this.flash = 1; SFX.hurt(); if (dmg > 0) { (dmg > 20 ? SFX.big : SFX.hit)(); if (!G.blunt) blood(hp, dir, dmg > 20 ? 2 : 1, this.hp <= 0, e); G.hurt = Math.min(1, 0.5 + dmg * 0.02); } // sparring blows (no damage) draw none
     FX.sparks.emit(hp, 12, 4, 0xff5040, 0.3); G.shake = 0.3 + dmg * 0.01; G.hitstop = 0.07;
     this.vel.copy(dir).multiplyScalar(6 + dmg * 0.15); this.charge = 0; this.trailOn = false;
     if (this.hp <= 0) { this.hp = 0; this.dead = true; this.state = 'dead'; this.aT = 0; this.play(CL.death, 0.1); this.lock = null; SFX.fall(); G.emit('playerDead'); return 'hit'; }

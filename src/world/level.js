@@ -4,6 +4,7 @@ import { PI, clamp, lerp, rng } from '../core/util.js';
 import { toon, TEX, canvasTex, speck } from '../gfx/materials.js';
 import { FX } from '../gfx/fx.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { buildWaystation } from './waystation.js';
 
 // Layout (north = +z). A walled camp in front of a cliff. Raiders come through the
 // breach in the north wall and a gap in the east wall. South, a slot canyon
@@ -15,8 +16,16 @@ export const EAST = { x0: 16, x1: 28, z0: -4.8, z1: -1.2 };
 export const MOUTH = { x: 0, z: -8.6 };
 export const RING = { x: 0, z: 6, r: 4.2 };
 const FIRE = 16;
-const PLAYER_AREA = [COURT, NARROWS], ALL_AREA = [COURT, NARROWS, BREACH, EAST];
-export const OBSTACLES = [];
+// A second place, built far enough off that neither can be seen from the other: the waystation
+// on the caravan road (world/waystation.js). Its yard, and the road outside its gate where
+// raiders come in. A site is its walkable rectangles, its obstacles and where the sun is aimed;
+// `level.setSite` switches between them.
+export const WAY = { x: 0, z: 120 };
+export const YARD = { x0: WAY.x - 15, x1: WAY.x + 15, z0: WAY.z - 12, z1: WAY.z + 12 };
+export const WROAD = { x0: WAY.x - 3, x1: WAY.x + 3, z0: WAY.z + 10, z1: WAY.z + 34 };
+const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARROWS, BREACH, EAST], obs: [], sky: ['night', 'dawn'] }, way: { at: [WAY.x, WAY.z], player: [YARD], all: [YARD, WROAD], obs: [], sky: ['day', 'dusk'] } };
+let PLAYER_AREA = SITES.ruins.player, ALL_AREA = SITES.ruins.all;
+export const OBSTACLES = []; // the current site's
 
 // Keep a circle inside the walkable rectangles, then out of round obstacles.
 export function confine(p, r, isPlayer) {
@@ -57,8 +66,14 @@ export function clampCamera(p, look) {
   }
 }
 
-const NIGHT = { zen: 0x04060f, hor: 0x1d2a55, fog: 0x121a36, hemiS: 0x5f7fe0, hemiG: 0x1c1a26, hemiI: 0.95, sun: 0x9fb6ff, sunI: 1.7, sunP: [-22, 34, 26], warm: 0 };
-const DAWN = { zen: 0x35528e, hor: 0xf2a56c, fog: 0xc9907a, hemiS: 0xffd8b8, hemiG: 0x7a5038, hemiI: 1.7, sun: 0xffb27a, sunI: 3.2, sunP: [40, 14, 24], warm: 1 };
+// Skies. A site has a pair, and `setDawn(u)` runs from the first to the second: the ruins from night
+// to dawn; the waystation from a hot late afternoon to dusk, or a clear morning for the muster.
+const NIGHT = { zen: 0x04060f, hor: 0x1d2a55, fog: 0x121a36, hemiS: 0x5f7fe0, hemiG: 0x1c1a26, hemiI: 0.95, sun: 0x9fb6ff, sunI: 1.7, sunP: [-22, 34, 26], warm: 0, stars: 1, moon: 1, fire: 1, fogF: 150 };
+const DAWN = { zen: 0x35528e, hor: 0xf2a56c, fog: 0xc9907a, hemiS: 0xffd8b8, hemiG: 0x7a5038, hemiI: 1.7, sun: 0xffb27a, sunI: 3.2, sunP: [40, 14, 24], warm: 1, stars: 0, moon: 0.15, fire: 0.3, fogF: 150 };
+const DAY = { zen: 0x3a6fb4, hor: 0xd9c9a4, fog: 0xd6c19c, hemiS: 0xfff1da, hemiG: 0x8f6f4c, hemiI: 1.55, sun: 0xffe2b0, sunI: 3.1, sunP: [-34, 30, 12], warm: 0.2, stars: 0, moon: 0, fire: 0.3, fogF: 105 };
+const DUSK = { zen: 0x2c3f7a, hor: 0xe9925e, fog: 0xc4927a, hemiS: 0xd9b8b4, hemiG: 0x6a4c40, hemiI: 1.35, sun: 0xffb486, sunI: 2.5, sunP: [-42, 12, 16], warm: 0.55, stars: 0, moon: 0, fire: 0.6, fogF: 105 };
+const MORN = { zen: 0x4f86c8, hor: 0xf1dcc0, fog: 0xdcccb4, hemiS: 0xf4f0ea, hemiG: 0x8a7458, hemiI: 1.5, sun: 0xfff0dc, sunI: 3.1, sunP: [36, 22, -14], warm: 0.25, stars: 0, moon: 0, fire: 0.3, fogF: 105 };
+const SKIES = { night: NIGHT, dawn: DAWN, day: DAY, dusk: DUSK, morning: MORN };
 
 export function buildLevel() {
   const scene = G.scene, r = rng(1234), R = (a, b) => a + r() * (b - a);
@@ -71,7 +86,7 @@ export function buildLevel() {
   const mBanner = toon(0xffffff, { map: TEX.banner, side: T.DoubleSide, alphaTest: 0.5 });
   const V = (x, y, z) => new T.Vector3(x, y, z), UP = V(0, 1, 0);
   // The dunes start past the walls, except along the raiders' road north of the breach, which stays level.
-  const dune = (x, z) => { const road = 1 - clamp((Math.abs(x) - 5.5) / 6, 0, 1), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - lerp(26, 44, road * road * (3 - 2 * road))), d = Math.hypot(dx, dz); return Math.min(1, d / 14) * (Math.sin(x * 0.045 + z * 0.02) * 3 + Math.sin(z * 0.06 - x * 0.03) * 2.2 + Math.sin(x * 0.13) * 0.8) - (d > 0 ? 0.2 : 0); };
+  const dune = (x, z) => { const road = 1 - clamp((Math.abs(x) - 5.5) / 6, 0, 1), dx = Math.max(-22 - x, 0, x - 30), dz = Math.max(-30 - z, 0, z - lerp(26, 44, road * road * (3 - 2 * road))), d = Math.min(Math.hypot(dx, dz), Math.hypot(Math.max(WAY.x - 24 - x, 0, x - WAY.x - 24), Math.max(WAY.z - 21 - z, 0, z - WAY.z - 37))); return Math.min(1, d / 14) * (Math.sin(x * 0.045 + z * 0.02) * 3 + Math.sin(z * 0.06 - x * 0.03) * 2.2 + Math.sin(x * 0.13) * 0.8) - (d > 0 ? 0.2 : 0); };
   const add = (geo, mat, x, y, z, ry) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); if (ry) m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
   const box = (w, h, d, mat, x, y, z, ry) => add(new T.BoxGeometry(w, h, d), mat, x, y, z, ry);
 
@@ -378,9 +393,14 @@ export function buildLevel() {
     }
     scene.add(tufts); }
 
+  // the waystation, at its own site
+  SITES.ruins.obs = OBSTACLES.slice();
+  const way = buildWaystation(scene, WAY.x, WAY.z); SITES.way.obs = way.obs; W.banners.push(...way.banners);
+
   // far silhouettes
   const mFar = toon(0x2a2a40);
-  for (let i = 0; i < 16; i++) { const a = (i / 16) * PI * 2 + R(0, 0.3), d = R(170, 250), h = R(18, 46); add(new T.CylinderGeometry(R(14, 30), R(26, 44), h, 7), mFar, Math.sin(a) * d, h / 2 - 3, Math.cos(a) * d, R(0, 3)).castShadow = false; }
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * PI * 2 + R(0, 0.3), d = R(170, 250), h = R(18, 46), rt = R(14, 30), rb = R(26, 44), ry = R(0, 3), x = Math.sin(a) * d, z = Math.cos(a) * d;
+    if (Math.hypot(x - WAY.x, z - WAY.z) > rb + 64) add(new T.CylinderGeometry(rt, rb, h, 7), mFar, x, h / 2 - 3, z, ry).castShadow = false; } // none on top of the waystation
 
   // sky, stars, moon
   const sg = new T.SphereGeometry(700, 24, 14); sg.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(sg.attributes.position.count * 3), 3));
@@ -404,31 +424,39 @@ export function buildLevel() {
 
   const cA = new T.Color(), cB = new T.Color(), cZ = new T.Color(), cH = new T.Color();
   const mixC = (a, b, u) => cA.set(a).lerp(cB.set(b), u);
-  // u = 0 night, 1 dawn
+  // u runs from the site's first sky to its second: at the ruins, 0 is night and 1 is dawn
+  let site = SITES.ruins, SA = NIGHT, SB = DAWN;
   W.setDawn = (u) => {
-    W.dawn = u; cZ.copy(mixC(NIGHT.zen, DAWN.zen, u)); cH.copy(mixC(NIGHT.hor, DAWN.hor, u));
+    W.dawn = u; cZ.copy(mixC(SA.zen, SB.zen, u)); cH.copy(mixC(SA.hor, SB.hor, u)); const mx = (k) => lerp(SA[k], SB[k], u), warm = mx('warm');
     const p = sg.attributes.position, c = sg.attributes.color, t = new T.Color();
     for (let i = 0; i < p.count; i++) { const y = p.getY(i) / 700; t.copy(cH).lerp(cZ, clamp(y * 2.2, 0, 1)); if (y < 0) t.multiplyScalar(0.6); c.setXYZ(i, t.r, t.g, t.b); }
     c.needsUpdate = true;
-    scene.fog.color.copy(mixC(NIGHT.fog, DAWN.fog, u)); G.renderer.setClearColor(scene.fog.color);
-    hemi.color.copy(mixC(NIGHT.hemiS, DAWN.hemiS, u)); hemi.groundColor.copy(mixC(NIGHT.hemiG, DAWN.hemiG, u)); hemi.intensity = lerp(NIGHT.hemiI, DAWN.hemiI, u);
-    sun.color.copy(mixC(NIGHT.sun, DAWN.sun, u)); sun.intensity = lerp(NIGHT.sunI, DAWN.sunI, u);
-    sun.position.set(lerp(NIGHT.sunP[0], DAWN.sunP[0], u), lerp(NIGHT.sunP[1], DAWN.sunP[1], u), lerp(NIGHT.sunP[2], DAWN.sunP[2], u)).multiplyScalar(1.6);
-    stars.material.opacity = bright.material.opacity = 1 - u; moon.material.opacity = 1 - u * 0.85; halo.material.opacity = 0.3 * (1 - u); mHalo.opacity = 0.45 - u * 0.2;
+    scene.fog.color.copy(mixC(SA.fog, SB.fog, u)); scene.fog.far = mx('fogF'); G.renderer.setClearColor(scene.fog.color);
+    hemi.color.copy(mixC(SA.hemiS, SB.hemiS, u)); hemi.groundColor.copy(mixC(SA.hemiG, SB.hemiG, u)); hemi.intensity = lerp(SA.hemiI, SB.hemiI, u);
+    sun.color.copy(mixC(SA.sun, SB.sun, u)); sun.intensity = lerp(SA.sunI, SB.sunI, u);
+    sun.position.set(lerp(SA.sunP[0], SB.sunP[0], u), lerp(SA.sunP[1], SB.sunP[1], u), lerp(SA.sunP[2], SB.sunP[2], u)).multiplyScalar(1.6); sun.position.x += site.at[0]; sun.position.z += site.at[1];
+    stars.material.opacity = bright.material.opacity = mx('stars'); moon.material.opacity = mx('moon'); halo.material.opacity = 0.3 * mx('stars'); mHalo.opacity = 0.45 - warm * 0.2;
     moon.position.set(NIGHT.sunP[0], NIGHT.sunP[1], NIGHT.sunP[2]).normalize().multiplyScalar(620); moon.lookAt(0, 0, 0); halo.position.copy(moon.position).multiplyScalar(1.03);
-    if (G.grade) G.grade.uniforms.uWarm.value = u;
-    for (const l of W.fires) l.userData.base = FIRE * (1 - u * 0.7);
+    if (G.grade) G.grade.uniforms.uWarm.value = warm;
+    for (const l of W.fires) l.userData.base = FIRE * mx('fire');
   };
   // In the vault the only strong light is the Door's: the "sun" is moved behind the glass and
   // shines down the hall through the doorway, so the leading of the panes falls across the floor
   // and whoever stands in front of it is rim-lit. The camp's fires are switched off down there.
   W.applyGate = () => {
     const door = W.doorMode; for (const b of gateBanners) b.visible = !door; mRock.color.setHex(door ? 0x6f86b8 : 0xffffff); mBlock.color.setHex(door ? 0x8f9bb4 : 0xffffff); mStone.color.setHex(door ? 0x7c8698 : 0xb09a78); mGold.color.setHex(door ? 0x8f7a3c : 0xd9b24a); // and its gilding is old and dull, so the thin fillets don't sparkle as the camera moves // the Door's surround is the vault's cold stone, not the camp's sandstone
-    endCliff.castShadow = !door; for (const l of W.fires) l.visible = !door;
+    endCliff.castShadow = !door; for (const l of W.fires) l.visible = !door && site === SITES.ruins; gateL.visible = site === SITES.ruins;
     for (const m of [mBlock, mStone, mGold, mDark, mIron]) m.shadowSide = door ? T.FrontSide : null; // the Door's surround is seen from its unlit side: cast its shadow from the faces toward the light, so the faces toward us lie well inside it (cast from themselves, they speckled)
-    const k = door ? 13 : 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : 2; /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(0, 0, door ? -19 : 0);
+    const k = door ? 13 : 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : 2; /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(site.at[0], 0, site.at[1] + (door ? -19 : 0));
     if (door) { sun.color.setHex(0xd2efe9); sun.intensity = 2.3; sun.position.set(0, 4.14, -29.5); /* just behind the glass, so nothing outside the vault shadows it */ hemi.color.setHex(0x7284a8); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.95; }
     else if (W.setDawn) W.setDawn(W.dawn);
+  };
+  // Which place the game is in: 'ruins' (the camp, the Narrows and the vault) or 'way' (the
+  // waystation). o.sky overrides the site's pair of skies with one; o.muster adds the muster's dressing.
+  W.setSite = (name, o = {}) => {
+    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster;
+    OBSTACLES.length = 0; OBSTACLES.push(...site.obs, ...(o.muster ? way.obsMuster : []));
+    SA = SKIES[o.sky || site.sky[0]]; SB = SKIES[o.sky || site.sky[1]];
   };
   W.applyGate();
   W.setDawn(0);

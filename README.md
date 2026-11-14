@@ -6,7 +6,12 @@ A third-person sword-combat game for the browser, built on three.js. This is a g
 
 A man nobody knows saves the realm, and nobody sees it. Years later he is a guard captain on the desert frontier. The full outline is in `docs/story.md`.
 
-**Prologue.** The fight at the Glass Door, then the years on the road.
+**Prologue.**
+
+1. **The Glass Door**: the end of the fight with the Usurper, and the sealing.
+2. **The road**: the years between, as cards.
+3. **The waystation**: raiders hit the yard where he works; he takes up a fallen guard's sword. Three waves, as the light goes.
+4. **The muster**: a trial bout against the column's sergeant, and the clerk asks his name.
 
 **Act I, the first night at the ruins.**
 
@@ -16,7 +21,7 @@ A man nobody knows saves the realm, and nobody sees it. Years later he is a guar
 4. **Vessa, the Witches' Hand**, who is driven off and will be back.
 5. **Dawn**, and the Western Watch's report.
 
-Still to come: the waystation and the muster as playable missions, the rest of Act I, in-game music and gamepad support.
+Still to come: the rest of Act I, and gamepad support.
 
 ## Controls
 
@@ -50,7 +55,7 @@ A bot plays every stage in headless Chrome and saves screenshots to `test/shots/
 ```sh
 npm run build && npm test
 CHROME=/path/to/chrome npm test     # if Chrome is somewhere else
-FROM=raid npm test                  # start at a stage (door, spar, raid, fallback, hold, vessa)
+FROM=raid npm test                  # start at a stage (door, waystation, muster, spar, raid, fallback, hold, vessa)
 TO=door npm test                    # stop after the prologue
 node test/playtest.mjs phone        # phone-sized touch layout
 node test/look.mjs                  # close-up turnarounds of the opening foe and the captain
@@ -67,8 +72,8 @@ node test/look.mjs                  # close-up turnarounds of the opening foe an
 | `src/actors/rig.js` | The procedural armored figure every character is built from |
 | `src/actors/anim.js` | Poses, attack clips and generated locomotion |
 | `src/actors/data.js` | Attack and enemy numbers: tune combat here |
-| `src/actors/player.js`, `enemy.js`, `ally.js` | The captain, raiders and Vessa, Corin |
-| `src/world/` | Level geometry, collision, sky and lighting; camera |
+| `src/actors/player.js`, `enemy.js`, `ally.js`, `extra.js` | The captain, raiders and Vessa, Corin, scripted bystanders |
+| `src/world/` | Level geometry (the ruins and vault in `level.js`, the waystation in `waystation.js`), collision, sky and lighting; camera |
 | `src/story/director.js` | Awaitable waits, tweens and dialogue for stage scripts |
 | `src/story/mission.js` | The stages, written as straight-line scripts |
 | `src/story/stretchers.js` | The stretcher bearers crossing the Narrows during the hold |

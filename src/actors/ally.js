@@ -4,6 +4,7 @@ import { SFX } from '../core/audio.js';
 import { wrap, damp, rnd } from '../core/util.js';
 import { Char } from './char.js';
 import { CL, eClip } from './anim.js';
+import { LOOKS } from './data.js';
 import { FX, Trail } from '../gfx/fx.js';
 
 const tmpA = new T.Vector3();
@@ -16,8 +17,7 @@ export class Ally extends Char {
   constructor() {
     // Polished steel over a navy gambeson, white Third Company tabard, open-faced helm with a
     // crimson crest: younger and brighter than the captain, and readable at a glance beside him.
-    super({ armor: 0x9aa0aa, trim: 0x6c727c, under: 0x26305a, dark: 0x5a3a24, steel: 0xe6e9ef, shield: 2, rim: 0x23305a, plume: 0xb0283c,
-      helm: 'open', tabard: true, lames: true, knees: true, legs: 1.12, pads: 1.05 }, 0.93);
+    super({ ...LOOKS.soldier, eye: undefined, plume: 0xb0283c }, 0.93);
     this.type = { name: 'CORIN' }; this.hp = this.maxHp = 1; this.mode = 'idle'; this.want = null; this.st = 0; this.cd = 1.2; this.foe = null;
     this.trail = new Trail(0xb0d0ff); this.trail.life = 0.12; this.hitDone = false; this.guard = 1;
   }

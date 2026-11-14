@@ -2,7 +2,7 @@
 export const G = {
   time: 0, rdt: 0, hitstop: 0, slow: 0, shake: 0, hurt: 0, timeScale: 1,
   scene: null, camera: null, renderer: null,
-  player: null, corin: null, enemies: [], spar: false,
+  player: null, corin: null, enemies: [], extras: [], spar: false,
   running: false, cinematic: false, freezeAI: false, maxAtk: 2, kills: 0,
   stage: 0, checkpoint: 0, runId: 0, confirm: false, auto: false,
   hold: null, boss: null,

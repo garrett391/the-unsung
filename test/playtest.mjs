@@ -8,7 +8,7 @@ import { extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..'), dist = join(root, 'dist'), shots = join(root, 'test/shots');
-const phone = process.argv[2] === 'phone', ORDER = ['door', 'road', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
+const phone = process.argv[2] === 'phone', ORDER = ['door', 'road', 'waystation', 'muster', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
 const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg' };
 const server = http.createServer(async (q, s) => {
   try { const f = join(dist, q.url === '/' ? 'index.html' : q.url.split('?')[0]), d = await readFile(f); s.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); s.end(d); }
@@ -40,6 +40,7 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
       if (o.to) { p.lock = null; const a = Math.atan2(o.to[0] - p.pos.x, o.to[1] - p.pos.z); G.cam.yaw = a + Math.PI; G.cam.manualT = 1e9; G.keys.KeyW = true; }
     }
     if (o.god) p.hp = 100;
+    if (o.tap) G.confirm = true; // click through dialogue and cards at their real pace
     G.step(1 / 60, true);
     for (let k = 0; k < 24; k++) await null; // let the stage script's awaits run
     if (o.until && eval(o.until)) break;
@@ -47,9 +48,10 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
   G.keys.KeyW = false;
   return { stage: G.STAGES[G.stage].name, hp: p.hp | 0, enemies: G.enemies.filter((e) => !e.dead).length, state: p.state, hold: G.hold && +G.hold.progress.toFixed(2), boss: G.boss && (G.boss.hp | 0), pos: [p.pos.x.toFixed(1), p.pos.z.toFixed(1)], foes: G.enemies.map((e) => [e.kind, e.state, e.pos.x.toFixed(1), e.pos.z.toFixed(1)]).slice(0, 4) };
 }, { sec, o });
+const stageIs = (n) => `G.STAGES[G.stage].name==='${n}'`;
 const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
-await page.evaluate((from) => { G.auto = true; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.runFrom(from); } else G.begin(); }, only);
+await page.evaluate(([from, real]) => { G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['waystation', 'muster'].includes(ORDER[only])]);
 if (!only) {
   await play(0.3); await page.evaluate(() => { G.auto = false; }); // past the opening card, then real timing through the prologue so the shots catch it
   await play(2.6); await shot('00a-door');
@@ -64,9 +66,34 @@ if (!only) {
   log('round two', await play(60, { until: "G.player.controlEnabled" })); await play(0.3); await shot('00b10-up-again');
   log('sealing', await play(60, { bot: true, god: true, until: "G.level.flare>0.9" })); await play(0.6); await shot('00c-sealing');
   await play(3.4); await shot('00d-sealed'); await page.evaluate(() => { G.auto = true; });
-  log('road', await play(8, { until: "G.STAGES[G.stage].name==='spar'" }));
+  log('sealed', await play(8, { until: stageIs('road') })); await page.evaluate(() => { G.auto = false; });
+  log('road', await play(30, { tap: true, until: stageIs('waystation') }));
 }
 if (process.env.TO === 'door') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); } // TO=door stops after the prologue
+if (at('waystation')) { // real timing through the opening, so the shots catch it
+  await play(4); await shot('0e-yard');
+  await play(30, { until: "G.enemies.length" }); await play(1.7); await shot('0f-raiders');
+  await play(30, { until: "G.extras[0].dead" }); await play(0.5); await shot('0g-guard-falls');
+  await play(30, { tap: true, until: "!G.talking&&G.enemies[0].vel.length()>1" }); await play(1.6); await shot('0h-he-sees');
+  await play(30, { until: "G.player.walk" }); await play(2.2); await shot('0i-to-the-body');
+  await play(30, { until: "G.player.look==='drifter'" }); await play(0.4); await shot('0j-takes-the-sword'); await play(2.2); await shot('0j2-stands');
+  log('yard fight', await play(30, { until: "G.player.controlEnabled" })); await play(0.4); await shot('0k-fight');
+  log('wave 2', await play(90, { bot: true, god: true, until: "G.enemies.some(e=>e.kind==='runner')" })); await play(2.0); await shot('0l-wave-2');
+  log('wave 3', await play(120, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.kind==='chief')" })); await play(2.0); await shot('0m-leader'); await play(6, { bot: true, god: true }); await shot('0m2-leader-fight');
+  log('column', await play(180, { bot: true, god: true, heavy: true, until: "G.extras.length>2" })); await play(4.5); await shot('0n-column');
+  await play(30, { until: "G.talking" }); await play(1); await shot('0o-officer');
+  await play(30, { tap: true, until: "G.talking&&G.extras[1].root.visible" }); await play(1.5); await shot('0o2-drover');
+  log('to muster', await play(60, { tap: true, until: stageIs('muster') }));
+}
+if (at('muster')) {
+  await play(3.2); await shot('0p-muster');
+  log('bout', await play(40, { tap: true, until: "G.player.controlEnabled" })); await play(0.5); await shot('0q-bout');
+  await play(6, { bot: true, god: true }); await shot('0q2-bout');
+  log('yields', await play(180, { bot: true, god: true, heavy: true, until: "G.cinematic" })); await play(2.0); await shot('0r-yields');
+  await play(30, { tap: true, until: "G.player.walk" }); await play(40, { until: "G.talking" }); await play(1.2); await shot('0s-clerk');
+  log('to act one', await play(60, { tap: true, until: stageIs('intro') }));
+  await page.evaluate(() => { G.auto = true; });
+}
 if (at('spar')) {
   log('intro', await play(6)); await shot('01-spar-start');
   log('lock+strike', await play(14, { bot: true, until: "G.corin.mode==='attack'" })); await shot('02-spar-strike');

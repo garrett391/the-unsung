@@ -31,11 +31,11 @@ const lockRing = new T.Mesh(new T.RingGeometry(0.78, 0.9, 4), ringMat), lockRing
 for (const m of [lockRing, lockRing2]) { m.rotation.x = -PI / 2; m.visible = false; G.scene.add(m); }
 
 G.spawn = (kind, x, z, o) => { const e = new Enemy(kind, x, z, o); G.enemies.push(e); return e; };
-G.clearEnemies = () => { for (const e of G.enemies) e.dispose(); G.enemies.length = 0; };
+G.clearEnemies = () => { for (const e of G.enemies) e.dispose(); G.enemies.length = 0; for (const e of G.extras) e.dispose(); G.extras.length = 0; };
 // Put the world in a known state for the start of a stage.
 G.resetWorld = (o) => {
-  G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.reset(...o.player); G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = G.hurt = 0; clearBlood();
-  ui.holdBar(false); ui.objective(''); ui.hint(''); ui.hideDialogue(); ui.cinematic(false); level.marker(null); level.setDawn(0); level.flare = 0; level.setGate(o.gate || 'sanctum');
+  G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.wear(o.look || 'captain'); player.reset(...o.player); G.blunt = false; G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = G.hurt = 0; clearBlood();
+  ui.holdBar(false); ui.objective(''); ui.hint(''); ui.hideDialogue(); ui.cinematic(false); level.marker(null); level.setSite(o.site || 'ruins', o); level.setDawn(0); level.flare = 0; level.setGate(o.gate || 'sanctum');
   if (o.corin) { corin.setVisible(true); corin.place(o.corin[0], o.corin[1], o.corin[2]); corin.setMode(o.corin[3]); } else corin.setVisible(false);
 };
 
@@ -45,7 +45,7 @@ G.resetWorld = (o) => {
 const SAVE = 'the-unsung.checkpoint', OLD = { 2: 'raid', 4: 'hold', 5: 'vessa' };
 const loadSave = () => { try { const v = localStorage.getItem(SAVE), k = STAGES.findIndex((s) => s.name === (OLD[v] || v)); return k > 0 && STAGES[k].checkpoint ? k : 0; } catch (_) { return 0; } };
 const writeSave = (k) => { try { localStorage.setItem(SAVE, STAGES[k].name); } catch (_) { /* storage blocked: play on without saving */ } };
-const LABEL = { spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+const LABEL = { waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
@@ -76,14 +76,15 @@ function step(rdt, noRender) {
       player.update(dt);
       if (corin.root.visible) corin.update(dt);
       for (const e of G.enemies) e.update(dt);
-      const all = [player, ...(corin.root.visible ? [corin] : []), ...G.enemies];
+      for (const e of G.extras) e.update(dt);
+      const all = [player, ...(corin.root.visible ? [corin] : []), ...G.enemies, ...G.extras];
       for (const c of all) c.pos.addScaledVector(c.vel, dt);
       // bodies push each other apart; a rolling player slips through
       const ghost = player.state === 'roll' || (player.at === ATK.sa && player.state === 'atk');
       for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
-        const a = all[i], b = all[j]; if (a.dead || b.dead || b.state === 'spawn' || a.state === 'spawn') continue; if (i === 0 && ghost) continue;
+        const a = all[i], b = all[j]; if (a.dead || b.dead || b.state === 'spawn' || a.state === 'spawn' || (a.fixed && b.fixed)) continue; if (i === 0 && ghost) continue;
         const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z, d = Math.hypot(dx, dz) || 0.001, m = a.radius + b.radius + 0.12;
-        if (d < m) { const o = m - d, wa = i === 0 ? 0.65 : 0.5; a.pos.x -= (dx / d) * o * wa; a.pos.z -= (dz / d) * o * wa; b.pos.x += (dx / d) * o * (1 - wa); b.pos.z += (dz / d) * o * (1 - wa); }
+        if (d < m) { const o = m - d, wa = a.fixed ? 0 : b.fixed ? 1 : i === 0 ? 0.65 : 0.5; /* a bystander standing still (an Extra) is not shoved about */ a.pos.x -= (dx / d) * o * wa; a.pos.z -= (dz / d) * o * wa; b.pos.x += (dx / d) * o * (1 - wa); b.pos.z += (dz / d) * o * (1 - wa); }
       }
       for (let i = 0; i < all.length; i++) confine(all[i].pos, all[i].radius, i === 0 || all[i] === corin);
       for (const c of all) c.animate(dt, G.time);

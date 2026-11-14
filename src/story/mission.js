@@ -4,14 +4,16 @@ import { SFX, stopMusic, playMusic, preloadMusic, forgetMusic } from '../core/au
 import { PI, rnd, lerp, clamp, wrap } from '../core/util.js';
 import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
-import { MOUTH, RING } from '../world/level.js';
+import { MOUTH, RING, WAY } from '../world/level.js';
 import { FX, shock, clearBlood, blood } from '../gfx/fx.js';
 import { coarse, opts } from '../core/input.js';
 import { makeStretchers } from './stretchers.js';
 import { CL } from '../actors/anim.js';
+import { Extra } from '../actors/extra.js';
+import { LOOKS } from '../actors/data.js';
 
-// The campaign, as a list of stages: the prologue at the Glass Door, then the first night
-// at the ruins (Act I). Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
+// The campaign, as a list of stages: the prologue (the Glass Door, the road, the waystation,
+// the muster), then the first night at the ruins (Act I). Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
 // the world in the state the stage expects and is only used when starting there
 // (first load, or retrying from a checkpoint).
 export const STAGES = [];
@@ -29,7 +31,7 @@ async function glance(d, x, z, o = {}) {
   const P = G.player, was = P.controlEnabled, dx = P.pos.x - x, dz = P.pos.z - z, l = Math.hypot(dx, dz) || 1, back = Math.min(o.back || 9, l * 0.8);
   const p0 = cam.pos.toArray(), l0 = cam.look.toArray();
   P.controlEnabled = false; P.inv = Math.max(P.inv, 3.8); G.cinematic = true; ui.cinematic(true);
-  cam.shot([x + (dx / l) * back - (dz / l) * 2.2, o.h || 3.2, z + (dz / l) * back + (dx / l) * 2.2], [x, o.y || 1.3, z], 0.9);
+  cam.shot(o.from || [x + (dx / l) * back - (dz / l) * 2.2, o.h || 3.2, z + (dz / l) * back + (dx / l) * 2.2], [x, o.y || 1.3, z], 0.9); // o.from: a fixed camera position, where the usual one could land inside something
   await d.wait(o.hold || 1.9);
   cam.shot(p0, l0, 0.6); await d.wait(0.6);
   cam.release(); G.cinematic = false; ui.cinematic(false); P.controlEnabled = was; P.buf.a = '';
@@ -185,29 +187,177 @@ stage('door', {
   },
 });
 
-// The years between, as cards. The waystation fight and the muster are to become playable
-// (docs/story.md, prologue 4 and 5); until then they are told here.
+// The years between, as cards, down to the day the waystation is raided.
 stage('road', {
   async run(d) {
-    G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); // behind a black screen: the camp, ready for the intro
-    G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false; G.freezeAI = false; preloadMusic('flagstones');
+    G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false;
     await d.chronicle('The road', [
       'He walked out into a world where nothing had happened.',
       'A caravan passed him on the road. No one looked twice.',
       'For years he took labouring work where he found it. He could not settle, and he did not fit.',
-      "Then raiders came out of the desert and hit the waystation where he worked. He took up a fallen guard's sword.",
-      'A guard officer saw what he did, and brought him to the muster. The clerk asked his name.',
-      '<em>"Write whatever you like."</em>',
-      'They sent him to the worst posting on the frontier.',
+      '<em>A waystation on the caravan road.</em>',
     ], TAP);
     ui.chronClose();
   },
 });
 
-stage('intro', {
-  setup() { G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); },
+// The waystation and the muster (docs/story.md, prologue 4 and 5) are played at the second site
+// (world/waystation.js). Yard coordinates: x east, z north, from the middle of the yard.
+const wy = (x, z) => [WAY.x + x, WAY.z + z], wy3 = (x, y, z) => [WAY.x + x, y, WAY.z + z];
+const gateRoad = () => wy(rnd(-2.2, 2.2), rnd(23, 31)); // out on the caravan road, beyond the gate
+// Walk the captain to a point under a script, and wait until he is there (or `max` seconds have gone).
+async function stroll(d, x, z, sp, max = 8) { const P = G.player, w = (P.walk = { x, z, sp }), t0 = G.time; await d.until(() => P.walk !== w || Math.hypot(P.pos.x - x, P.pos.z - z) < 0.2 || G.time - t0 > max); if (P.walk === w) P.walk = null; }
+const turnTo = (d, c, to, dur) => { const f0 = c.face, df = wrap(to - f0); return d.tween(dur, (u) => { c.face = wrap(f0 + df * u * u * (3 - 2 * u)); }); };
+// Walk a foe to a point under a script. G.freezeAI holds its own mind still meanwhile (and
+// brakes it a little every frame, which the speed here allows for).
+function march(d, e, x, z, sp = 4.2) {
+  const t0 = G.time, far = () => Math.hypot(x - e.pos.x, z - e.pos.z);
+  const stop = d.every(() => { const l = far(); if (l < 0.3 || e.dead) return; e.face = Math.atan2(x - e.pos.x, z - e.pos.z); e.vel.set(((x - e.pos.x) / l) * sp * 1.14, 0, ((z - e.pos.z) / l) * sp * 1.14); });
+  return d.until(() => far() < 0.4 || e.dead || G.time - t0 > 10).then(stop, (err) => { stop(); throw err; });
+}
+const settled = async (d, max = 1.5) => { const P = G.player, t0 = G.time; await d.until(() => P.state === 'loco' || G.time - t0 > max); P.state = 'loco'; P.stop(0.2); P.charge = 0; }; // let a swing play out before a scene takes him over
+
+// Prologue 4: the waystation. Years on, he is a yard hand. Raiders come in off the road and
+// cut down the one guard; they take him for nobody and go for the goods; he takes up the dead
+// man's sword and shield. The first open fight of the game, in three waves, as the light goes:
+// raiders, then quicker ones (the roll is taught), then the one who leads them (the heavy blow).
+// A guard officer comes up the road behind them, in at the end, to see what he did.
+// He wears a head-wrap (LOOKS.labourer / drifter): nobody here knows his face either.
+stage('waystation', {
+  checkpoint: true,
   async run(d) {
-    G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); cam.shot([7, 5, 27], [0, 1.6, 8]);
+    ui.fade(1, 0); G.resetWorld({ site: 'way', look: 'labourer', player: [...wy(-2.4, -9.6), 0.75], corin: null });
+    const P = G.player, L = G.level, R = []; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; preloadMusic('blade');
+    const guard = new Extra(LOOKS.wayguard, ...wy(1.7, 9.4), 0), drover = new Extra(LOOKS.drover, ...wy(7.4, 2.0), 0.6);
+    const loot = [[7.2, 7.2, 2.44], [11.2, 8.4, 0.68], [-6.4, 9.6, -1.04]]; // where the first three stand over the goods, and which way they face
+    if (!G.seenWay) {
+      G.seenWay = true;
+      // The end of a working day. He crosses the yard, and nobody looks at him.
+      cam.shot(wy3(-11, 2.4, -9), wy3(0, 1.3, -3)); cam.shot(wy3(-9.5, 2.0, -6.5), wy3(1.5, 1.3, -1.5), 7); ui.fade(0, 2.4);
+      stroll(d, ...wy(2.4, -2.2), 1.25, 9).catch(() => {});
+      await d.wait(5.2);
+      // A horn, out in the dunes. At the gate, raiders come running in off the road; the guard meets them, and is cut down.
+      SFX.horn(); G.shake = 0.1; stopMusic(2); P.walk = null;
+      await d.wait(0.7); turnTo(d, P, 0.1, 0.7).catch(() => {});
+      for (const [x, z] of [[1.2, 19], [-1.4, 21.5], [0.5, 24]]) R.push(G.spawn('raider', ...wy(x, z)));
+      cam.shot(wy3(-3.2, 1.5, 3.6), wy3(0.9, 1.5, 10.5)); cam.shot(wy3(-2.6, 1.4, 5), wy3(1.2, 1.3, 10.5), 3.5);
+      guard.guard = 1; drover.go(...wy(0.4, -11.2), 4.4);
+      march(d, R[1], ...wy(-1.6, 9.8), 5).catch(() => {}); march(d, R[2], ...wy(0.2, 12.4), 5).catch(() => {});
+      await march(d, R[0], ...wy(1.6, 11.5), 5.2);
+      const m = R[0].type.moves[0]; R[0].face = R[0].angleTo(guard); R[0].play(m.clip, 0.12); SFX.tele();
+      await d.wait(m.wind); SFX.swing(0.8); await d.wait(0.1);
+      { const dir = new T.Vector3(guard.pos.x - R[0].pos.x, 0, guard.pos.z - R[0].pos.z).normalize(); SFX.big(); SFX.die(); G.hitstop = 0.1; G.shake = 0.3; guard.flash = 1;
+        blood(new T.Vector3(guard.pos.x, 1.15, guard.pos.z), dir, 2, true, R[0]); guard.lie(CL.death); guard.vel.copy(dir).multiplyScalar(2.5); }
+      await d.wait(1.0); R[0].stop(0.25); drover.setVisible(false);
+      // They take the yard hand for nobody, and go for the goods.
+      await d.talk([['Raider', 'Leave that one. He only carries the sacks.']]);
+      loot.forEach(([x, z, f], i) => march(d, R[i], ...wy(x, z), 3.6).then(() => { R[i].face = f; }, () => {}));
+      // On him: he looks at the man on the ground, and at what the man dropped.
+      { const x = P.pos.x, z = P.pos.z; cam.shot([x + 1.1, 1.55, z + 2.6], [x, 1.5, z]); cam.shot([x + 0.9, 1.55, z + 2.2], [x, 1.5, z], 2.5); }
+      await d.wait(2.0);
+      // He walks up the yard to the body, seen from the ground beside it, and goes down on one knee.
+      cam.shot(wy3(3.7, 0.5, 10.9), wy3(1.2, 0.9, 7.5)); cam.shot(wy3(3.5, 0.55, 10.5), wy3(1.2, 0.8, 8.6), 5);
+      await stroll(d, ...wy(0.75, 9.0), 2.7, 7);
+      await turnTo(d, P, Math.atan2(guard.pos.x - 0.4 - P.pos.x, guard.pos.z + 0.6 - P.pos.z), 0.4);
+      P.state = 'cine'; P.play(CL.kneel, 0.35); await d.wait(1.25);
+      // His hand closes on the grip, and the fight's music comes back for the first time since the Door.
+      P.wear('drifter'); guard.dress(LOOKS.wayguardBare); SFX.learn(); playMusic('blade', { cross: 1, fade: 2.5 });
+      cam.shot([P.pos.x - 1.5, 0.6, P.pos.z + 1.9], [P.pos.x, 0.9, P.pos.z]); cam.shot([P.pos.x - 1.8, 1.1, P.pos.z + 2.3], [P.pos.x, 1.45, P.pos.z], 2.4);
+      await d.wait(0.9); P.stop(0.7); P.state = 'loco'; P.calm = false; // he stands, and the guard comes up as it always did
+      await d.wait(1.7);
+    } else { // a retry starts with the sword already in his hand
+      P.wear('drifter'); P.place(...wy(0.75, 9.0), 1.6); guard.lie(CL.death, true); guard.dress(LOOKS.wayguardBare); drover.setVisible(false);
+      for (const [x, z, f] of loot) { const e = G.spawn('raider', ...wy(x, z)); e.face = f; R.push(e); }
+      playMusic('blade', { cross: 1, fade: 2 }); ui.fade(0, 0.8);
+    }
+    G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(R[0]); cam.behind(); P.controlEnabled = true; G.freezeAI = false; for (const e of R) e.cd = rnd(1.4, 2.6);
+    ui.objective('Drive the raiders out of the yard');
+    await d.until(() => live() === 0); await d.wait(0.9);
+    // More of them, and quicker, with the light going.
+    d.tween(8, (u) => L.setDawn(u * 0.45)).catch(() => {});
+    G.maxAtk = 2; G.spawn('runner', ...gateRoad()); G.spawn('runner', ...gateRoad()); G.spawn('raider', ...gateRoad());
+    await glance(d, ...wy(0, 14), { from: wy3(-5.5, 3.4, 2.5) });
+    ui.hint('Roll clear of a blow with {d}'); await d.wait(7); ui.hint('');
+    await d.until(() => live() === 0); await d.wait(0.9);
+    // The one who leads them.
+    d.tween(8, (u) => L.setDawn(0.45 + u * 0.55)).catch(() => {});
+    const chief = G.spawn('chief', ...wy(0, 26)); G.spawn('raider', ...gateRoad()); G.spawn('runner', ...gateRoad());
+    await glance(d, ...wy(0, 14), { from: wy3(-5.5, 3.4, 2.5) }); G.boss = chief;
+    ui.hint('Hold {h} to wind up a heavy blow, then let go'); await d.wait(7); ui.hint('');
+    await d.until(() => live() === 0);
+
+    // The yard is quiet. A guard column comes in at the gate: an officer and two soldiers, who stop at what they see.
+    ui.objective(''); ui.hint(''); G.boss = null; stopMusic(5); G.slow = 0.9;
+    await d.wait(2.2); await settled(d);
+    P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); G.freezeAI = true;
+    const off = new Extra(LOOKS.officer, ...wy(0.2, 19), PI), s1 = new Extra(LOOKS.soldier, ...wy(-1.3, 21), PI), s2 = new Extra(LOOKS.soldier, ...wy(1.2, 21.6), PI);
+    cam.shot(wy3(6.5, 4.4, -9.5), wy3(0, 1, 5)); cam.shot(wy3(5.5, 3.6, -7.5), wy3(0, 1.2, 6), 6);
+    off.go(...wy(-0.5, 8.2), 2.3, PI); s1.go(...wy(-2.3, 10.4), 2.3, PI); s2.go(...wy(0.2, 10.9), 2.3, PI);
+    await stroll(d, ...wy(0.4, 2.8), 2.2, 6);
+    if (Math.hypot(P.pos.x - wy(0.4, 2.8)[0], P.pos.z - wy(0.4, 2.8)[1]) > 1) P.place(...wy(0.4, 2.8), 0); // something was in his way: the next cut covers it
+    await turnTo(d, P, 0, 0.5);
+    { const t0 = G.time; await d.until(() => off.fixed || G.time - t0 > 8); }
+    const onOfficer = (dur) => { cam.shot(wy3(1.5, 1.55, 5.4), [off.pos.x, 1.5, off.pos.z]); cam.shot(wy3(1.3, 1.55, 5.8), [off.pos.x, 1.5, off.pos.z], dur); };
+    onOfficer(5);
+    await d.talk([['Officer', 'Hold.'], ['Officer', 'The third station this month. ...Who did this?']]);
+    drover.place(...wy(0.4, -11), 0); drover.setVisible(true); drover.go(...wy(2.6, -0.6), 2.6); drover.watch = off;
+    cam.shot(wy3(-0.6, 1.6, 5.6), wy3(1.4, 1.4, 0.6)); cam.shot(wy3(-0.5, 1.6, 5.2), wy3(1.4, 1.4, 0.6), 5);
+    await d.talk([['Drover', 'Him. The yard hand.'], ['Drover', "He took the dead man's sword, and then... I don't know what I saw."]]);
+    onOfficer(4);
+    await d.talk([['Officer', 'Where did you learn to do that?']]);
+    cam.shot(wy3(-1.0, 1.55, 5.0), [P.pos.x, 1.5, P.pos.z]); cam.shot(wy3(-0.8, 1.55, 4.7), [P.pos.x, 1.5, P.pos.z], 4);
+    await d.talk([['Yard hand', "It doesn't matter."]]);
+    onOfficer(6);
+    await d.talk([['Officer', 'It does to me. The dunes are waking up, and I am short of soldiers.'], ['Officer', "The column musters here at first light. Stand in the line, or don't."]]);
+    await d.wait(0.6); ui.fade(1, 1.6); await d.wait(1.8);
+  },
+});
+
+// Prologue 5: the muster, the next morning, in the same yard. The trial bout is fought with
+// blunted steel (G.blunt): nothing bleeds, nobody dies, and a lost bout is simply fought again.
+// The sergeant fights from behind his shield, which is the lesson. Then the clerk asks his name.
+stage('muster', {
+  checkpoint: true,
+  async run(d) {
+    ui.fade(1, 0); G.resetWorld({ site: 'way', sky: 'morning', muster: true, look: 'drifter', player: [...wy(1.5, -8.6), 0], corin: null });
+    const P = G.player, ring = wy(1.5, -1.5); G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; G.blunt = true; stopMusic(2); preloadMusic('flagstones');
+    const S = G.spawn('sergeant', ...wy(1.5, 0.9), { spare: true }); S.face = PI;
+    const off = new Extra(LOOKS.officer, ...wy(5.2, -6.2), -0.75), clerk = new Extra(LOOKS.clerk, ...wy(7.6, -9.3), 0, { scale: 0.96 }); clerk.watch = P;
+    for (const [a, r] of [[0.5, 6.8], [1.25, 6.8], [-0.6, 6.8], [-1.35, 5.6], [-2.3, 6.8]]) { const e = new Extra(LOOKS.soldier, ring[0] + Math.sin(a) * r, ring[1] + Math.cos(a) * r, a + PI, /* the company, standing well back from the ring */ { scale: 0.97 + Math.abs(a) * 0.02 }); e.watch = S; }
+    cam.shot(wy3(-6.5, 3.6, -10), wy3(2.5, 1.2, -2)); cam.shot(wy3(-4.5, 2.6, -8.5), wy3(2.5, 1.3, -2), 6); ui.fade(0, 2.2);
+    await d.wait(2.6);
+    await d.talk([['Officer', 'You came.'], ['Officer', 'I know what I saw in this yard. I want my sergeant to see it.'], ['Sergeant', 'Blunt steel. First to yield. Whenever you like, yard hand.']]);
+    await stroll(d, ...wy(1.5, -3.9), 2.0, 5);
+    G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(S); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = S; S.cd = 1.6;
+    ui.objective('Win the bout'); ui.hint('His shield turns your strikes. Keep striking and it will give, or go round it.'); let hintT = G.clock + 9; const tick = d.every(() => { if (hintT && G.clock > hintT) { hintT = 0; ui.hint(''); } });
+    for (;;) {
+      await d.until(() => S.hp <= 1 || P.hp <= 1); if (S.hp <= 1) break;
+      G.freezeAI = true; await settled(d, 1); await d.talk([['Sergeant', 'Yield? No. Again.']]); // beaten: they go again
+      P.hp = 100; S.hp = S.maxHp; G.freezeAI = false; S.cd = 1.6;
+    }
+    // He yields. The clerk's table.
+    tick(); G.slow = 0.8; ui.objective(''); ui.hint(''); G.boss = null; await settled(d);
+    P.controlEnabled = false; P.lock = null; P.calm = true; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
+    S.stagDur = 1e9; S.open = false; S.set('stagger'); S.vel.set(0, 0, 0); S.trailOn = false; S.yoff = 0; S.play(CL.kneel, 0.3);
+    { const dx = P.pos.x - S.pos.x, dz = P.pos.z - S.pos.z, l = Math.hypot(dx, dz) || 1, mx = (P.pos.x + S.pos.x) / 2, mz = (P.pos.z + S.pos.z) / 2;
+      cam.shot([mx - (dz / l) * 3.4, 1.5, mz + (dx / l) * 3.4], [mx, 1.1, mz]); cam.shot([mx - (dz / l) * 3.0, 1.4, mz + (dx / l) * 3.0], [mx, 1.1, mz], 5); }
+    await d.wait(1.4);
+    await d.talk([['Sergeant', 'Enough. I yield.'], ['Officer', 'Put him on the roll.']]);
+    cam.shot(wy3(9.9, 1.8, -3.2), wy3(7.4, 1.3, -8.2)); cam.shot(wy3(9.5, 1.7, -3.8), wy3(7.4, 1.3, -8.2), 6);
+    await stroll(d, ...wy(7.2, -5.9), 2.0, 6);
+    if (Math.hypot(P.pos.x - wy(7.2, -5.9)[0], P.pos.z - wy(7.2, -5.9)[1]) > 1) P.place(...wy(7.2, -5.9), PI);
+    await turnTo(d, P, P.angleTo(clerk), 0.4);
+    await d.talk([['Clerk', 'Name?'], ['Clerk', 'I need something for the roll.'], ['Yard hand', 'Write whatever you like.']]);
+    await d.wait(0.5);
+    await d.talk([['Clerk', '...Western Watch, Third Company. It is the worst posting on the frontier.'], ['Officer', 'It is where I need him.']]);
+    await d.wait(0.6); ui.fade(1, 1.6); await d.wait(1.8);
+  },
+});
+
+stage('intro', {
+  async run(d) {
+    ui.fade(1, 0); G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); // behind a black screen: the camp, and the captain in his guard armour
+    G.cinematic = true; ui.cinematic(true); cam.shot([7, 5, 27], [0, 1.6, 8]);
     G.player.controlEnabled = false; // nothing moves until the cards are read and Corin has spoken
     await d.chronicle('Act I: The Western Watch', [
       'He served on the frontier with the Third Company, and rose to captain, because he was the one who kept people alive.',

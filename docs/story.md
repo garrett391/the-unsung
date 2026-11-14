@@ -105,7 +105,7 @@ Vessa, the Witches' Hand, is the face of it: a recurring enemy commander who spe
 ## Open questions
 
 - Settled and built: Vessa survives the first night. She is driven off and withdraws at dawn.
-- Built so far: the cold open at the Door is playable; the road, drifting, waystation and muster are cards. The waystation fight and the muster's trial bout still need to become playable, and the tutorial then moves from Corin's spar to the muster.
+- Built so far: the cold open at the Door, the waystation fight and the muster's trial bout are playable; the road and the drifting years are cards. As built (first draft, for the owner to correct): the muster is held in the waystation's own yard the next morning, not somewhere the officer brings him to; he wears a desert head-wrap in these years, so his face stays hidden; the officer, sergeant, clerk and drover are unnamed; all of their lines are drafts. The waystation teaches the roll and the heavy blow, and the bout is fought against a shield; parry, bash and side roll are still taught in Corin's spar, which has not been moved to the muster.
 - What the Usurper looks like. The game uses a placeholder (black iron, glass-teal trim).
 - The captain's eye wound mid-Vessa fight: keep only if it means something in this story (it could come from the Long Cut instead). Undecided.
 - Does the Usurper ever say the hero's name, and does the player ever hear it?

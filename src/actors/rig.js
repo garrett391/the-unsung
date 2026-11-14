@@ -57,14 +57,15 @@ const ball = (r) => memo('s' + r, () => new T.SphereGeometry(r, 16, 12));
 export function buildHumanoid(o) {
   const mats = [];
   const M = (c, x) => { const m = toon(c, { rim: o.rim == null ? 0x1c2a55 : o.rim, ...(x || {}) }); mats.push(m); return m; };
-  const mA = M(o.armor, { map: plateTex }), mT = M(o.trim), mU = M(o.under, { map: mailTex }), mUF = M(o.under, { map: mailTex, side: T.DoubleSide }), mD = M(o.dark || 0x24252d), mS = M(o.steel || 0xdfe3ea);
+  const plate = o.plain ? clothTex : plateTex, mail = o.plain ? clothTex : mailTex; // o.plain: quilted cloth and leather, not plate over mail
+  const mA = M(o.armor, { map: plate }), mT = M(o.trim), mU = M(o.under, { map: mail }), mUF = M(o.under, { map: mail, side: T.DoubleSide }), mD = M(o.dark || 0x24252d), mS = M(o.steel || 0xdfe3ea);
   const mEye = new T.MeshBasicMaterial({ color: o.eye || 0x08080c });
   // The Usurper's glass (crown, growths, blade): unlit and just bright enough to bloom. The blade has its own material because blood tints it.
   const glass = () => new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) }), mGl = o.glass ? glass() : null, mBlade = o.glass ? glass() : mS;
   const root = new T.Group(), J = {};
   const hips = (J.hips = joint(root, 0, HIP, 0));
   mk(rbox(0.33, 0.18, 0.22, 0.06), mU, hips, 0, -0.03, 0);
-  const mF = M(o.armor, { side: T.DoubleSide, map: plateTex });
+  const mF = M(o.armor, { side: T.DoubleSide, map: plate });
   mk(new T.CylinderGeometry(0.215, 0.3, 0.27, SEG, 1, true), mF, hips, 0, -0.1, 0).scale.z = 0.8;
   mk(new T.CylinderGeometry(0.225, 0.225, 0.06, SEG), mT, hips, 0, 0.05, 0).scale.z = 0.8;
   mk(new T.BoxGeometry(0.08, 0.08, 0.04), mT, hips, 0, 0.05, 0.18);
@@ -80,14 +81,14 @@ export function buildHumanoid(o) {
   mk(memo('chest', () => new T.LatheGeometry(new T.SplineCurve([[0.196, 0], [0.214, 0.06], [0.262, 0.17], [0.288, 0.27], [0.268, 0.335], [0.2, 0.372]].map(([a, b]) => new T.Vector2(a, b))).getPoints(12), SEG)), mA, chest, 0, 0, 0).scale.z = 0.8;
   mk(new T.CylinderGeometry(0.12, 0.21, 0.07, SEG), mT, chest, 0, 0.385, 0).scale.z = 0.85;
   mk(new T.CylinderGeometry(0.212, 0.203, 0.045, SEG), mT, chest, 0, 0.03, 0).scale.z = 0.8; // waist band of the breastplate
-  if (!o.tabard && !o.cape) mk(new T.BoxGeometry(0.03, 0.27, 0.03), mT, chest, 0, 0.18, -0.2).rotation.x = -0.18; // backplate ridge
+  if (!o.tabard && !o.cape && !o.plain) mk(new T.BoxGeometry(0.03, 0.27, 0.03), mT, chest, 0, 0.18, -0.2).rotation.x = -0.18; // backplate ridge
   // belt pouch, and a scabbard on the left hip for sword-bearers
   mk(rbox(0.1, 0.1, 0.06, 0.02), mD, hips, -0.17, -0.05, -0.19); mk(rbox(0.105, 0.035, 0.065, 0.012), mT, hips, -0.17, -0.005, -0.19);
   if (!o.weapon) {
     const sc = joint(hips, 0.255, 0.0, -0.02); sc.rotation.set(-0.62, 0.1, 0);
     mk(new T.BoxGeometry(0.03, 0.075, 0.66), mD, sc, 0, 0, -0.3); mk(new T.BoxGeometry(0.036, 0.085, 0.07), mT, sc, 0, 0, 0.0); mk(new T.BoxGeometry(0.036, 0.085, 0.08), mT, sc, 0, 0, -0.6);
   }
-  if (!o.tabard) {
+  if (!o.tabard && !o.plain) {
     mk(new T.BoxGeometry(0.1, 0.1, 0.03), mT, chest, 0, 0.22, 0.215).rotation.z = PI / 4;
     mk(new T.BoxGeometry(0.028, 0.28, 0.03), mT, chest, 0, 0.17, 0.2).rotation.x = 0.18;
   }
@@ -108,8 +109,8 @@ export function buildHumanoid(o) {
   // helm
   const neck = (J.neck = joint(chest, 0, 0.4, 0));
   mk(new T.CylinderGeometry(o.helm === 'open' ? 0.125 : 0.158, 0.2, 0.075, SEG, 1, true), mUF, neck, 0, 0.0, 0).scale.z = 0.92; // mail collar
-  if (o.helm === 'open' || o.helm === 'none') {
-    // Open-faced helm with a brim and cheek plates: the face shows. 'none' is a bare head.
+  if (o.helm === 'open' || o.helm === 'none' || o.helm === 'wrap') {
+    // Open-faced helm with a brim and cheek plates: the face shows. 'none' is a bare head, 'wrap' a desert head-wrap that leaves only the eyes.
     const mSkin = M(o.skin || 0xd9a77e), mHair = M(o.hair || 0x7a5228);
     mk(new T.CylinderGeometry(0.1, 0.13, 0.1, SEG), mU, neck, 0, 0.03, 0);
     const face = mk(ball(0.118), mSkin, neck, 0, 0.15, 0.02); face.scale.set(0.95, 1.12, 1);
@@ -117,8 +118,15 @@ export function buildHumanoid(o) {
     mk(new T.BoxGeometry(0.05, 0.012, 0.012), M(0x8a5a40), neck, 0, 0.098, 0.124);
     mk(new T.BoxGeometry(0.024, 0.045, 0.03), mSkin, neck, 0, 0.135, 0.135).rotation.x = -0.25;
     for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.042, 0.01, 0.012), mHair, neck, sd * 0.042, 0.186, 0.127).rotation.z = -sd * 0.12;
-    for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.035, 0.16, 0.06), mHair, neck, sd * 0.12, 0.13, -0.01);
-    if (o.helm === 'none') {
+    if (o.helm !== 'wrap') for (const sd of [-1, 1]) mk(new T.BoxGeometry(0.035, 0.16, 0.06), mHair, neck, sd * 0.12, 0.13, -0.01);
+    if (o.helm === 'wrap') { // cloth wound over the crown with a roll at the brow, a veil over nose and mouth, a turn round the neck and a tail down the back
+      const mW = M(o.wrap || 0xcfc2a2, { map: clothTex, side: T.DoubleSide });
+      const top = mk(new T.SphereGeometry(0.142, SEG, 8, 0, PI * 2, 0, PI / 2), mW, neck, 0, 0.192, -0.004); top.scale.set(1, 0.86, 1.06); top.rotation.x = -0.12;
+      mk(new T.TorusGeometry(0.128, 0.03, 8, SEG), mW, neck, 0, 0.2, 0.0).rotation.x = PI / 2 - 0.12;
+      mk(new T.CylinderGeometry(0.14, 0.152, 0.125, SEG, 1, true), mW, neck, 0, 0.092, 0.006);
+      mk(new T.CylinderGeometry(0.135, 0.185, 0.1, SEG, 1, true), mW, neck, 0, 0.0, 0).scale.z = 0.95;
+      mk(drape(0.2, 0.27, 0.34, 0.05), mW, neck, 0, 0.12, -0.15).rotation.set(0.12, PI, 0);
+    } else if (o.helm === 'none') {
       const cap = mk(new T.SphereGeometry(0.126, 12, 6, 0, PI * 2, 0, PI / 1.9), mHair, neck, 0, 0.165, -0.005); cap.rotation.x = -0.25;
       if (o.bandage) { const bd = mk(new T.CylinderGeometry(0.124, 0.124, 0.05, SEG), M(0xd8d0bc), neck, 0, 0.215, 0.012); bd.rotation.set(0.1, 0, 0.16); }
     } else {

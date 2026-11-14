@@ -66,7 +66,7 @@ export class Enemy extends Char {
     FX.sparks.emit(hp, a.crit ? 34 : a.heavy ? 20 : 11, a.crit ? 8 : 5.5, a.crit ? 0xffe890 : 0xfff4d0, 0.32, { vx: dir.x * 3, vz: dir.z * 3, up: 1, boost: 1.6 });
     G.hitstop = Math.max(G.hitstop, a.stop || 0.05); G.shake = Math.max(G.shake, a.crit ? 0.5 : a.heavy ? 0.35 : 0.16); if (a.crit) G.slow = 0.4;
     this.vel.copy(dir).multiplyScalar((a.knock || 2) / (this.scale * this.scale));
-    blood(hp, dir, a.crit ? 3 : a.heavy ? 2 : 1, this.hp <= 0, from);
+    if (!G.blunt) blood(hp, dir, a.crit ? 3 : a.heavy ? 2 : 1, this.hp <= 0, from);
     if (this.hp <= 0) { this.die(); if (a.launch) { this.yv = a.launch * 0.7; this.yoff = 0.01; } return 'kill'; }
     if (a.launch && !this.type.heavy) { this.set('air'); this.yv = a.launch; this.yoff = 0.02; this.play(CL.air, 0.08); this.open = false; this.trailOn = false; return 'hit'; }
     if (this.state === 'air') { this.yv = Math.max(this.yv, 3.5); return 'hit'; }
@@ -85,11 +85,11 @@ export class Enemy extends Char {
   pickMove(d) {
     const ms = this.type.moves; if (ms.length === 1) return ms[0];
     const far = ms.filter((m) => m.minD && d >= m.minD); if (far.length && Math.random() < 0.75) return far[0];
-    const near = ms.filter((m) => !m.minD); return near[(Math.random() * near.length) | 0];
+    const near = ms.filter((m) => !m.minD && !m.follow); return near[(Math.random() * near.length) | 0];
   }
   startMove(m, blend) {
     this.mv = m; this.set('wind'); this.hitDone = false; this.slam = false; this.play(m.clip, blend || 0.14); SFX.tele();
-    FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 8, 2, this.type.look.eye, 0.4, { grav: 0, boost: 2 });
+    FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 8, 2, this.type.tele || this.type.look.eye, 0.4, { grav: 0, boost: 2 });
   }
   update(dt) {
     this.st += dt; const t = this.type, P_ = G.player, m = this.mv;

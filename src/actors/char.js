@@ -23,6 +23,12 @@ export class Char {
     this.wet = 0; this._wet = false; this.bladeBase = this.rig.bladeMat.color.clone(); // wet: blood on the blade, 0..1, set by blood() in fx.js
     locoPose(this.cur, this, 0);
   }
+  // Change what the figure wears: a new rig in the same place and pose.
+  dress(look) {
+    const vis = this.root.visible; G.scene.remove(this.root); for (const m of this.rig.mats) m.dispose();
+    this.rig = buildHumanoid(look); this.root = this.rig.root; this.root.scale.setScalar(this.scale); this.root.visible = vis; G.scene.add(this.root);
+    this.bladeBase = this.rig.bladeMat.color.clone(); this._wet = this._fl = true; this.apply(G.time); this.root.position.set(this.pos.x, this.yoff, this.pos.z); this.root.rotation.y = this.face;
+  }
   _snap() { for (let i = 0; i < PL; i++) { let v = this.cur[i]; if (i < NJ * 3) v = wrap(v); this.snap[i] = v; } this.blend = 0; }
   play(clip, blend, t0) { this._snap(); this.blendDur = blend == null ? clip.keys[0].t || 0.08 : blend; this.clip = clip; this.ct = t0 || 0; }
   stop(blend) { if (!this.clip) return; this._snap(); this.blendDur = blend || 0.16; this.clip = null; }
