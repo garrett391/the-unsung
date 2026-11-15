@@ -35,10 +35,14 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 @keyframes objmark{0%,55%{box-shadow:0 0 10px 3px #e9c15a;background:#ffe7a0}}
 #hint.new{animation:hintin 2.4s ease-out}
 @keyframes hintin{0%{transform:translateX(-50%) translateY(12px) scale(1.18);background:rgba(8,8,14,.9);box-shadow:0 0 0 1px #e9c15a,0 0 26px rgba(233,193,90,.85)}14%,55%{transform:translateX(-50%) scale(1.18);background:rgba(8,8,14,.9);box-shadow:0 0 0 1px #e9c15a,0 0 26px rgba(233,193,90,.85)}100%{box-shadow:0 0 0 1px rgba(233,193,90,0),0 0 26px rgba(233,193,90,0)}}
-#thought{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;width:max-content;max-width:min(94vw,640px);text-align:center;font-size:19px;font-style:italic;line-height:1.3;color:#ece6f4;
-  padding:9px 30px 11px;border:1px solid #06050a;border-radius:16px;opacity:0;transition:opacity 1.1s;
-  background:radial-gradient(ellipse 60% 120% at 22% 30%,rgba(120,96,170,.3),transparent 70%),radial-gradient(ellipse 55% 130% at 78% 70%,rgba(96,84,150,.28),transparent 70%),radial-gradient(ellipse 40% 90% at 50% 10%,rgba(190,180,215,.12),transparent 75%),rgba(12,10,20,.84);
-  box-shadow:0 0 0 1px rgba(146,108,214,.6),0 0 14px 3px rgba(118,80,196,.38),inset 0 0 20px rgba(150,124,220,.16)}
+/* What he thinks: a cloud, where the dialogue box sits. A rounded body (::before) with uneven puffs along its top and bottom (the
+   gradients), a violet rim drawn round the whole shape by the filter, and a trail of two small puffs leading toward him (::after). */
+#thought{position:absolute;left:50%;transform:translateX(-50%);bottom:66px;width:max-content;max-width:min(92vw,620px);text-align:center;font-size:19px;font-style:italic;line-height:1.3;color:#ece6f4;
+  padding:30px 50px 32px;opacity:0;transition:opacity 1.1s;--c:#15111f;
+  background:radial-gradient(ellipse 10% 19px at 11% 20px,var(--c) 97%,transparent 100%),radial-gradient(ellipse 12% 24px at 30% 25px,var(--c) 97%,transparent 100%),radial-gradient(ellipse 11% 21px at 51% 22px,var(--c) 97%,transparent 100%),radial-gradient(ellipse 12.5% 25px at 71% 26px,var(--c) 97%,transparent 100%),radial-gradient(ellipse 9.5% 18px at 90% 19px,var(--c) 97%,transparent 100%),radial-gradient(ellipse 9.5% 18px at 10% calc(100% - 19px),var(--c) 97%,transparent 100%),radial-gradient(ellipse 11.5% 22px at 28% calc(100% - 23px),var(--c) 97%,transparent 100%),radial-gradient(ellipse 12% 25px at 48% calc(100% - 26px),var(--c) 97%,transparent 100%),radial-gradient(ellipse 11% 21px at 69% calc(100% - 22px),var(--c) 97%,transparent 100%),radial-gradient(ellipse 10.5% 20px at 89% calc(100% - 21px),var(--c) 97%,transparent 100%);
+  filter:drop-shadow(0 0 1px rgba(172,140,238,.95)) drop-shadow(0 0 1px rgba(172,140,238,.7)) drop-shadow(0 0 9px rgba(118,80,196,.45))}
+#thought::before{content:'';position:absolute;z-index:-1;inset:15px 6px;border-radius:999px;background:var(--c)}
+#thought::after{content:'';position:absolute;width:17px;height:17px;border-radius:50%;background:var(--c);left:calc(50% - 44px);top:-17px;box-shadow:17px -18px 0 -4px var(--c)}
 #dlg{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;width:min(94vw,640px);padding:14px 20px 18px;background:rgba(8,8,14,.82);
   border-top:1px solid rgba(217,178,74,.7);display:none}
 #dlg .who{font-size:13px;letter-spacing:.26em;color:#e9c15a;margin-bottom:5px;text-transform:uppercase}
@@ -97,8 +101,8 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 @keyframes pulse{50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){#dlg .more,#chron .tap,#obj.new,#hint.new{animation:none}}
 @media (max-width:600px){#bars{width:40vw}#tgt{left:auto;right:62px;transform:none;width:36vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}}
-@media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}#thought{bottom:auto;top:96px;font-size:17px}}
-@media (pointer:coarse) and (max-width:600px){#tgt.boss~#thought{top:176px}}
+@media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}#thought{bottom:auto;top:170px;font-size:17px;padding:28px 38px 30px}#thought::after{top:auto;bottom:-17px;box-shadow:17px 18px 0 -4px var(--c)}}
+@media (pointer:coarse) and (max-width:600px){#tgt.boss~#thought{top:238px}}
 </style>
 </head>
 <body>

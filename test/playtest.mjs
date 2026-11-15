@@ -37,7 +37,7 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
       for (const x of foes) { const d = p.dist(x); if (d < bd) { bd = d; e = x; } }
       if (e && bd > 20) { p.lock = null; G.cam.yaw = Math.atan2(e.pos.x - p.pos.x, e.pos.z - p.pos.z) + Math.PI; G.cam.manualT = 1e9; G.keys.KeyW = true; } // too far to lock: run at it
       else if (e) { p.lock = e; G.keys.KeyW = bd > 2.3; if (bd < 2.9 && f++ % 14 === 0) G.press(o.heavy && f % 3 === 0 ? 'h' : 'l'); } else { G.keys.KeyW = false; }
-      if (o.roll && e && f % 45 === 30) G.press('d');
+      if (o.roll && e && f % 45 === 30) { G.keys.KeyW = true; G.press('d'); } // with a direction held: a roll, not a step back (only a roll passes the waystation's lesson)
       if (o.home && !e && Math.hypot(p.pos.x - o.home[0], p.pos.z - o.home[1]) > 2) o.to = o.home; else if (o.home) o.to = null;
       if (o.to) { p.lock = null; const a = Math.atan2(o.to[0] - p.pos.x, o.to[1] - p.pos.z); G.cam.yaw = a + Math.PI; G.cam.manualT = 1e9; G.keys.KeyW = true; }
     }
@@ -75,8 +75,8 @@ if (at('halls')) {
   log('down', await play(40, { bot: true, god: true, to: [-110, -56.3], until: stageIs('door') }));
 }
 if (at('door')) {
-  await play(2.6); await shot('00a-door');
-  log('door opens', await play(2.6, {})); await shot('00b-usurper');
+  await play(3.4); await shot('00a-door'); await play(30, { until: "G.extras[0].dead" }); await play(0.5); await shot('00a2-cut-down'); // the last of the many, on her knees before him, and cut down
+  log('door opens', await play(30, { until: "G.player.controlEnabled" })); await play(0.3); await shot('00b-usurper');
   log('usurper', await play(6, { bot: true, god: true, until: "G.player.lock" })); await play(0.4); await shot('00b1-lesson'); // the lessons: the bot locks and strikes; he stands until it has
   log('unleashed', await play(20, { bot: true, god: true, until: "G.boss&&G.boss.state==='wind'" })); await play(0.9); await shot('00b2-swing');
   log('to his knees', await play(60, { bot: true, god: true, until: "G.boss&&G.boss.hp<=1" })); await play(2.2); await shot('00b3-kneels');
@@ -86,7 +86,9 @@ if (at('door')) {
   await play(60, { until: "G.level.flare>0.15" }); await play(1.2); await shot('00b8a-looks-round'); await play(1.7); await shot('00b8b-looks-up'); await play(2.3); await shot('00b8c-the-glass-lights'); await play(3.2); await shot('00b9-rises');
   log('round two', await play(60, { until: "G.player.controlEnabled" })); await play(0.3); await page.waitForTimeout(1000); await shot('00b10-up-again');
   log('sealing', await play(240, { bot: true, god: true, home: [0, -25.5], until: "G.level.flare>0.9" })); // he only stays down on the ward before the Door, so the bot fights there await play(0.6); await shot('00c-sealing');
-  await play(3.4); await shot('00d-sealed'); await page.evaluate(() => { G.auto = true; });
+  await play(3.4); await shot('00d-sealed');
+  await play(60, { tap: true, until: "G.level.site==='fore'" }); await play(3.2); await page.waitForTimeout(2000); await shot('00d2-the-court-runs-back'); // the war lifting off the court
+  await play(30, { until: "G.level.after" }); await play(2.6); await page.waitForTimeout(2000); await shot('00d3-the-court-whole'); await page.evaluate(() => { G.auto = true; });
   log('sealed', await play(8, { until: stageIs('ascent') })); await page.evaluate(() => { G.auto = false; });
   await play(4); await page.waitForTimeout(4500); await shot('00e-after'); await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('00f-after-descent');
   await play(30, { bot: true, to: [-110, -20], until: "G.player.pos.z>-40" }); await shot('00g-after-rotunda');
@@ -94,7 +96,7 @@ if (at('door')) {
   await play(30, { until: "G.player.controlEnabled" }); await play(10, { bot: true, to: [-110, 0.5], until: "G.player.pos.z>-8" }); await shot('00i-after-gallery');
   log('out', await play(40, { bot: true, to: [-110, 0.5], until: "G.level.site==='fore'" }));
   await play(4); await page.waitForTimeout(4500); await shot('00j-the-court-after'); await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('00k-the-court-after');
-  await play(20, { bot: true, to: [-150, 78], until: "G.player.pos.z>66" }); await shot('00l-to-the-gate');
+  await play(20, { bot: true, to: [-150, 78], until: "G.player.pos.z>66" }); await shot('00l-to-the-gate'); await play(20, { bot: true, to: [-150, 78], until: "document.getElementById('dlg').style.display==='block'" }); await play(0.8); await shot('00l2-the-watch-speaks');
   log('the gate', await play(40, { bot: true, to: [-150, 78], until: stageIs('road') }));
   log('road', await play(30, { tap: true, until: stageIs('waystation') }));
 }
@@ -102,12 +104,12 @@ if (process.env.TO === 'door') { console.log(errors.length ? 'ERRORS:\n' + error
 if (at('waystation')) { // real timing through the opening, so the shots catch it
   await play(4); await shot('0e-yard');
   await play(30, { until: "G.enemies.length" }); await play(1.7); await shot('0f-raiders');
-  await play(30, { until: "G.extras[0].dead" }); await play(0.5); await shot('0g-guard-falls');
+  await play(30, { until: "G.extras[0].dead" }); await play(0.5); await shot('0g-guard-falls'); await play(0.7); await shot('0g2-he-starts-back');
   await play(30, { tap: true, until: "!G.talking&&G.enemies[0].vel.length()>1" }); await play(1.6); await shot('0h-he-sees');
   await play(30, { until: "G.player.walk" }); await play(2.2); await shot('0i-to-the-body');
   await play(30, { until: "G.player.look==='drifter'" }); await play(0.4); await shot('0j-takes-the-sword'); await play(2.2); await shot('0j2-stands');
   log('yard fight', await play(30, { until: "G.player.controlEnabled" })); await play(0.4); await shot('0k-fight');
-  log('it comes back', await play(90, { bot: true, god: true, heavy: true, roll: true, until: "G.taughtWay" })); await play(0.3); await shot('0k2-it-comes-back');
+  log('it comes back', await play(90, { bot: true, god: true, heavy: true, roll: true, until: "G.taughtWay" })); await play(0.3); await page.waitForTimeout(1200); await shot('0k2-it-comes-back');
   log('wave 2', await play(90, { bot: true, god: true, until: "G.enemies.some(e=>e.kind==='runner')" })); await play(2.0); await shot('0l-wave-2');
   log('wave 3', await play(120, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.kind==='chief')" })); await play(2.0); await shot('0m-leader'); await play(6, { bot: true, god: true }); await shot('0m2-leader-fight');
   log('column', await play(180, { bot: true, god: true, heavy: true, until: "G.extras.length>2" })); await play(4.5); await shot('0n-column');

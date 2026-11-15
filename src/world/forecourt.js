@@ -198,6 +198,43 @@ export function buildFore(scene, kit) {
     for (const [x, z] of [[9.9, 5.5], [9.2, 6.1], [10.0, 6.4]]) { put(new T.CylinderGeometry(0.34, 0.3, 0.9, 12), mBarrel, x, 0.45, z, x * 3); block(x, z, 0.45); } });
   only(whole, () => { for (const sd of [-1, 1]) { const x = sd * 2.9, z = ZF + 1.1; put(new T.CylinderGeometry(0.4, 0.22, 0.34, 12, 1, true), mIron, x, 1.2, z); put(new T.CylinderGeometry(0.22, 0.22, 0.03, 12), mIron, x, 1.04, z); for (let i = 0; i < 3; i++) { const a = i * 2.1 + 0.4; put(new T.CylinderGeometry(0.022, 0.022, 1.1, 5), mIron, x + Math.sin(a) * 0.17, 0.53, z + Math.cos(a) * 0.17, a, 0.3, 0); } block(x, z, 0.4); } });
 
+  // (Owner, Nov 2026: more in it.) What a court at peace has that a battlefield has not: the realm's colours on every
+  // buttress and on the gate towers, a runner laid out from the doors, an awning over the stores, a cart half unloaded,
+  // the watch's post by the gate (spears racked, a table, a trough and rail for horses), beds of green along the front.
+  // Its own random numbers, so the war's layout stays as it was. Kept clear of where the watch and the clerk walk (mission.js).
+  only(whole, () => { const w = rng(977), WQ = (a, b) => a + w() * (b - a);
+    const mCloth = toon(0x8a2228), mGilt = toon(0xc9a24a), mCanvas = toon(0xd9cdae), mSack = toon(0xb09a70), mLeaf = toon(0x4c6a34), mBed = toon(0x3a2c22), mClay = toon(0xa8623c), mWater = toon(0x35546a);
+    const hang = (x, y, z, ry, bw, bh) => { const b = new T.Mesh(new T.PlaneGeometry(bw, bh, 1, 4), mBanner); b.position.set(X(x), y, Z(z)); b.rotation.y = ry; b.castShadow = true; scene.add(b); };
+    for (const sd of [-1, 1]) { for (const z of [-6.5, 0.5, 7.5]) { hang(sd * (XW - 1.12), 3.0, z, -sd * PI / 2, 1.0, 2.6); box(0.08, 0.08, 1.2, mWood, sd * (XW - 1.14), 4.34, z); }
+      hang(sd * 3.5, 6.2, ZN - 1.23, PI, 1.2, 3.2); box(1.5, 0.08, 0.08, mWood, sd * 3.5, 7.84, ZN - 1.25); }
+    // the runner, crimson edged with gold, from the doors out onto the paving
+    { const strip = (bw, mat, x, y) => { const r = new T.Mesh(new T.PlaneGeometry(bw, 5.6), mat); r.rotation.x = -PI / 2; r.position.set(X(x), y, Z(-10.3)); r.receiveShadow = true; scene.add(r); }; strip(1.7, mCloth, 0, 0.034); for (const k of [-1, 1]) strip(0.1, mGilt, k * 0.72, 0.04); }
+    // the awning over the stores under the east wall
+    box(2.9, 0.04, 5.0, mCanvas, 9.6, 2.95, 4.8, 0, 0, 0.22); for (const z of [3.5, 6.1]) box(2.92, 0.05, 0.5, mCloth, 9.6, 2.95, z, 0, 0, 0.22);
+    for (const z of [2.5, 7.1]) { box(0.1, 2.62, 0.1, mWood, 8.25, 1.31, z); block(8.25, z, 0.2); }
+    for (const [x, z, h] of [[8.9, 7.6, 0.6], [9.5, 7.9, 0.45], [8.7, 2.0, 0.5]]) { put(new T.CylinderGeometry(0.16, 0.22, h, 10), mClay, x, h / 2, z); put(new T.CylinderGeometry(0.12, 0.16, 0.1, 10), mClay, x, h + 0.05, z); block(x, z, 0.3); } // oil jars
+    // a hand cart by the east wall, half unloaded: sacks on it and beside it
+    { const x = 9.3, z = -3.2; box(1.3, 0.1, 2.2, mWood, x, 0.72, z); for (const k of [-1, 1]) { box(0.07, 0.4, 2.2, mWood, x + k * 0.62, 0.95, z); put(new T.TorusGeometry(0.55, 0.06, 6, 18), mWood, x + k * 0.78, 0.55, z, PI / 2); for (let i = 0; i < 3; i++) box(0.05, 1.05, 0.05, mWood, x + k * 0.78, 0.55, z, 0, i * PI / 3); box(0.07, 0.07, 1.7, mWood, x + k * 0.45, 0.42, z + 1.85, 0, 0.36); }
+      const sack = (sx, sy, sz, ry) => { const g = new T.SphereGeometry(0.36, 9, 6); g.scale(1.25, 0.62, 0.85); put(g, mSack, sx, sy, sz, ry); };
+      sack(x - 0.1, 0.98, z - 0.5, 0.3); sack(x + 0.1, 0.98, z + 0.4, 1.4); sack(x, 1.36, z - 0.1, 0.8); sack(x - 0.9, 0.22, z - 1.5, 0.5); sack(x - 0.5, 0.22, z - 2.1, 2.0); sack(x - 0.8, 0.62, z - 1.8, 1.2); block(x, z, 1.25); block(x - 0.7, z - 1.8, 0.6); }
+    // the watch's post, west of the gate: spears racked against the wall, a table and a stool
+    { const z = ZN - 0.95; for (const x of [-7.0, -5.8]) box(0.08, 1.5, 0.08, mWood, x, 0.75, z); box(1.36, 0.06, 0.06, mWood, -6.4, 1.42, z);
+      for (let i = 0; i < 4; i++) { const x = -6.85 + i * 0.3; put(new T.CylinderGeometry(0.02, 0.02, 2.4, 6), mWood, x, 1.2, z - 0.12, 0, -0.1, 0); put(new T.ConeGeometry(0.045, 0.3, 4), mIron, x, 2.52, z + 0.01); } block(-6.4, z - 0.1, 0.75);
+      box(1.2, 0.07, 0.7, mWood, -8.7, 0.78, 13.3); for (const a of [-1, 1]) for (const b of [-1, 1]) box(0.07, 0.76, 0.07, mWood, -8.7 + a * 0.5, 0.38, 13.3 + b * 0.27); put(new T.CylinderGeometry(0.07, 0.1, 0.24, 9), mClay, -8.5, 0.93, 13.25); put(new T.CylinderGeometry(0.045, 0.04, 0.09, 8), mClay, -8.9, 0.86, 13.4);
+      put(new T.CylinderGeometry(0.2, 0.2, 0.06, 10), mWood, -8.6, 0.5, 12.5); for (let i = 0; i < 3; i++) put(new T.CylinderGeometry(0.025, 0.025, 0.5, 5), mWood, -8.6 + Math.sin(i * 2.1) * 0.13, 0.25, 12.5 + Math.cos(i * 2.1) * 0.13); block(-8.7, 13.3, 0.75); block(-8.6, 12.5, 0.3); }
+    // east of it, a trough and a hitching rail
+    box(1.9, 0.5, 0.62, mWood, 6.6, 0.3, 13.7); box(1.74, 0.02, 0.46, mWater, 6.6, 0.56, 13.7); for (const x of [5.4, 7.8]) { box(0.1, 1.1, 0.1, mWood, x, 0.55, 12.8); block(x, 12.8, 0.2); } box(2.6, 0.08, 0.08, mWood, 6.6, 1.02, 12.8); block(6.1, 13.7, 0.6); block(7.1, 13.7, 0.6);
+    // beds along the foot of the wings: clipped green, and a little colour in it
+    for (const sd of [-1, 1]) { box(5.6, 0.3, 0.8, mTrim, sd * 7.3, 0.15, -13.0); box(5.4, 0.06, 0.6, mBed, sd * 7.3, 0.31, -13.0);
+      for (let i = 0; i < 7; i++) { const x = sd * (4.95 + i * 0.78), r = WQ(0.28, 0.42); put(new T.SphereGeometry(r, 9, 6), mLeaf, x, 0.34 + r * 0.7, -13.0 + WQ(-0.06, 0.06)); for (let k = 0; k < 4; k++) { const a = WQ(0, 6.3), e = WQ(0.2, 1.0); put(new T.IcosahedronGeometry(0.05, 0), [mCloth, mGilt, mCanvas][(i + k) % 3], x + Math.sin(a) * Math.sin(e) * r, 0.34 + r * 0.7 + Math.cos(e) * r, -13.0 + Math.cos(a) * Math.sin(e) * r); } }
+      for (let i = 0; i < 4; i++) block(sd * (5.3 + i * 1.3), -13.0, 0.55); }
+    // wear: water spilt round the tubs and the trough, and the tracks of a day's coming and going through the gate
+    { const damp = decals(DECAL.soft, 0x4a3c30, 0.6), prints = decals(DECAL.prints, 0x3a2e26, 0.55);
+      for (const sd of [-1, 1]) for (const z of [-9, -4.5, 0, 9.6]) damp.at(X(sd * 3.5 + WQ(-0.2, 0.2)), Z(z + WQ(-0.2, 0.2)), 1.7, 1.5, WQ(0, 6.3)); damp.at(X(6.5), Z(13.0), 3.0, 1.8, 0.1); damp.at(X(8.6), Z(-3.6), 2.4, 2.0, 0.8);
+      for (const [x, z, r] of [[0.5, 10.5, 0], [-0.6, 7.2, PI], [0.3, 3.0, 0.1], [-0.4, -2.5, PI], [1.2, 12.6, 0.3], [5.0, 9.6, -0.9], [-4.6, 10.8, 0.8]]) prints.at(X(x), Z(z), 0.9, 3.4, r, 0.036);
+      damp.done(scene); prints.done(scene); }
+  });
+
   // ---- colours: the realm's, hanging on the front; one has come down
   const colours = (x, tilt) => { const b = new T.Mesh(new T.PlaneGeometry(1.3, 3.4, 1, 4), mBanner); b.position.set(X(x), 7.4 - tilt * 0.6, Z(ZW + 0.12)); b.rotation.z = tilt * 0.3; b.castShadow = true; scene.add(b); box(1.7, 0.08, 0.08, mWood, x, 9.14 - tilt * 0.3, ZW + 0.14, 0, 0, tilt * 0.3); };
   colours(-7.1, 0); only(war, () => colours(7.1, 0.5)); only(whole, () => colours(7.1, 0));

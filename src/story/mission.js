@@ -22,6 +22,7 @@ import { LOOKS } from '../actors/data.js';
 export const STAGES = [];
 const stage = (name, o) => STAGES.push({ name, ...o });
 const TAP = coarse ? 'TAP TO CONTINUE' : 'CLICK OR PRESS SPACE';
+const PALE = '#cfeee8'; // the Glass Door's light, as a wash over the screen (ui.fade's colour)
 const live = () => G.enemies.filter((e) => !e.dead).length;
 const breach = () => [rnd(-2.6, 2.6), rnd(29, 36)]; // out on the raiders' road, beyond the wall
 const east = () => [rnd(22, 26), rnd(-4, -2)];
@@ -187,7 +188,7 @@ stage('halls', {
 // spell the theme out): the Usurper is cornered and already beaten (TYPES.usurper), and all that
 // is left is to put him behind the glass. The first round is a short tutorial (owner, Nov 2026:
 // lock on, strike, shield, and no more); after he gets up again there are no hints, only the fight.
-// Two things are shown and never said (docs/story.md, The Usurper and the Glass Door): he can't
+// Two things are shown (docs/story.md, The Usurper and the Glass Door; the second is now also said, as the Door shuts): he can't
 // be killed (the captain cuts him down, takes it for the end and walks away; the vault shakes and
 // he gets up), and the seal takes the years he took in with him (the vault runs backwards: the
 // blood lifts, the captain is unmarked).
@@ -198,11 +199,19 @@ stage('door', {
     ui.fade(1, 0); G.resetWorld({ player: [0, -17, PI], corin: null, gate: 'door' }); // behind a black screen: he has come down the stair from the halls
     const P = G.player; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
     preloadMusic('blade', 'sealed');
-    const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.face = 0; U.hp = U.maxHp * 0.75; // some of the fight is behind them; enough is left to learn on
-    cam.shot([-1.1, 1.25, -21.6], [0.3, 1.75, -23.2]); // on him first: bent over, breathing hard, the Door at his back
-    await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 4.2);
+    const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.hp = U.maxHp * 0.75; // some of the fight is behind them; enough is left to learn on
+    // (Owner, Nov 2026.) He is not alone when the captain comes off the stair: the last of the many who tried is on her knees
+    // before him, and he cuts her down. Then he turns to the one who is left. (She lies where she fell through the fight, and the sealing takes her with the rest.)
+    const last = new Extra({ ...LOOKS.knight, weapon: undefined }, -1.0, -22.0, 0); last.face = last.angleTo(U); U.face = U.angleTo(last); last.play(C(0.1, [0, PZ.kneel]), 0.01);
+    cam.shot([1.9, 0.9, -19.9], [-0.5, 1.2, -22.9]); // from the foot of the stair, low: the two of them against the Door
+    await d.wait(0.5); ui.fade(0, 2.2); cam.shot([1.5, 1.0, -20.5], [-0.5, 1.25, -22.9], 4);
     playMusic('blade', { cross: 2.5, fade: 3 }); // the title theme fades out, then the fight's own music fades in
-    await d.wait(4);
+    await d.wait(1.5); last.play(C(0.6, [0.6, pose({ neck: [-0.35, 0, 0], spine: [0.2], chest: [0.05] }, PZ.kneel)]), 0.2); await d.wait(0.7); // she lifts her head to him
+    { const m = U.type.moves[0]; U.play(m.clip, 0.2); SFX.tele(); await d.wait(m.wind); SFX.swing(0.5); await d.wait(0.1);
+      const dir = new T.Vector3(last.pos.x - U.pos.x, 0, last.pos.z - U.pos.z).normalize(); SFX.big(); SFX.die(); G.hitstop = 0.1; G.shake = 0.25; last.flash = 1; blood(new T.Vector3(last.pos.x, 0.8, last.pos.z), dir, 2, true, U);
+      last.lie(C(0.8, [0, PZ.kneel], [0.12, PZ.kneelHit, 'o'], [0.8, PZ.down, 'i'])); } // over onto her back, away from him, at the foot of the wall
+    await d.wait(1.6); U.stop(0.5); cam.shot([1.6, 1.9, -18.4], [0.1, 1.7, -23.4], 3.4); await turnTo(d, U, 0, 1.2); // and he turns from it: bent over, breathing hard, the Door at his back
+    await d.wait(2.0);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.boss = U; U.cd = 2.0; ui.objective('Defeat the Usurper');
     let wall = VAULT; const keep = d.every(() => { if (P.pos.z > wall) P.pos.z = wall; if (U.pos.z > VAULT + 1) U.pos.z = VAULT + 1; });
     // The first round teaches the three basics, once (not again on a retry). He is cornered and
@@ -337,16 +346,37 @@ stage('door', {
       if (opts.blood && rt < 1.3) FX.blood.emit(new T.Vector3(rnd(-2.4, 2.4), 0.06, rnd(-26, -16)), 3, 0.2, 0x5e0a0e, 1.1, { grav: -4, spread: 0.02 });
     });
     await d.wait(1.1); clearBlood();
+    FX.sparks.emit(new T.Vector3(last.pos.x, 0.4, last.pos.z), 70, 1.2, 0x9ff0e0, 1.5, { grav: -1.2, vz: -3, spread: 0.7, boost: 1.8 }); last.setVisible(false); // and the one he cut down as the captain came in goes with the rest: motes, into the glass
     await d.wait(1.1); rev(); P.hp = 100; P.wet = 0;
-    await d.talk([['The Usurper', 'Only you will remember this.']]);
-    await d.wait(0.8); ui.fade(1, 1.6); await d.wait(1.8);
+    // He says what it has cost, from behind the glass (owner, Nov 2026: "Only you will remember this" alone was too vague; this replaces
+    // the rule that the prologue never says it). A draft.
+    cam.shot([0.3, 1.5, -22.2], [0, 2.9, -27.8], 9);
+    await d.talk([
+      ['The Usurper', 'Shut it, then. Everything I took goes in with me.'],
+      ['The Usurper', 'My war. My years. Everyone who stood against me in them.'],
+      ['The Usurper', 'Out there, none of it will have happened. ...Only you will remember this.'],
+    ]);
+    // And it is shown (owner, Nov 2026: how shutting him in turned time back). Above, the court he fought across: the
+    // war lifts off it in motes that go in at the doors, the sky runs back from smoke and a red evening to a clear day,
+    // and under a wash of the glass's light the dead, the fires and the barricade are gone and the place stands whole.
+    await d.wait(0.6); ui.fade(1, 1.4, PALE); await d.wait(1.5);
+    G.resetWorld({ site: 'fore', sky: ['ember', 'clear'], player: [FORE.x, FORE.z - 15.6, 0], corin: null }); P.setVisible(false); P.controlEnabled = false; G.cinematic = true; ui.cinematic(true);
+    cam.shot(fx3(2.2, 5.4, 12.2), fx3(-0.4, 4.6, -13)); cam.shot(fx3(1.2, 4.6, 7.4), fx3(-0.2, 4.2, -13), 13); ui.fade(0, 1.6, PALE);
+    const mote = new T.Vector3(), lift = d.every((dt) => { for (let i = 0; i < 7; i++) if (Math.random() < dt * 60) FX.sparks.emit(mote.set(FORE.x + rnd(-10, 10), rnd(0.1, 1.4), FORE.z + rnd(-12, 13)), 1, 0.4, 0x9ff0e0, 1.9, { grav: -1.6, vz: -5.5, spread: 0.1, boost: 2.6 }); });
+    await d.wait(1.8); SFX.flame(); shock(new T.Vector3(FORE.x, 0, FORE.z - 11.5), 5, 0x9ff0e0);
+    const sky = d.tween(7, (u) => G.level.setDawn(u * u * (3 - 2 * u)));
+    await d.wait(2.9); ui.fade(1, 0.5, PALE); await d.wait(0.55);
+    G.level.setAfter(true); lift(); ui.fade(0, 1.6, PALE);
+    new Extra(LOOKS.clerk, FORE.x + 6.4, FORE.z - 9.6, 0, { scale: 0.96 }).go(FORE.x - 6.8, FORE.z - 8.8, 1.4); new Extra(LOOKS.line, FORE.x - 2.6, FORE.z - 11.6, 0.5); // somebody crossing before the doors, and one of the watch standing easy by them
+    await sky; await d.wait(3.2);
+    ui.fade(1, 1.8); await d.wait(2.0); P.setVisible(true);
   },
 });
 
 // Back up through the halls (owner, Nov 2026: "we walk back out the hallway and everything is
 // different"). The seal has taken the Usurper's years with it, so none of it happened: no dead,
 // no glass, no blood, no torches, the Door's light gone, and daylight coming down the stair he
-// came in by. Nothing is said. He walks out; the camera looks once at the column where the knight died.
+// came in by. He says nothing. He walks out; the camera looks once at the column where the knight died.
 // Then the doors, and the same court he fought across (owner, Nov 2026): whole, in daylight, the gate
 // open, the watch standing easy at it and people about their day. He crosses it and goes out by the gate.
 stage('ascent', {
@@ -365,15 +395,25 @@ stage('ascent', {
     P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4); motes();
     G.resetWorld({ site: 'fore', after: true, sky: 'clear', player: [...fx(0, -15.4), 0], corin: null });
     G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true;
-    for (const sd of [-1, 1]) new Extra(LOOKS.line, ...fx(sd * 1.95, 12.7), -sd * PI / 2); // the gate's watch, facing each other across the way out
-    const walk = async (e, pts, sp) => { for (;;) for (const [x, z, rest] of pts) { e.go(...fx(x, z), sp); await d.until(() => e.fixed); await d.wait(rest); } }; // someone going to and fro on an errand
-    walk(new Extra(LOOKS.line, ...fx(-9.4, 8.6), 2.2), [[-9.2, -8.5, 3.5], [-9.4, 8.6, 3.5]], 1.3).catch(() => {}); // a sentry pacing the west wall
-    walk(new Extra(LOOKS.clerk, ...fx(7.4, -10.8), 0, { scale: 0.96 }), [[5.6, 11.2, 5], [7.4, -10.8, 6]], 1.5).catch(() => {}); // a clerk between the east wing and the gate
+    // (Owner, Nov 2026.) He can walk up to them. Nobody looks at him until he does; then they turn to him, say what
+    // anyone would to a knight they don't know, and go back to their day. Each line once; he says nothing. Drafts.
+    const folk = [], person = (e, who, line) => { folk.push({ e, who, line, home: e.face }); return e; };
+    for (const sd of [-1, 1]) person(new Extra(LOOKS.line, ...fx(sd * 1.95, 12.7), -sd * PI / 2), 'Gate watch', sd < 0 ? 'Sir. ...Strange. I have had this gate since sunrise, and I never saw you go in.' : 'You have the look of a man come from a battle, sir. There has not been one in my lifetime.'); // the gate's watch, facing each other across the way out
+    const walk = async (e, pts, sp) => { for (;;) for (const [x, z, rest] of pts) { e.go(...fx(x, z), sp); await d.until(() => e.fixed && !e.stopped); await d.wait(rest); } }; // someone going to and fro on an errand
+    walk(person(new Extra(LOOKS.line, ...fx(-9.4, 8.6), 2.2), 'Sentry', 'All quiet, sir. It is always quiet.'), [[-9.2, -8.5, 3.5], [-9.4, 8.6, 3.5]], 1.3).catch(() => {}); // a sentry pacing the west wall
+    walk(person(new Extra(LOOKS.clerk, ...fx(7.4, -10.8), 0, { scale: 0.96 }), 'Clerk', 'Below? Cellars, sir, and an old door of glass that nobody has the key to. Nobody has ever asked.'), [[7.0, 11.2, 5], [7.4, -10.8, 6]], 1.5).catch(() => {}); // a clerk between the east wing and the gate
+    person(new Extra(LOOKS.drover, ...fx(8.2, -5.4), 0.6), 'Carter', 'Mind the sacks, sir. ...Fine day for it.'); // unloading the cart under the east wall
+    { const off = { ...LOOKS.line, shield: undefined, weapon: 'none' }; person(new Extra(off, ...fx(-7.4, -1.3), 0), 'Soldier', '...and the wells are good right out to the dunes this year, she says. Oh. Sir.'); person(new Extra(off, ...fx(-7.4, -0.1), PI, { scale: 1.03 }), 'Soldier', ''); } // two of the watch off duty, talking
+    let quiet = 0; const chat = d.every(() => { if (!P.controlEnabled) return; for (const f of folk) { const e = f.e, dist = P.dist(e); // (one speaks at a time: the next waits until the line before has had its time)
+      if (dist < 2.7 && !e.stopped) { e.stopped = true; e.faceTo = null; e.watch = P; }
+      if (e.stopped && !f.said && f.line && G.time > quiet) { f.said = true; quiet = G.time + 5; ui.say(f.who, f.line); }
+      if (e.stopped && e.to) { e.resume = e.to; e.to = null; } // whatever errand it was on waits
+      if (e.stopped && dist > 3.8) { e.stopped = false; e.watch = null; if (e.resume) e.to = e.resume; else e.faceTo = f.home; e.resume = null; } } });
     cam.shot(fx3(3.4, 1.3, -6.6), fx3(0, 2.4, -13.4)); cam.shot(fx3(4.4, 1.5, -4.4), fx3(0, 2.2, -12.4), 7); ui.fade(0, 3); // on the doors: he comes out of the dark into the sun
     await d.wait(1.4); await stroll(d, ...fx(0, -10.6), 1.4, 7); await d.wait(1.2);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true;
     await d.until(() => P.pos.z > FORE.z + 16.2); // out under the gate, onto the road
-    P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4);
+    chat(); ui.hideDialogue(); P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4);
   },
 });
 
@@ -381,20 +421,25 @@ stage('ascent', {
 stage('road', {
   async run(d) {
     G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false;
+    // (Owner, Nov 2026: tell it better.) Two pages: what he found, then the years. Things that happened, not a summary of
+    // them: the armour he sells explains the yard hand's clothes, and the caravans that stop coming are the war beginning. Drafts.
     await d.chronicle('The road', [
-      'He walked out into a world where nothing had happened.',
-      'A caravan passed him on the road. No one looked twice.',
-      'For years he took labouring work where he found it. He could not settle, and he did not fit.',
-      'The realm was at peace, and did not know it had ever been otherwise.',
-      'Then, out past the last wells, the desert grew restless.',
+      'At the first well he asked for news of the war. They laughed, and asked him which war.',
+      'He asked again in the next town, and the next. Then he stopped asking.',
+      'There is no work for a soldier of a war that was never fought. He sold the armour a piece at a time, and the sword last.',
+    ], TAP);
+    await d.chronicle('The years', [
+      "He mended walls. He dug wells. He loaded other men's carts, and moved on before anyone thought to ask his name.",
+      'The realm had its peace, and never knew what it had been spared.',
+      'Then, out past the last wells, the caravans began to come in late. Some did not come in at all.',
       '<em>A waystation on the caravan road.</em>',
     ], TAP);
     ui.chronClose();
   },
 });
 
-// Prologue 4: the waystation. Years on, he is a yard hand. Raiders come in off the road and
-// cut down the one guard; they take him for nobody and go for the goods; he takes up the dead
+// Prologue 4: the waystation. Years on, he is a yard hand. One raider comes in quietly behind the gate's
+// one guard and cuts him down, and the rest come in off the road at the horn; they take him for nobody and go for the goods; he takes up the dead
 // man's sword and shield. The first open fight of the game, in three waves, as the light goes:
 // raiders, then quicker ones (the roll is taught), then the one who leads them (the heavy blow).
 // A guard officer comes up the road behind them, in at the end, to see what he did.
@@ -404,27 +449,43 @@ stage('waystation', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'way', look: 'labourer', player: [...wy(-2.4, -9.6), 0.75], corin: null });
     const P = G.player, L = G.level, R = []; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; preloadMusic('hinges', 'granite');
-    const guard = new Extra(LOOKS.wayguard, ...wy(1.7, 9.4), 0), drover = new Extra(LOOKS.drover, ...wy(6.3, 2.4), 1.2);
+    const guard = new Extra(LOOKS.wayguard, ...wy(1.7, 9.4), PI), drover = new Extra(LOOKS.drover, ...wy(6.3, 2.4), 1.2);
+    guard.play(C(0.1, [0, pose({ neck: [0.5, 0.15, 0], chest: [0.12], spine: [0.1] }, guard.cur)]), 0.01); // the one man on the gate: his back to the road, dozing on his feet
     const loot = [[6.2, 4.3, 1.45], [5.6, -1.2, 1.8], [-6.6, 9.3, -0.9]]; // at the stall, the cart and the carter's load // where the first three stand over the goods, and which way they face
     if (!G.seenWay) {
       G.seenWay = true;
       // The end of a working day. He crosses the yard, and nobody looks at him.
       cam.shot(wy3(-6.4, 2.3, -10.4), wy3(0.6, 1.5, -2)); cam.shot(wy3(-5.6, 2.0, -8.8), wy3(1.2, 1.5, 0), 7); ui.fade(0, 2.4); playMusic('well', { cross: 2, fade: 2.5 }); // the yard's own quiet theme // from beside the house door, past the awning post, up the yard to the gate
       stroll(d, ...wy(2.4, -2.2), 1.25, 9).catch(() => {});
-      await d.wait(5.2);
-      // A horn, out in the dunes. At the gate, raiders come running in off the road; the guard meets them, and is cut down.
-      G.shake = 0.1; stopMusic(1.2); SFX.horn(); P.walk = null; d.wait(3.2).then(() => playMusic('hinges', { cross: 0.5, fade: 4 }), () => {}); // the horn alone, then the held breath until he takes up the sword
-      await d.wait(0.7); turnTo(d, P, 0.1, 0.7).catch(() => {});
-      for (const [x, z] of [[1.2, 19], [-1.4, 21.5], [0.5, 24]]) R.push(G.spawn('raider', ...wy(x, z)));
-      cam.shot(wy3(-3.2, 1.5, 3.6), wy3(0.9, 1.5, 10.5)); cam.shot(wy3(-2.6, 1.4, 5), wy3(1.2, 1.3, 10.5), 3.5);
-      guard.guard = 1; drover.go(...wy(0.4, -11.2), 4.4);
-      march(d, R[1], ...wy(-1.6, 9.8), 5).catch(() => {}); march(d, R[2], ...wy(0.2, 12.4), 5).catch(() => {});
-      await march(d, R[0], ...wy(1.6, 11.5), 5.2);
-      const m = R[0].type.moves[0]; R[0].face = R[0].angleTo(guard); R[0].play(m.clip, 0.12); SFX.tele();
+      await d.wait(4.6);
+      // (Owner, Nov 2026: it used to be a horn and a guard standing ready.) A raider comes in under the arch behind the
+      // guard, alone and quietly. The yard hand sees him; the guard does not.
+      R.push(G.spawn('raider', ...wy(1.4, 16.5))); const creep = march(d, R[0], ...wy(1.75, 10.8), 1.7); creep.catch(() => {});
+      cam.shot(wy3(-2.8, 1.5, 4.2), wy3(1.5, 1.4, 10.6)); cam.shot(wy3(-2.3, 1.45, 5.6), wy3(1.6, 1.35, 10.8), 5);
+      await d.wait(1.9);
+      // On him: he stops in his stride, and his head comes round to the gate.
+      P.walk = null; stopMusic(1.5);
+      { const x = P.pos.x, z = P.pos.z; cam.shot([x - 0.5, 1.5, z + 2.3], [x, 1.5, z]); cam.shot([x - 0.4, 1.52, z + 1.9], [x, 1.52, z], 2); }
+      turnTo(d, P, P.angleTo(guard), 0.35).catch(() => {}); await d.wait(1.1);
+      // The blow, from behind. Nothing announces it.
+      cam.shot(wy3(-0.9, 1.3, 7.2), wy3(1.7, 1.3, 10.4)); cam.shot(wy3(-0.7, 1.25, 7.6), wy3(1.7, 1.2, 10.2), 3);
+      await creep;
+      const m = R[0].type.moves[0]; R[0].face = R[0].angleTo(guard); R[0].play(m.clip, 0.12);
       await d.wait(m.wind); SFX.swing(0.8); await d.wait(0.1);
       { const dir = new T.Vector3(guard.pos.x - R[0].pos.x, 0, guard.pos.z - R[0].pos.z).normalize(); SFX.big(); SFX.die(); G.hitstop = 0.1; G.shake = 0.3; guard.flash = 1;
         blood(new T.Vector3(guard.pos.x, 1.15, guard.pos.z), dir, 2, true, R[0]); guard.lie(CL.death); guard.vel.copy(dir).multiplyScalar(2.5); }
-      await d.wait(1.0); R[0].stop(0.25); drover.setVisible(false);
+      // He starts back from it: his hands come up and his weight goes onto his heels. (His face is wrapped: the body has to say it.)
+      { const x = P.pos.x, z = P.pos.z, a = P.face + 0.5; cam.shot([x + Math.sin(a) * 2.1, 1.45, z + Math.cos(a) * 2.1], [x, 1.42, z]); cam.shot([x + Math.sin(a) * 2.6, 1.5, z + Math.cos(a) * 2.6], [x, 1.42, z], 1.8);
+        const idle = new Float32Array(P.cur), start = pose({ spine: [-0.22, 0, 0], chest: [-0.14, 0, 0], neck: [0.14, 0, 0], shL: [-0.8, 0, 0.5], elL: [-1.5, 0, -0.3], shR: [-0.65, 0, -0.5], elR: [-1.4, 0, 0], pos: [0, -0.05, -0.1] }, idle);
+        P.state = 'cine'; P.play(C(1.4, [0.12, start, 'o'], [0.6, start], [1.4, pose({ spine: [-0.08, 0, 0], chest: [-0.05, 0, 0], shL: [-0.3, 0, 0.3], elL: [-0.9, 0, 0], shR: [-0.25, 0, -0.3], elR: [-0.8, 0, 0] }, idle)]), 0.06); P.vel.set(-Math.sin(P.face) * 2.4, 0, -Math.cos(P.face) * 2.4); }
+      await d.wait(1.4);
+      // Then the horn, out in the dunes, and the rest of them come running in off the road.
+      G.shake = 0.1; SFX.horn(); d.wait(3.2).then(() => playMusic('hinges', { cross: 0.5, fade: 4 }), () => {}); // the horn alone, then the held breath until he takes up the sword
+      for (const [x, z] of [[-1.4, 19], [0.5, 21.5]]) R.push(G.spawn('raider', ...wy(x, z)));
+      cam.shot(wy3(-3.2, 1.5, 3.6), wy3(0.9, 1.5, 10.5)); cam.shot(wy3(-2.6, 1.4, 5), wy3(1.2, 1.3, 10.5), 3.5);
+      drover.go(...wy(0.4, -11.2), 4.4); R[0].stop(0.25);
+      march(d, R[1], ...wy(-1.6, 9.8), 5).catch(() => {}); await march(d, R[2], ...wy(0.2, 12.4), 5);
+      await d.wait(0.6); P.stop(0.5); P.state = 'loco'; drover.setVisible(false);
       // They take the yard hand for nobody, and go for the goods.
       await d.talk([['Raider', 'Leave that one. He only carries the sacks.']]);
       loot.forEach(([x, z, f], i) => march(d, R[i], ...wy(x, z), 3.6).then(() => { R[i].face = f; }, () => {}));
@@ -433,8 +494,8 @@ stage('waystation', {
       await d.wait(2.0);
       // He walks up the yard to the body, seen from the ground beside it, and goes down on one knee.
       cam.shot(wy3(3.7, 0.5, 10.9), wy3(1.2, 0.9, 7.5)); cam.shot(wy3(3.5, 0.55, 10.5), wy3(1.2, 0.8, 8.6), 5);
-      await stroll(d, ...wy(0.75, 9.0), 2.7, 7);
-      await turnTo(d, P, Math.atan2(guard.pos.x - 0.4 - P.pos.x, guard.pos.z + 0.6 - P.pos.z), 0.4);
+      await stroll(d, ...wy(0.8, 8.3), 2.7, 7); // (he fell into the yard, away from the gate: this is by his shoulders)
+      await turnTo(d, P, Math.atan2(guard.pos.x - P.pos.x, guard.pos.z - 1.0 - P.pos.z), 0.4);
       P.state = 'cine'; P.play(CL.kneel, 0.35); await d.wait(1.25);
       // His hand closes on the grip, and the music comes up to its full weight.
       P.wear('drifter'); guard.dress(LOOKS.wayguardBare); SFX.learn(); playMusic('granite', { cross: 1, fade: 2.5 });
@@ -443,7 +504,7 @@ stage('waystation', {
       await d.wait(0.9); P.stop(0.7); P.state = 'loco'; P.calm = false; // he stands, and the guard comes up as it always did
       await d.wait(1.7);
     } else { // a retry starts with the sword already in his hand
-      P.wear('drifter'); P.place(...wy(0.75, 9.0), 1.6); guard.lie(CL.death, true); guard.dress(LOOKS.wayguardBare); drover.setVisible(false);
+      P.wear('drifter'); P.place(...wy(0.8, 8.3), 1.6); guard.lie(CL.death, true); guard.dress(LOOKS.wayguardBare); drover.setVisible(false);
       for (const [x, z, f] of loot) { const e = G.spawn('raider', ...wy(x, z)); e.face = f; R.push(e); }
       playMusic('granite', { cross: 1, fade: 2 }); ui.fade(0, 0.8);
     }
@@ -453,9 +514,12 @@ stage('waystation', {
     // goods; each skill, the first time he uses it, returns with a flash and its name. Once, not on a retry.
     if (!G.taughtWay) {
       const foe = R[0]; for (const e of R) e.hold = e !== foe; foe.spare = true; foe.cd = 1.0; // (he can't be cut down until both have come back, so each is the objective in its turn)
-      const back = async (name) => { SFX.learn(); ui.banner(name, 1.8); ui.hint(''); P.flashCol = [1, 0.8, 0.3]; P.flash = 0.9; G.slow = Math.max(G.slow, 0.4); shock(P.pos, 2, 0xffe2a0); await d.wait(0.9); P.flashCol = [1, 0.15, 0.1]; };
-      ui.objective("Roll clear of the raider's blade"); ui.hint('Roll clear of his blade with {d}'); await d.until(() => P.state === 'roll' || P.state === 'back'); await back('THE ROLL');
-      ui.objective('Land a heavy blow on the raider'); ui.hint('Hold {h} to wind up a heavy blow, then let go'); await d.until(() => P.state === 'atk' && P.at && P.at.heavy && P.hitSet.size > 0); await back('THE HEAVY BLOW');
+      const back = async (name, thought) => { SFX.learn(); ui.banner(name, 2.2); ui.hint(''); ui.thought(thought, 4.5); P.flashCol = [1, 0.8, 0.3]; P.flash = 0.9; G.slow = Math.max(G.slow, 0.5); shock(P.pos, 2, 0xffe2a0); await d.wait(1.1); P.flashCol = [1, 0.15, 0.1]; };
+      // (Owner, Nov 2026.) Only a roll counts: a step back used to pass for one. A step back gets a nudge instead.
+      ui.objective('Remember how to get clear of a blade'); ui.hint('Roll: hold a direction and press {d}'); let stepped = false;
+      const nudge = d.every(() => { if (P.state === 'back' && !stepped) { stepped = true; ui.hint('That was a step back. To roll, hold a direction and press {d}'); } });
+      await d.until(() => P.state === 'roll'); nudge(); await back('THE ROLL', 'I know this. ...My feet never forgot it.');
+      ui.objective('Remember how to end it in one blow'); ui.hint('Hold {h} to wind up a heavy blow, then let go'); await d.until(() => P.state === 'atk' && P.at && P.at.heavy && P.hitSet.size > 0); await back('THE HEAVY BLOW', 'And this. ...The weight of it.');
       G.taughtWay = true; foe.spare = false; for (const e of R) e.hold = false;
     }
     ui.objective('Drive the raiders out of the yard');

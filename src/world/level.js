@@ -577,8 +577,10 @@ export function buildLevel() {
     site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls'; foreG.visible = name === 'fore'; for (const m of farW) m.visible = name !== 'fore'; W.after = !!o.after; warG.visible = fore.war.visible = !W.after; fore.whole.visible = W.after; // after: the halls as they are once the Usurper is sealed and his years never happened
     halls.day.material.color.setRGB(...(W.after ? [2.2, 1.8, 1.3] : [0.62, 0.2, 0.09])); halls.stairL.color.setHex(W.after ? 0xffe2b8 : 0xff7a40); halls.stairL.intensity = W.after ? 12 : 16; // the head of the stair he came down: firelight from the forecourt, or daylight halls.glow.material.color.setRGB(...(W.after ? [0.02, 0.02, 0.025] : [0.2, 0.62, 0.56]));
     OBSTACLES.length = 0; OBSTACLES.push(...(name === 'fore' && W.after ? fore.obsWhole : site.obs), ...(o.muster ? way.obsMuster : [])); // (the forecourt afterwards has no barricade or rubble to walk round)
-    SA = SKIES[o.sky || site.sky[0]]; SB = SKIES[o.sky || site.sky[1]];
+    const sk = Array.isArray(o.sky) ? o.sky : [o.sky || site.sky[0], o.sky || site.sky[1]]; SA = SKIES[sk[0]]; SB = SKIES[sk[1]]; // (o.sky may be a pair, for setDawn to run between)
   };
+  // The forecourt changes from the war's to the whole one in front of the camera (the seal running the years back: the `door` stage).
+  W.setAfter = (v) => { W.after = !!v; warG.visible = fore.war.visible = !W.after; fore.whole.visible = W.after; if (W.site === 'fore') { OBSTACLES.length = 0; OBSTACLES.push(...(W.after ? fore.obsWhole : site.obs)); } W.applyGate(); };
   W.applyGate();
   W.setDawn(0);
   const tmp = V(0, 0, 0);

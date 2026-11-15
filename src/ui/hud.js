@@ -27,20 +27,22 @@ export const ui = {
   objective(text) { const el = $('obj'), key = (text || '').replace(/\d+/g, ''); el.textContent = text || ''; el.style.opacity = text ? 1 : 0; if (key && key !== ui._obj) arrive(el); ui._obj = key; },
   hint(text) { const el = $('hint'); if (text) el.innerHTML = fill(text); el.style.opacity = text ? 1 : 0; if (text && text !== ui._hint) arrive(el); ui._hint = text || ''; },
   // What the captain thinks: where the dialogue box sits, but a clouded box edged in black and violet, which fades by itself. It stops nothing.
+  // A bystander's line, said as he comes near: the dialogue box, but it stops nothing, asks for no click and goes by itself.
+  say(who, text, dur = 4.5) { ui.showLine(who, text); $('dmore').style.visibility = 'hidden'; ui._say = setTimeout(() => { if (!G.talking) ui.hideDialogue(); }, dur * 1000); },
   thought(text, dur = 5) { const el = $('thought'); clearTimeout(ui._th); if (text) el.textContent = text; el.style.opacity = text ? 1 : 0; if (text) ui._th = setTimeout(() => (el.style.opacity = 0), dur * 1000); },
   holdBar(on) { $('hold').style.display = on ? 'block' : 'none'; },
   banner(text, dur = 2) { const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 16); b.style.opacity = 1; clearTimeout(ui._bh); ui._bh = setTimeout(() => (b.style.opacity = 0), dur * 1000); },
-  fade(to, sec = 1) { const f = $('fade'); f.style.transitionDuration = sec + 's'; f.style.opacity = to; },
+  fade(to, sec = 1, col) { const f = $('fade'); if (col || ui._fc) f.style.background = (ui._fc = col) || ''; f.style.transitionDuration = sec + 's'; f.style.opacity = to; }, // col: a wash of some other colour than the dark (it stays until a fade without one)
   cinematic(on) { $('bars').style.opacity = on ? 0 : 1; if (on) { ui.objectiveHidden = true; $('obj').style.visibility = 'hidden'; } else $('obj').style.visibility = 'visible'; },
   // dialogue
   showLine(who, text) {
-    $('dlg').style.display = 'block'; $('hint').style.visibility = 'hidden'; $('dwho').textContent = who || ''; const el = $('dtxt'); el.textContent = '';
+    clearTimeout(ui._say); $('dmore').style.visibility = 'visible'; $('dlg').style.display = 'block'; $('hint').style.visibility = 'hidden'; $('dwho').textContent = who || ''; const el = $('dtxt'); el.textContent = '';
     clearInterval(typing); let i = 0; ui.lineDone = false;
     typing = setInterval(() => { i += 2; el.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(typing); ui.lineDone = true; } }, 22);
     ui._full = text;
   },
   completeLine() { clearInterval(typing); $('dtxt').textContent = ui._full; ui.lineDone = true; },
-  hideDialogue() { $('dlg').style.display = 'none'; $('hint').style.visibility = 'visible'; clearInterval(typing); },
+  hideDialogue() { clearTimeout(ui._say); $('dlg').style.display = 'none'; $('hint').style.visibility = 'visible'; clearInterval(typing); },
   // chronicle: full-screen text between scenes. Every entry is laid out up front and
   // revealed in turn, so nothing on the page moves as new lines appear.
   chronOpen(head, lines, tap) {
