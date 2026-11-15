@@ -52,14 +52,17 @@ const REACHED = 'the-unsung.reached';
 const loadReached = () => { const r = new Set([STAGES[0].name]); try { for (const n of JSON.parse(localStorage.getItem(REACHED) || '[]')) r.add(n); const v = localStorage.getItem(SAVE), k = STAGES.findIndex((s) => s.name === (OLD[v] || v)); for (let i = 0; i <= k; i++) if (STAGES[i].checkpoint) r.add(STAGES[i].name); } catch (_) { /* storage blocked */ } return r; };
 const reached = loadReached();
 const writeSave = (k) => { reached.add(STAGES[k].name); try { localStorage.setItem(SAVE, STAGES[k].name); localStorage.setItem(REACHED, JSON.stringify([...reached])); } catch (_) { /* storage blocked: play on without saving */ } if (G.drawChapters) G.drawChapters(); };
+const LESSONS = { taughtStrike: 'forecourt', taughtDoor: 'halls', taughtWay: 'waystation' }; // which chapter teaches what
 const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
   director.abort(); const id = ++G.runId;
+  for (const f in LESSONS) if (i > STAGES.findIndex((s) => s.name === LESSONS[f])) G[f] = true; // what an earlier chapter taught has been learned, wherever this run starts (a chapter picked from the list, or CONTINUE after a reload)
   for (let k = i; k < STAGES.length; k++) {
     const s = STAGES[k]; G.stage = k; if (s.checkpoint) { G.checkpoint = k; if (k > 0 && !G.auto) writeSave(k); }
     if (k === i && s.setup) s.setup();
+    if (s.checkpoint) G.drawChapters();
     try { await s.run(director); } catch (e) { if (e === 'abort') return; throw e; }
     if (id !== G.runId) return;
   }
@@ -129,13 +132,22 @@ function leave(from) {
 }
 $('tplay').addEventListener('click', () => leave(0));
 // Replaying a chapter plays it as if for the first time: the cutscenes and lessons that a retry skips are shown again.
+// (Its own lessons, that is: runFrom marks the earlier chapters' as learned. Picking the Glass Door used to teach lock, strike and shield over again.)
 const fresh = () => { G.seenHalls = G.seenWay = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
+// The list is grouped by act, numbered, and quiet: rows of text, not a column of boxed buttons. A chapter not yet reached
+// shows no name (some are spoilers); the one being played is marked.
+const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 const CHAPTERS = STAGES.map((s, k) => [s, k]).filter(([s]) => s.checkpoint);
 const chapName = (s) => { const l = LABEL[s.name] || s.name; return l[0].toUpperCase() + l.slice(1); };
 G.drawChapters = () => {
   for (const [id, pick] of [['tchap', (k) => { fresh(); leave(k); }], ['pchap', (k) => { fresh(); G.pause(false); ui.fade(1, 0.3); if (k === 0) playMusic('title', { cross: 1 }); else stopMusic(1.5); setTimeout(() => G.runFrom(k), 350); }]]) {
-    const box = $(id); box.innerHTML = '';
-    for (const [s, k] of CHAPTERS) { const b = document.createElement('button'); b.className = 'btn small'; b.textContent = chapName(s).toUpperCase(); b.disabled = !reached.has(s.name); b.addEventListener('click', () => pick(k)); box.appendChild(b); }
+    const box = $(id); box.innerHTML = ''; let act = null;
+    CHAPTERS.forEach(([s, k], n) => {
+      const a = (ACTS.find(([, names]) => names.includes(s.name)) || ['Later'])[0], open = reached.has(s.name);
+      if (a !== act) { act = a; const h = document.createElement('div'); h.className = 'act'; h.textContent = a; box.appendChild(h); }
+      const b = document.createElement('button'), num = document.createElement('i'); b.className = 'chap' + (G.running && G.checkpoint === k ? ' now' : ''); num.textContent = ROMAN[n] || n + 1;
+      b.append(num, open ? chapName(s) : '\u00B7 \u00B7 \u00B7'); b.disabled = !open; b.addEventListener('click', () => pick(k)); box.appendChild(b);
+    });
   }
   $('tchapg').style.display = reached.size > 1 ? '' : 'none'; // nothing to replay until a second chapter has been reached
 };

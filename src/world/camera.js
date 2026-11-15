@@ -14,7 +14,8 @@ cam.shot = (pos, look, dur = 0) => {
   if (!dur) { cam.pos.copy(cam.cine.p1); cam.look.copy(cam.cine.l1); }
 };
 cam.release = () => { cam.cine = null; };
-cam.behind = () => { cam.cine = null; cam.yaw = G.player.face + PI; cam.pitch = 0.3; updateCamera(0, true); };
+// Behind him, or (yaw) on a given side of him, for when what is behind him is a wall or a gate leaf.
+cam.behind = (yaw) => { cam.cine = null; cam.yaw = yaw == null ? G.player.face + PI : yaw; cam.pitch = 0.3; updateCamera(0, true); };
 
 export function updateCamera(dt, snap) {
   const camera = G.camera, sh = G.shake;

@@ -43,7 +43,7 @@ export const LOOKS = {
   knight: { armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, rim: 0x2c3f86, legs: 1.1, pads: 0.9, weapon: 'none' }, // helmed, like him (owner: the bare faces are too plain to carry a scene yet)
   line: { armor: 0x8f96a2, trim: 0x4a5a8a, under: 0x2a3050, dark: 0x25262e, steel: 0xdfe3ea, rim: 0x23305a, shield: 2 }, // the realm's line soldiers, in plain steel
   glass: { armor: 0xb4ad9c, trim: 0x7a6636, under: 0x25272c, dark: 0x101114, steel: 0xbfeee6, eye: 0x3fd0bc, rim: 0x3c8f84, glass: 1, pads: 0.92 },
-  clerk: { ...PLAIN, armor: 0x3a4466, trim: 0x8a7a5c, under: 0x2a3050, helm: 'none', hair: 0x9a9690, skin: 0xd9a77e, weapon: 'none', pads: 0.4 },
+  clerk: { ...PLAIN, armor: 0x3a4466, trim: 0x8a7a5c, under: 0x2a3050, helm: 'none', hair: 0x9a9690, skin: 0xd9a77e, weapon: 'none', pads: 0.4, robe: 1, mantle: 0x7a6a50, hat: 0x5a2630, beard: 1, strap: 1 }, // the guard's clerk: a long robe and sleeves, a short shoulder cape, a felt cap, a grey beard, his papers in a satchel
 };
 
 // Raiders are desert people, not knights: leather over loose cloth, bare forearms, a dark head-wrap

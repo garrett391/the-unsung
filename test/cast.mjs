@@ -14,16 +14,19 @@ const page = await (await browser.newContext({ viewport: { width: 520, height: 7
 page.on('pageerror', (e) => console.log(e.stack || e.message));
 await page.route('**/fonts.googleapis.com/**', (r) => r.abort());
 await page.goto(`http://localhost:${server.address().port}/`); await page.waitForTimeout(800);
+const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null; // ONLY=labourer,drover node test/cast.mjs
 const names = await page.evaluate(async () => {
   for (const id of ['title', 'hud', 'chron']) document.getElementById(id).style.display = 'none'; document.getElementById('fade').style.opacity = 0;
   G.director.abort(); G.running = true; G.resetWorld({ site: 'way', sky: 'morning', player: [0, 130, 0], corin: null }); G.player.setVisible(false); G.player.controlEnabled = false; G.freezeAI = true;
-  const out = []; let i = 0;
-  for (const k of Object.keys(G.LOOKS)) { new G.Extra(G.LOOKS[k], -12 + (i % 9) * 3, i < 9 ? 118 : 126, 0); out.push(k); i++; }
-  for (const k of ['raider', 'runner', 'bulwark', 'chief', 'sergeant']) { const e = G.spawn(k, -12 + (i % 9) * 3, i < 9 ? 118 : 126); e.face = 0; out.push(k); i++; }
-  return out;
+  return [...Object.keys(G.LOOKS), 'raider', 'runner', 'bulwark', 'chief', 'sergeant'];
 });
-for (let i = 0; i < names.length; i++) for (const [n, a, r, h] of [['front', 0.35, 2.6, 1.15], ['face', 0.5, 0.95, 1.62]]) {
-  await page.evaluate(async ([i, a, r, h]) => { const x = -12 + (i % 9) * 3, z = i < 9 ? 118 : 126; G.cam.shot([x + Math.sin(a) * r, h + 0.1, z + Math.cos(a) * r], [x, h, z]); for (let k = 0; k < 8; k++) { G.step(1 / 60, true); await null; } G.step(1 / 60); }, [i, a, r, h]);
-  await page.screenshot({ path: join(shots, `cast-${names[i]}-${n}.png`) });
+// one at a time, in the open middle of the yard (the yard was rebuilt, and a row of them stood behind its dressing)
+for (const name of names) { if (ONLY && !ONLY.includes(name)) continue;
+  await page.evaluate((k) => { if (window._c) { if (window._c.dispose) { window._c.gone = true; window._c.dead = true; } window._c.setVisible ? window._c.setVisible(false) : (window._c.root.visible = false); }
+    window._c = G.LOOKS[k] ? new G.Extra(G.LOOKS[k], 0.5, 122, 0) : G.spawn(k, 0.5, 122); window._c.face = 0; }, name);
+  for (const [n, a, r, h] of [['front', 0.45, 2.7, 1.1], ['back', 2.6, 2.7, 1.1], ['face', 0.5, 0.95, 1.62]]) {
+    await page.evaluate(async ([a, r, h]) => { const x = 0.5, z = 122; G.cam.shot([x + Math.sin(a) * r, h + 0.1, z + Math.cos(a) * r], [x, h, z]); for (let k = 0; k < 8; k++) { G.step(1 / 60, true); await null; } G.step(1 / 60); }, [a, r, h]);
+    await page.screenshot({ path: join(shots, `cast-${name}-${n}.png`) });
+  }
 }
 await browser.close(); server.close();

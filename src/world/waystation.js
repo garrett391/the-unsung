@@ -192,19 +192,39 @@ export function buildWaystation(scene, ox, oz) {
     drift(XW, -11.9, 1.3, 1.1, 0.3, 0); drift(-XW + 0.1, 9.0, 0.9, 1.7, 0.4, 0); drift(-5.2, 14.3, 2.6, 1.3, 0.55, 0.2); drift(6.4, 14.4, 3.0, 1.4, 0.6, -0.1); drift(-13.1, 6, 1.4, 5, 0.7, 0); drift(13.2, -2, 1.5, 6, 0.8, 0); drift(-9, 13.6, 4, 1.4, 0.7, 0); drift(10, 13.7, 3.4, 1.3, 0.6, 0);
     const m = add(mergeGeometries(parts), mSand, 0, 0, 0); m.castShadow = false; }
 
-  // date palms: a leaning ringed trunk and a crown of drooping fronds
+  // date palms (owner, Nov 2026: they were blocky). The trunk is one swept surface, ringed with old leaf scars and swelling at
+  // the foot; the fronds are cut out of a painted leaf (a rib and its leaflets) and stand in three tiers, upright in the
+  // heart of the crown and arching and drooping round it, over a skirt of dead ones and the stubs they broke from.
+  const frondTex = canvasTex(256, (c, n) => { const r = rng(91), cx = n / 2;
+    for (let y = 5; y < n - 3; y += 7) { const t = 1 - y / n, len = (n / 2 - 5) * Math.pow(Math.sin(PI * (0.05 + 0.92 * t)), 0.55);
+      for (const sd of [-1, 1]) { const sh = 185 + r() * 70, d = r() * 8; c.strokeStyle = `rgb(${(sh * 0.93) | 0},${sh | 0},${(sh * 0.78) | 0})`; c.lineWidth = 3.4 + r() * 1.6; c.beginPath(); c.moveTo(cx, y); c.quadraticCurveTo(cx + sd * len * 0.55, y - len * 0.3, cx + sd * len, y - len * 0.22 + d); c.stroke(); } }
+    c.strokeStyle = 'rgb(214,200,150)'; c.lineWidth = 6; c.beginPath(); c.moveTo(cx, n); c.lineTo(cx, 0); c.stroke(); });
+  const barkTex = canvasTex(128, (c, n) => { const r = rng(92); speck(c, n, [206, 198, 186], 30, r);
+    for (let row = 0; row < 8; row++) { const y = row * 16; c.fillStyle = 'rgba(0,0,0,.34)'; c.fillRect(0, y, n, 2.5); c.fillStyle = 'rgba(255,255,255,.16)'; c.fillRect(0, y + 2.5, n, 1.5);
+      for (let k = 0; k < 4; k++) { const x = k * 32 + (row % 2 ? 16 : 0) + r() * 6; c.strokeStyle = `rgba(0,0,0,${0.2 + r() * 0.2})`; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - 9, y + 3); c.lineTo(x, y + 13); c.lineTo(x + 9, y + 3); c.stroke(); } }
+    for (let i = 0; i < 60; i++) { c.fillStyle = `rgba(0,0,0,${0.05 + r() * 0.12})`; c.fillRect(r() * n, r() * n, 1.2, 4 + r() * 10); } });
+  mTrunk.map = barkTex; mFrond.map = frondTex; mFrond.alphaTest = 0.3; const mDry = toon(0x9a8250, { side: T.DoubleSide, map: frondTex, alphaTest: 0.3 }), pq = rng(4242), PQ = (a, b) => a + pq() * (b - a);
   const palm = (x, z, h, lean, la, solid) => {
-    const parts = [], n = 8, M = new T.Matrix4(), e = new T.Euler(); let px = 0, pz = 0;
-    for (let i = 0; i < n; i++) { const u = (i + 0.5) / n, r0 = 0.25 - 0.11 * u, c = new T.CylinderGeometry(r0 - 0.012, r0 + 0.03, h / n + 0.04, 9), off = lean * u * u;
-      px = Math.sin(la) * off; pz = Math.cos(la) * off; c.applyMatrix4(M.makeRotationFromEuler(e.set(Math.cos(la) * lean * u * 0.5, 0, -Math.sin(la) * lean * u * 0.5)).setPosition(px, h * u, pz)); parts.push(c); }
-    add(mergeGeometries(parts), mTrunk, x, 0, z);
-    const fr = [], tx = Math.sin(la) * lean, tz = Math.cos(la) * lean;
-    for (let i = 0; i < 13; i++) {
-      const L = Q(2.2, 3.1), e0 = i < 4 ? Q(0.9, 1.25) : Q(0.2, 0.7), k = Q(1.5, 2.1), f = new T.PlaneGeometry(0.62, 1, 2, 7), p = f.attributes.position, a = (i / 13) * PI * 2 + Q(-0.2, 0.2);
-      for (let v = 0; v < p.count; v++) { const t = p.getY(v) + 0.5, w = p.getX(v) * Math.sin(PI * (0.1 + 0.88 * t)), out = L * (Math.sin(e0) - Math.sin(e0 - k * t)) / k, up = L * (Math.cos(e0 - k * t) - Math.cos(e0)) / k; p.setXYZ(v, w, up - Math.abs(w) * 0.45, out); }
-      f.rotateY(a); f.translate(tx, h + 0.1, tz); fr.push(f);
-    }
-    const fg = mergeGeometries(fr); fg.computeVertexNormals(); add(fg, mFrond, x, 0, z); add(new T.SphereGeometry(0.3, 8, 6), mTrunk, x + tx, h, z + tz);
+    for (let i = 0; i < 52; i++) q(); // (the old palm drew its numbers from the yard's own: keep everything after it where it was)
+    const NS = 34, NR = 14, pos = [], uv = [], idx = [], tx = Math.sin(la) * lean, tz = Math.cos(la) * lean;
+    for (let i = 0; i <= NS; i++) { const u = i / NS, off = lean * u * u, r = (0.25 - 0.1 * u) * (1 + 0.55 * Math.exp(-u * 13)) * (i % 2 ? 1.07 : 0.96) * (1 + 0.5 * Math.max(0, u - 0.93) * 6);
+      for (let j = 0; j <= NR; j++) { const a = (j / NR) * PI * 2; pos.push(Math.sin(la) * off + Math.cos(a) * r, h * u - 0.3, Math.cos(la) * off + Math.sin(a) * r); uv.push((j / NR) * 3, u * h * 1.1); }
+      if (i < NS) for (let j = 0; j < NR; j++) { const k = i * (NR + 1) + j; idx.push(k, k + NR + 1, k + 1, k + 1, k + NR + 1, k + NR + 2); } }
+    const tg = new T.BufferGeometry(); tg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); tg.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); tg.setIndex(idx); tg.computeVertexNormals();
+    { const nm = tg.attributes.normal; for (let i = 0; i <= NS; i++) { const a2 = i * (NR + 1), b2 = a2 + NR, nx = nm.getX(a2) + nm.getX(b2), ny = nm.getY(a2) + nm.getY(b2), nz = nm.getZ(a2) + nm.getZ(b2), l = Math.hypot(nx, ny, nz); nm.setXYZ(a2, nx / l, ny / l, nz / l); nm.setXYZ(b2, nx / l, ny / l, nz / l); } }
+    add(tg, mTrunk, x, 0, z);
+    const stubs = [], M = new T.Matrix4(), e = new T.Euler(); // the stubs of old fronds, under the crown
+    for (let i = 0; i < 14; i++) { const a = (i / 14) * PI * 2 + PQ(-0.2, 0.2), L = PQ(0.35, 0.6), c = new T.ConeGeometry(0.06, L, 5); c.translate(0, L / 2, 0); c.applyMatrix4(M.makeRotationFromEuler(e.set(PQ(0.5, 0.95), a, 0, 'YXZ')).setPosition(tx + Math.sin(a) * 0.12, h - PQ(0.15, 0.6), tz + Math.cos(a) * 0.12)); stubs.push(c); }
+    const heart = new T.SphereGeometry(0.3, 10, 8); heart.scale(1, 1.25, 1); heart.translate(tx, h - 0.05, tz); stubs.push(heart); add(mergeGeometries(stubs), mTrunk, x, 0, z);
+    const frond = (list, a, L, e0, k, W) => { const f = new T.PlaneGeometry(1, 1, 2, 10), p = f.attributes.position, tw = PQ(-0.25, 0.25);
+      for (let v = 0; v < p.count; v++) { const t = p.getY(v) + 0.5, w = p.getX(v) * W, out = L * (Math.sin(e0) - Math.sin(e0 - k * t)) / k, up = L * (Math.cos(e0 - k * t) - Math.cos(e0)) / k; p.setXYZ(v, w * Math.cos(tw * t), up - Math.abs(w) * (0.35 + 0.3 * t) + w * Math.sin(tw * t), out); }
+      f.rotateY(a); f.translate(tx, h + 0.05, tz); list.push(f); };
+    const fr = [], dry = [];
+    for (let i = 0; i < 6; i++) frond(fr, (i / 6) * PI * 2 + PQ(-0.3, 0.3), PQ(2.0, 2.6), PQ(1.15, 1.45), PQ(1.1, 1.6), 0.95);
+    for (let i = 0; i < 11; i++) frond(fr, (i / 11) * PI * 2 + PQ(-0.25, 0.25), PQ(2.7, 3.4), PQ(0.6, 1.0), PQ(1.6, 2.1), 1.2);
+    for (let i = 0; i < 9; i++) frond(fr, (i / 9) * PI * 2 + 0.3 + PQ(-0.25, 0.25), PQ(2.5, 3.1), PQ(0.1, 0.42), PQ(1.3, 1.75), 1.15);
+    for (let i = 0; i < 8; i++) frond(dry, (i / 8) * PI * 2 + PQ(-0.3, 0.3), PQ(1.5, 2.1), PQ(-0.75, -0.35), PQ(0.6, 0.9), 0.85);
+    const fg = mergeGeometries(fr); fg.computeVertexNormals(); add(fg, mFrond, x, 0, z); const dg = mergeGeometries(dry); dg.computeVertexNormals(); add(dg, mDry, x, -0.25, z);
     if (solid) block(x, z, 0.5);
   };
   palm(-9.4, 7.6, 7.0, 1.1, 1.9, true); palm(-15.6, 9, 7.6, 1.2, -1.2); palm(-17.5, 3.5, 6.0, 0.8, 2.6); palm(15.4, -3, 7.8, 1.1, 0.6); palm(8.5, 21, 6.6, 1.0, -2.2); palm(-7.5, 24, 5.6, 0.7, 1.0); palm(15.6, 15, 6.3, 0.9, 3.4); palm(14.2, 6.5, 8.4, 1.3, -1.3);

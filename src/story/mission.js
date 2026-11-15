@@ -121,6 +121,7 @@ stage('halls', {
     const loose = d.every(() => { if (stair[0].hold && south(-46.8)) { for (const e of stair) { e.hold = false; e.cd = rnd(1, 2); } G.boss = stair[0]; G.maxAtk = 2; } });
     // He comes down into the gallery, seen from the floor among the dead.
     cam.shot(hx3(1.9, 0.55, -8.6), hx3(-0.2, 1.5, -1.5)); cam.shot(hx3(1.5, 0.8, -7.6), hx3(-0.1, 1.45, -2.5), 6); ui.fade(0, 2.6);
+    playMusic('blade', { cross: 2.5, fade: 3 }); // (owner, Nov 2026) the fight's music from the moment he is in the halls: it used to wait for the knight to die
     await d.wait(1.0); await stroll(d, ...hx(0, -3.8), 1.4, 6);
     // Down the gallery, one of the Usurper's guard is finishing a man off. (Shown, so the first foe is already someone to stop.)
     cam.shot(hx3(-1.9, 1.2, -9.4), hx3(0.9, 0.9, -14.0)); cam.shot(hx3(-1.6, 1.1, -10.2), hx3(0.9, 0.8, -14.0), 4);
@@ -163,7 +164,7 @@ stage('halls', {
     for (const [x, z] of [[11.6, -38], [-11.6, -38.4], [11.0, -37.2]]) G.spawn('glassguard', ...hx(x, z));
     await d.wait(0.7);
     await d.talk([['Knight', 'Go. They are coming back up.']]);
-    K.play(C(1.6, [1.6, PZ.sitDead]), 0.2); playMusic('blade', { cross: 2, fade: 1.5 });
+    K.play(C(1.6, [1.6, PZ.sitDead]), 0.2);
     cam.shot(hx3(1.4, 1.7, -21.8), hx3(0, 1.4, -33)); cam.shot(hx3(1.2, 1.6, -22.6), hx3(0, 1.4, -33), 2.5);
     await d.wait(1.3); ui.thought('Gone. ...The Door, then.', 4.5); await d.wait(1.5); // what he thinks (owner, Nov 2026: a thought, so it is plain she has died)
     G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = PI; cam.behind(); P.controlEnabled = true; ui.objective('Cut your way down to the vault');
@@ -510,7 +511,7 @@ stage('waystation', {
       for (const [x, z, f] of loot) { const e = G.spawn('raider', ...wy(x, z)); e.face = f; R.push(e); }
       playMusic('granite', { cross: 1, fade: 2 }); ui.fade(0, 0.8);
     }
-    P.flashCol = [1, 0.15, 0.1]; G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(R[0]); cam.behind(); P.controlEnabled = true; G.freezeAI = false; for (const e of R) e.cd = rnd(1.4, 2.6);
+    P.flashCol = [1, 0.15, 0.1]; G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(R[0]); cam.behind(-PI / 2); P.controlEnabled = true; G.freezeAI = false; for (const e of R) e.cd = rnd(1.4, 2.6); // from the west, looking across him to the stall: straight behind him is the gate's leaf, which filled a phone's screen (owner, Nov 2026)
     // It comes back to him (owner, Nov 2026: the sword in his hand is where the roll and the heavy blow
     // are taught, as things remembered). One raider comes for him while the others are still at the
     // goods; each skill, the first time he uses it, returns with a flash and its name. Once, not on a retry.

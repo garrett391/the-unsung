@@ -209,6 +209,37 @@ export const clothTex = canvasTex(64, (g, n) => {
   g.fillStyle = 'rgba(0,0,0,.05)'; for (let i = 0; i < n; i += 2) g.fillRect(0, i, n, 1);
   for (const [x, w, a] of [[6, 9, 0.22], [24, 7, 0.16], [40, 10, 0.24], [56, 6, 0.14]]) { const gr = g.createLinearGradient(x - w, 0, x + w, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - w, 0, w * 2, n); g.fillStyle = 'rgba(255,255,255,.14)'; g.fillRect(x + w, 0, 2, n); }
 });
+// A tunic's body (plain figures), wrapped once round the chest with the front at the middle of the texture: a laced slit at
+// the neck, side seams, folds gathering toward the belt, a sewn patch, sweat and dust. Near white: the material's colour tints it.
+const streaks = (g, n, k, y0) => { for (let i = 0; i < k; i++) { const x = (i + 0.2 + R0() * 0.6) * (n / k), w = 3 + R0() * 5, dx = (R0() - 0.5) * 14, top = y0 + R0() * n * 0.25;
+  for (const k2 of [1.8, 1.2, 0.6]) { g.fillStyle = `rgba(0,0,0,${0.035 + R0() * 0.03})`; g.beginPath(); g.moveTo(x - w * k2, n); g.lineTo(x + dx, top); g.lineTo(x + w * k2, n); g.fill(); } // laid over itself three times, so its edges are soft
+  g.fillStyle = 'rgba(255,255,255,.07)'; g.beginPath(); g.moveTo(x + w * 1.8, n); g.lineTo(x + dx + 2, top + 8); g.lineTo(x + w * 1.8 + 3, n); g.fill(); } };
+const weave = (g, n) => { g.fillStyle = 'rgba(0,0,0,.06)'; for (let i = 0; i < n; i += 3) g.fillRect(0, i, n, 1); g.fillStyle = 'rgba(0,0,0,.035)'; for (let i = 0; i < n; i += 3) g.fillRect(i, 0, 1, n); };
+const stitch = (g, x0, y0, x1, y1) => { g.strokeStyle = 'rgba(0,0,0,.3)'; g.lineWidth = 1.5; g.setLineDash([]); g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.strokeStyle = 'rgba(20,14,8,.55)'; g.lineWidth = 1; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(x0 + 2.5, y0 + 2.5); g.lineTo(x1 + 2.5, y1 + 2.5); g.stroke(); g.setLineDash([]); };
+export const tunicTex = canvasTex(256, (g, n) => {
+  speck(g, n, [226, 226, 226], 16, R0); weave(g, n); streaks(g, n, 10, n * 0.3);
+  let gr = g.createLinearGradient(0, n * 0.55, 0, n); gr.addColorStop(0, 'rgba(50,38,24,0)'); gr.addColorStop(1, 'rgba(50,38,24,.24)'); g.fillStyle = gr; g.fillRect(0, 0, n, n);
+  gr = g.createRadialGradient(n / 2, 0, 6, n / 2, 0, 80); gr.addColorStop(0, 'rgba(40,30,20,.3)'); gr.addColorStop(1, 'rgba(40,30,20,0)'); g.fillStyle = gr; g.fillRect(0, 0, n, n);
+  stitch(g, n * 0.25, 0, n * 0.25, n); stitch(g, n * 0.75, 0, n * 0.75, n);
+  const c = n / 2; g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.moveTo(c - 13, 0); g.lineTo(c + 13, 0); g.lineTo(c + 4, 104); g.lineTo(c - 4, 104); g.fill(); // the facing round the slit
+  g.fillStyle = 'rgba(12,8,6,.8)'; g.beginPath(); g.moveTo(c - 5, 0); g.lineTo(c + 5, 0); g.lineTo(c, 94); g.fill(); // the slit
+  g.strokeStyle = 'rgba(34,22,12,.9)'; g.lineWidth = 2; for (let y = 16; y < 84; y += 17) { const w = 9 - y * 0.05; g.beginPath(); g.moveTo(c - w, y); g.lineTo(c + w, y + 11); g.moveTo(c + w, y); g.lineTo(c - w, y + 11); g.stroke(); } // lacing
+  g.fillStyle = 'rgba(0,0,0,.1)'; g.fillRect(182, 150, 30, 34); g.strokeStyle = 'rgba(20,14,8,.6)'; g.lineWidth = 1; g.setLineDash([3, 3]); g.strokeRect(184.5, 152.5, 25, 29); g.setLineDash([]); // a patch, sewn on
+});
+// Limbs bound in cloth strips: the turns run slantwise, each lapping the one below.
+export const wrapTex = canvasTex(64, (g, n) => {
+  speck(g, n, [228, 228, 228], 14, R0);
+  for (let k = -2; k < 5; k++) { const y = k * (n / 4) + (R0() - 0.5) * 2; g.strokeStyle = 'rgba(0,0,0,.42)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(0, y); g.lineTo(n, y + n / 4); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,.13)'; g.lineWidth = 4; g.beginPath(); g.moveTo(0, y + 3); g.lineTo(n, y + 3 + n / 4); g.stroke(); g.strokeStyle = 'rgba(255,255,255,.2)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, y - 2); g.lineTo(n, y - 2 + n / 4); g.stroke(); }
+}, 1, 2.5);
+// And its skirt: folds from the belt, a stitched hem, dirt thrown up from the ground.
+export const skirtTex = canvasTex(256, (g, n) => {
+  speck(g, n, [226, 226, 226], 16, R0); weave(g, n); streaks(g, n, 14, 0);
+  let gr = g.createLinearGradient(0, n * 0.5, 0, n); gr.addColorStop(0, 'rgba(60,44,26,0)'); gr.addColorStop(1, 'rgba(60,44,26,.3)'); g.fillStyle = gr; g.fillRect(0, 0, n, n);
+  for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(50,36,22,${0.05 + R0() * 0.1})`; g.beginPath(); g.arc(R0() * n, n - R0() * R0() * 70, 2 + R0() * 7, 0, 7); g.fill(); }
+  g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(0, n - 9, n, 9); stitch(g, 0, n - 15, n, n - 15);
+  gr = g.createLinearGradient(0, 0, 0, 30); gr.addColorStop(0, 'rgba(0,0,0,.3)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, n, 30); // shade under the belt
+});
 // Heater-shield faces. 0: the captain's, 1: raider iron, 2: guard blue.
 export function shieldTex(kind) {
   const t = canvasTex(64, (g, n) => {

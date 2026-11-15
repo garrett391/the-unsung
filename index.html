@@ -96,7 +96,13 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #title p.sub{letter-spacing:.3em;font-size:13px;margin-top:8px;opacity:.75;font-style:italic}
 #title dl{margin-top:12px;display:grid;grid-template-columns:auto auto;gap:5px 16px;font-size:15px;text-align:left}
 #title dt{color:#e9c15a;text-align:right}#title dd{opacity:.9}
-.chaps{display:flex;flex-direction:column;align-items:center;margin-top:8px}.chaps .btn{margin:3px 0}.chaps .btn:disabled{opacity:.3;cursor:default;background:none}
+.chaps{display:flex;flex-direction:column;align-items:stretch;width:min(70vw,240px);margin:2px auto 0;text-align:left}
+.chaps .act{font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.55;margin:12px 0 3px;padding-bottom:4px;border-bottom:1px solid rgba(217,178,74,.25)}.chaps .act:first-child{margin-top:6px}
+.chap{font:600 17px "Cormorant Garamond",Georgia,serif;letter-spacing:.05em;color:#efe6d2;background:none;border:0;padding:6px 4px;display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer}
+.chap i{font-style:normal;font-size:12px;letter-spacing:.08em;color:#e9c15a;opacity:.8;width:2.4em;text-align:right;flex-shrink:0}
+.chap:hover,.chap:focus-visible{background:rgba(217,178,74,.16);outline:none}.chap.now{color:#e9c15a}.chap.now::after{content:'\25C2';margin-left:auto;font-size:11px}
+.chap:disabled{opacity:.3;cursor:default;background:none}
+@media (pointer:coarse){.chap{padding:10px 4px}}
 
 @keyframes pulse{50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){#dlg .more,#chron .tap,#obj.new,#hint.new{animation:none}}

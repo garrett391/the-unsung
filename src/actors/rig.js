@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { PI } from '../core/util.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { toon, shieldTex, tabardTex, plateTex, mailTex, clothTex } from '../gfx/materials.js';
+import { toon, shieldTex, tabardTex, plateTex, mailTex, clothTex, tunicTex, skirtTex, wrapTex } from '../gfx/materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Procedural armored humanoid. Faces +Z; the sword hand is at -X.
@@ -61,6 +61,17 @@ const pleats = (r0, r1, len, n) => memo(`k${r0},${r1},${len},${n}`, () => {
     p.setXYZ(i, Math.sin(a) * r, 0.06 - v * len * (v > 0.99 ? 1 + 0.07 * Math.sin(a * 2 + 0.6) + 0.04 * Math.cos(a * n) : 1), Math.cos(a) * r); }
   g.computeVertexNormals(); return g;
 });
+const ballS = (r) => memo('S' + r, () => new T.SphereGeometry(r, 28, 20)); // skin: enough segments that the toon bands don't follow the facets
+// Cloth turned on a profile and then creased: `fold(a, v)` swells or draws in the radius at angle `a` round the body (0 is the
+// front) and `v` along the profile (0 at its first point). The seam is at the back, so the front is the middle of the texture.
+const folded = (k, pts, fold, seg = 36, n = 14) => memo(k, () => {
+  const g = new T.LatheGeometry(new T.SplineCurve(pts.map(([a, b]) => new T.Vector2(a, b))).getPoints(n), seg, PI), p = g.attributes.position, uv = g.attributes.uv, nm = g.attributes.normal, rows = n + 1;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), f = 1 + fold(Math.atan2(x, z), uv.getY(i)); p.setX(i, x * f); p.setZ(i, z * f); }
+  g.computeVertexNormals();
+  for (let j = 0; j < rows; j++) { const a = j, b = seg * rows + j, x = nm.getX(a) + nm.getX(b), y = nm.getY(a) + nm.getY(b), z = nm.getZ(a) + nm.getZ(b), l = Math.hypot(x, y, z) || 1; nm.setXYZ(a, x / l, y / l, z / l); nm.setXYZ(b, x / l, y / l, z / l); } // no crease down the seam
+  return g;
+});
+const GATHER = (a) => 0.022 * Math.cos(a * 6 + 0.6) + 0.009 * Math.cos(a * 3 + 1), sat = (x) => Math.max(0, Math.min(1, x)); // how a tunic bunches at the bottom of the ribs
 const turned = (k, pts, n = 10) => memo(k, () => new T.LatheGeometry(new T.SplineCurve(pts.map(([a, b]) => new T.Vector2(a, b))).getPoints(n), SEG));
 const band = (r, t) => memo(`o${r},${t}`, () => new T.TorusGeometry(r, t, 6, SEG)); // one turn of a wrapping
 
@@ -85,7 +96,7 @@ export function buildHumanoid(o) {
   const M = (c, x) => { const m = toon(c, { rim: o.rim == null ? 0x1c2a55 : o.rim, ...(x || {}) }); mats.push(m); return m; };
   const plate = o.plain ? clothTex : plateTex, mail = o.plain ? clothTex : mailTex; // o.plain: quilted cloth and leather, not plate over mail
   const SH = o.plain ? 0 : 0.55; // plate, trim and steel catch the light; cloth and leather don't
-  const mA = M(o.armor, { map: plate, shine: SH }), mT = M(o.trim, { shine: SH }), mU = M(o.under, { map: mail }), mUF = M(o.under, { map: mail, side: T.DoubleSide }), mD = M(o.dark || 0x24252d), mS = M(o.steel || 0xdfe3ea, { shine: 0.9 });
+  const mA = M(o.armor, { map: o.plain ? tunicTex : plate, shine: SH }), mT = M(o.trim, { shine: SH }), mU = M(o.under, { map: mail }), mUF = M(o.under, { map: mail, side: T.DoubleSide }), mD = M(o.dark || 0x24252d), mS = M(o.steel || 0xdfe3ea, { shine: 0.9 });
   const mEye = new T.MeshBasicMaterial({ color: o.eye || 0x08080c });
   const PLN = !!o.plain, bare = PLN || o.helm === 'open' || o.helm === 'none' || o.helm === 'wrap', mSkin = bare ? M(o.skin || 0xd9a77e) : null, mHair = bare ? M(o.hair || 0x7a5228) : null;
   // The Usurper's glass (crown, growths, blade): unlit and just bright enough to bloom. The blade has its own material because blood tints it.
@@ -93,8 +104,9 @@ export function buildHumanoid(o) {
   const root = new T.Group(), J = {};
   const hips = (J.hips = joint(root, 0, HIP, 0));
   mk(rbox(0.33, 0.18, 0.22, 0.06), mU, hips, 0, -0.03, 0);
-  const mF = M(o.armor, { side: T.DoubleSide, map: plate, shine: SH });
-  if (PLN) mk(pleats(0.2, 0.275, 0.35, 9), mF, hips, 0, 0, 0).scale.z = 0.8; // the skirt of a tunic, pleated, to just above the knee
+  const mF = M(o.armor, { side: T.DoubleSide, map: PLN ? skirtTex : plate, shine: SH }), mB = PLN ? M(o.armor, { map: clothTex, side: T.DoubleSide }) : mA; // (plain) mA carries the tunic's front, mF its skirt, mB the rest of it
+  if (PLN && o.robe) mk(pleats(0.2, 0.33, 0.77, 11), mF, hips, 0, 0, 0).scale.z = 0.9; // a robe to the shins
+  else if (PLN) mk(pleats(0.2, 0.275, 0.35, 9), mF, hips, 0, 0, 0).scale.z = 0.8; // the skirt of a tunic, pleated, to just above the knee
   else mk(new T.CylinderGeometry(0.215, 0.3, 0.27, SEG, 1, true), mF, hips, 0, -0.1, 0).scale.z = 0.8;
   if (o.sash) { // a cloth sash wound twice round the waist, knotted on the left hip, its ends hanging
     const mSa = M(o.sash, { map: clothTex, side: T.DoubleSide });
@@ -111,12 +123,13 @@ export function buildHumanoid(o) {
     mk(slab(0.16, 0.22, 0.035, 0.05), mA, hips, sd * 0.125, -0.2, -0.185).rotation.x = 0.2;
   }
   const spine = (J.spine = joint(hips, 0, 0.07, 0));
-  mk(new T.CylinderGeometry(PLN ? 0.19 : 0.2, PLN ? 0.196 : 0.2, 0.2, SEG), PLN ? mA : mU, spine, 0, 0.1, 0).scale.z = 0.74;
+  if (PLN) mk(folded('waistP', [[0.2, -0.012], [0.215, 0.03], [0.204, 0.1], [0.19, 0.205]], (a, v) => (1 - v) * 0.032 * Math.cos(a * 8 + 0.6) + v * GATHER(a)), mB, spine, 0, 0, 0).scale.z = 0.76; // the tunic bloused over the belt, in gathers
+  else mk(new T.CylinderGeometry(0.2, 0.2, 0.2, SEG), mU, spine, 0, 0.1, 0).scale.z = 0.74;
   const chest = (J.chest = joint(spine, 0, 0.2, 0));
   // breastplate: turned on a curve, so it swells over the ribs and draws in to the waist and collar
-  if (PLN) mk(memo('chestP', () => new T.LatheGeometry(new T.SplineCurve([[0.188, 0], [0.194, 0.07], [0.22, 0.19], [0.236, 0.275], [0.214, 0.335], [0.15, 0.376]].map(([a, b]) => new T.Vector2(a, b))).getPoints(12), SEG)), mA, chest, 0, 0, 0).scale.z = 0.78; // a man's chest under cloth, not a breastplate: narrower, with the shoulders set in
+  if (PLN) mk(folded('chestP', [[0.188, 0], [0.194, 0.07], [0.22, 0.19], [0.236, 0.275], [0.214, 0.335], [0.15, 0.376]], (a, v) => (1 - v) * (1 - v) * GATHER(a)), mA, chest, 0, 0, 0).scale.z = 0.78; // a man's chest under cloth, not a breastplate: narrower, with the shoulders set in
   else mk(memo('chest', () => new T.LatheGeometry(new T.SplineCurve([[0.196, 0], [0.214, 0.06], [0.262, 0.17], [0.288, 0.27], [0.268, 0.335], [0.2, 0.372]].map(([a, b]) => new T.Vector2(a, b))).getPoints(12), SEG)), mA, chest, 0, 0, 0).scale.z = 0.8;
-  mk(new T.CylinderGeometry(PLN ? 0.085 : 0.12, PLN ? 0.165 : 0.21, PLN ? 0.06 : 0.07, SEG), PLN ? mA : mT, chest, 0, PLN ? 0.38 : 0.385, 0).scale.z = 0.85; // the yoke: sloping shoulders up to the collar
+  mk(new T.CylinderGeometry(PLN ? 0.085 : 0.12, PLN ? 0.165 : 0.21, PLN ? 0.06 : 0.07, SEG), PLN ? mB : mT, chest, 0, PLN ? 0.38 : 0.385, 0).scale.z = 0.85; // the yoke: sloping shoulders up to the collar
   if (!PLN) mk(new T.CylinderGeometry(0.212, 0.203, 0.045, SEG), mT, chest, 0, 0.03, 0).scale.z = 0.8; // waist band of the breastplate
   if (!o.tabard && !o.cape && !o.plain) mk(new T.BoxGeometry(0.03, 0.27, 0.03), mT, chest, 0, 0.18, -0.2).rotation.x = -0.18; // backplate ridge
   // belt pouch, and a scabbard on the left hip for sword-bearers
@@ -154,6 +167,11 @@ export function buildHumanoid(o) {
     mk(rbox(0.042, 0.5, 0.014, 0.005), mL, chest, 0, 0.17, 0.176).rotation.set(-0.2, 0, 0.6); mk(rbox(0.042, 0.5, 0.014, 0.005), mL, chest, 0, 0.17, -0.172).rotation.set(0.2, 0, -0.6);
     mk(rbox(0.075, 0.17, 0.2, 0.03), mL, hips, 0.232, -0.09, 0.02); mk(rbox(0.082, 0.085, 0.206, 0.02), mD, hips, 0.233, -0.04, 0.02); mk(ball(0.012), mT, hips, 0.276, -0.075, 0.02);
   }
+  if (o.mantle) { // a short shoulder cape, closed at the throat: it hangs over the shoulders in folds
+    const mMn = M(o.mantle, { map: clothTex, side: T.DoubleSide });
+    mk(folded('mantle', [[0.088, 0.418], [0.14, 0.404], [0.24, 0.372], [0.335, 0.31], [0.378, 0.2], [0.384, 0.12]], (a, v) => v * v * (0.05 * Math.cos(a * 9 + 0.4) + 0.02 * Math.cos(a * 4))), mMn, chest, 0, 0, 0).scale.z = 0.72;
+    mk(band(0.092, 0.016), mMn, chest, 0, 0.416, 0).rotation.x = PI / 2; mk(ball(0.016), mT, chest, 0, 0.4, 0.108);
+  }
   // helm
   const neck = (J.neck = joint(chest, 0, 0.4, 0));
   if (PLN) mk(new T.CylinderGeometry(0.075, 0.13, 0.05, SEG, 1, true), mF, neck, 0, -0.01, 0).scale.z = 0.92; // a soft collar
@@ -161,10 +179,10 @@ export function buildHumanoid(o) {
   if (o.helm === 'open' || o.helm === 'none' || o.helm === 'wrap') {
     // A head with a face: skull, cheeks drawing in to a chin, nose, ears, eyes set under a brow, on a neck narrower than the jaw.
     // 'open' puts a brimmed helm with cheek plates on it, 'none' leaves it bare, 'wrap' winds a desert head-wrap round it that leaves only the eyes.
-    mk(new T.CylinderGeometry(0.05, 0.062, 0.13, 12), mSkin, neck, 0, 0.03, -0.008);
-    mk(ball(0.112), mSkin, neck, 0, 0.172, 0).scale.set(0.9, 1.05, 1.04);
-    mk(ball(0.09), mSkin, neck, 0, 0.112, 0.024).scale.set(0.86, 0.95, 0.98);
-    mk(ball(0.036), mSkin, neck, 0, 0.05, 0.07).scale.set(1.15, 0.8, 0.9);
+    mk(new T.CylinderGeometry(0.05, 0.062, 0.13, 20), mSkin, neck, 0, 0.03, -0.008);
+    mk(ballS(0.112), mSkin, neck, 0, 0.172, 0).scale.set(0.9, 1.05, 1.04);
+    mk(ballS(0.09), mSkin, neck, 0, 0.112, 0.024).scale.set(0.86, 0.95, 0.98);
+    mk(ballS(0.036), mSkin, neck, 0, 0.05, 0.07).scale.set(1.15, 0.8, 0.9);
     mk(rbox(0.026, 0.052, 0.03, 0.011), mSkin, neck, 0, 0.142, 0.116).rotation.x = -0.3; mk(ball(0.015), mSkin, neck, 0, 0.123, 0.126).scale.set(1.2, 0.85, 1);
     const mLip = M(new T.Color(o.skin || 0xd9a77e).multiplyScalar(0.62));
     mk(rbox(0.042, 0.009, 0.012, 0.004), mLip, neck, 0, 0.09, 0.105);
@@ -194,6 +212,12 @@ export function buildHumanoid(o) {
     } else if (o.helm === 'none') {
       const cap = mk(new T.SphereGeometry(0.119, 16, 8, 0, PI * 2, 0, PI * 0.56), mHair, neck, 0, 0.178, -0.008); cap.scale.set(0.94, 1.05, 1.07); cap.rotation.x = -0.34; // hair: higher at the brow, down to the nape behind
       mk(ball(0.085), mHair, neck, 0, 0.128, -0.042).scale.set(1.02, 1, 0.8);
+      if (o.hat) { // a soft felt cap: a band round the brow and a full crown pushed back and to one side
+        const mHt = M(o.hat, { map: clothTex });
+        const dome = mk(new T.SphereGeometry(0.126, SEG, 8, 0, PI * 2, 0, PI / 2), mHt, neck, 0, 0.2, -0.004); dome.scale.set(0.98, 0.7, 1.08); dome.rotation.x = -0.16;
+        const crown = mk(ballS(0.135), mHt, neck, 0.012, 0.268, -0.03); crown.scale.set(1.08, 0.42, 1.16); crown.rotation.set(-0.22, 0, 0.14);
+        mk(band(0.121, 0.017), mHt, neck, 0, 0.212, -0.004).rotation.x = PI / 2 - 0.16;
+      }
       if (o.bandage) { const bd = mk(new T.CylinderGeometry(0.122, 0.122, 0.05, SEG), M(0xd8d0bc), neck, 0, 0.222, 0.004); bd.rotation.set(0.1, 0, 0.16); }
     } else {
     const dome = mk(new T.SphereGeometry(0.168, SEG, 8, 0, PI * 2, 0, PI / 2), mA, neck, 0, 0.215, -0.01); dome.scale.y = 0.85;
@@ -239,10 +263,10 @@ export function buildHumanoid(o) {
   } else if (o.crown) for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.5; mk(new T.ConeGeometry(0.03, 0.16 + (i === 2 ? 0.08 : 0), 6), mT, neck, Math.sin(a) * 0.15, 0.36, Math.cos(a) * 0.15); }
   // o.legs thickens the leg armor and o.pads scales the pauldrons: proportions that put the
   // visual weight lower on the body.
-  const LG = o.legs || 1, PD = o.pads || 1, mWr = PLN && o.wraps ? M(o.wraps, { map: clothTex }) : null, mWd = mWr ? M(new T.Color(o.wraps).multiplyScalar(0.66)) : null; // o.wraps: forearms and shins bound in cloth strips
+  const LG = o.legs || 1, PD = o.pads || 1, mWr = PLN && o.wraps ? M(o.wraps, { map: wrapTex }) : null, mWd = mWr ? M(new T.Color(o.wraps).multiplyScalar(0.66)) : null; // o.wraps: forearms and shins bound in cloth strips
   const arm = (s, a, b, c) => {
     const sh = (J[a] = joint(chest, s * (PLN ? 0.255 : 0.3), PLN ? 0.292 : 0.3, 0));
-    if (PLN) mk(ball(0.08), mA, sh, -s * 0.012, 0.0, 0).scale.set(1.05, 1, 1.1); // the shoulder of a jerkin, no plate
+    if (PLN) mk(folded('sleeve', [[0.004, 0.08], [0.052, 0.07], [0.084, 0.034], [0.091, -0.03], [0.084, -0.12], [0.079, -0.21], [0.084, -0.258], [0.064, -0.274]], (a, v) => (v < 0.93 ? 0.05 * sat((v - 0.25) / 0.35) * (0.45 + 0.55 * Math.cos(a - 0.6)) * Math.sin(v * 22 + 1.8 * Math.sin(a + 1)) : 0), 24, 18), o.robe ? mB : mU, sh, -s * 0.012, 0, 0).scale.z = 1.06; // a loose sleeve set into the shoulder, creasing toward a rolled cuff at the elbow
     else { mk(ball(0.135), mA, sh, s * 0.02, 0.03, 0).scale.set(1.12 * PD, 0.85 * PD, 1.15 * PD);
     mk(ball(0.1), mA, sh, s * 0.05, -0.07, 0).scale.set(PD, 0.7 * PD, 1.15 * PD); }
     if (o.lames) { // stacked plates stepping down the upper arm
@@ -250,10 +274,11 @@ export function buildHumanoid(o) {
       mk(new T.CylinderGeometry(0.105, 0.125, 0.06, SEG, 1, true), mA, sh, s * 0.03, -0.08, 0).scale.z = 1.15;
       mk(new T.CylinderGeometry(0.095, 0.112, 0.05, SEG, 1, true), mA, sh, s * 0.025, -0.13, 0).scale.z = 1.1;
     }
-    mk(limb(0.07, 0.06, 0.27), mU, sh);
+    if (!PLN) mk(limb(0.07, 0.06, 0.27), mU, sh);
     if (!PLN) mk(new T.CylinderGeometry(0.078, 0.078, 0.03, SEG), mT, sh, 0, -0.15, 0);
     const el = (J[b] = joint(sh, 0, -0.27, 0));
-    if (PLN && mWr) { mk(limb(0.056, 0.044, 0.25), mWr, el); mk(band(0.058, 0.02), mU, el, 0, 0.005, 0).rotation.x = PI / 2; for (const [y, r] of [[-0.07, 0.057], [-0.125, 0.054], [-0.18, 0.05]]) mk(band(r, 0.006), mWd, el, 0, y, 0).rotation.set(PI / 2 + 0.3, 0, 0); } // a rolled sleeve, and the forearm bound in cloth strips
+    if (PLN && o.robe) mk(folded('cuff', [[0.064, 0.012], [0.066, -0.08], [0.072, -0.2], [0.088, -0.264], [0.07, -0.27]], (a, v) => 0.045 * sat(1 - Math.abs(v - 0.45) / 0.4) * (0.45 + 0.55 * Math.cos(a + 0.8)) * Math.sin(v * 19 + 1.8 * Math.sin(a + 2)), 24, 14), mB, el); // a long sleeve, widening to the wrist
+    else if (PLN && mWr) { mk(limb(0.056, 0.044, 0.25), mWr, el); mk(band(0.058, 0.02), mU, el, 0, 0.005, 0).rotation.x = PI / 2; mk(band(0.047, 0.007), mWd, el, 0, -0.236, 0).rotation.set(PI / 2 + 0.3, 0, 0); } // a rolled sleeve, and the forearm bound in cloth strips
     else if (PLN) { mk(limb(0.055, 0.043, 0.25), mSkin, el); mk(new T.CylinderGeometry(0.064, 0.06, 0.04, SEG), mU, el, 0, 0.0, 0); mk(new T.CylinderGeometry(0.049, 0.047, 0.05, SEG), mD, el, 0, -0.215, 0); } // a bare forearm below a rolled sleeve, and a leather wrist wrap
     else { mk(limb(0.062, 0.088, 0.25), mA, el); mk(ball(0.066), mT, el, 0, 0, -0.015);
     mk(new T.CylinderGeometry(0.098, 0.098, 0.03, SEG), mT, el, 0, -0.235, 0); }
@@ -289,7 +314,7 @@ export function buildHumanoid(o) {
     const kn = (J[b] = joint(th, 0, -0.42, 0));
     if (mWr) { // the shin bound in cloth strips down to a low shoe
       mk(ball(0.068 * LG), mU, kn, 0, 0, 0.012 * LG); mk(limb(0.071 * LG, 0.05 * LG, 0.38), mWr, kn); mk(ball(0.062 * LG), mWr, kn, 0, -0.13, -0.022 * LG).scale.set(0.95, 1.6, 0.85);
-      for (const [y, r] of [[-0.075, 0.073], [-0.15, 0.07], [-0.225, 0.063], [-0.3, 0.056]]) mk(band(r * LG, 0.006), mWd, kn, 0, y, -0.004).rotation.set(PI / 2 + 0.28, 0, 0);
+      mk(band(0.054 * LG, 0.007), mWd, kn, 0, -0.33, -0.004).rotation.set(PI / 2 + 0.28, 0, 0); mk(band(0.074 * LG, 0.007), mWd, kn, 0, -0.045, -0.004).rotation.set(PI / 2 + 0.2, 0, 0);
     } else if (PLN) { // trousers into a tall soft boot with a turned-down top
       mk(ball(0.07 * LG), mU, kn, 0, 0, 0.012 * LG); mk(limb(0.074 * LG, 0.056 * LG, 0.38), mD, kn); mk(new T.CylinderGeometry(0.083 * LG, 0.078 * LG, 0.05, SEG), mT, kn, 0, -0.06, 0);
       mk(ball(0.066 * LG), mD, kn, 0, -0.14, -0.024 * LG).scale.set(0.95, 1.6, 0.85);

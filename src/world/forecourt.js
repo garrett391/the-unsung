@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { PI, rng } from '../core/util.js';
-import { toon, TEX, canvasTex } from '../gfx/materials.js';
+import { toon, TEX, canvasTex, speck } from '../gfx/materials.js';
 import { DECAL, decals } from '../gfx/decals.js';
 import { PZ } from '../actors/anim.js';
 import { LOOKS } from '../actors/data.js';
@@ -57,20 +57,26 @@ export function buildFore(scene, kit) {
 
   // ---- the country the road crosses (owner, Nov 2026: it used to stop at nothing): Joshua trees, rock and dry scrub.
   // Its own random numbers, so the court's stay as they were.
-  { const t = rng(771), TQ = (a, b) => a + t() * (b - a), UPV = V(0, 1, 0), mBark = toon(0x5c4a3a), mShag = toon(0x5a4c38), mLeaf = toon(0x56683a), mRock = toon(0x8c7c6c), mScrub = toon(0x8a8450);
+  { const t = rng(771), TQ = (a, b) => a + t() * (b - a), UPV = V(0, 1, 0), shagTex = canvasTex(128, (c, n) => { speck(c, n, [214, 206, 192], 26, t); for (let i = 0; i < 260; i++) { c.fillStyle = `rgba(0,0,0,${0.1 + t() * 0.3})`; c.fillRect(t() * n, t() * n, 1 + t() * 1.6, 8 + t() * 26); } for (let i = 0; i < 60; i++) { c.fillStyle = 'rgba(255,255,255,.2)'; c.fillRect(t() * n, t() * n, 1, 6 + t() * 14); } }),
+      mBark = toon(0x5c4a3a, { map: shagTex }), mShag = toon(0x6a5a40, { map: shagTex }), mLeaf = toon(0x56683a), mLeaf2 = toon(0x6f7a3c), mHeart = toon(0x3c4a2c), mRock = toon(0x8c7c6c), mScrub = toon(0x8a8450);
     const gy = (x, z) => kit.dune(X(x), Z(z));
     const tilt = (dir, az, ang) => { const u = V(dir.z, 0, -dir.x); if (u.lengthSq() < 1e-4) u.set(1, 0, 0); u.normalize(); const v = V(0, 0, 0).crossVectors(dir, u); return dir.clone().multiplyScalar(Math.cos(ang)).addScaledVector(u, Math.cos(az) * Math.sin(ang)).addScaledVector(v, Math.sin(az) * Math.sin(ang)); }; // `ang` off `dir`, round it by `az`
     const along = (g, dir) => g.applyQuaternion(qt.setFromUnitVectors(UPV, dir));
     // a Joshua tree: a thick trunk that forks and forks again, each arm ending in a skirt of dead leaves and a ball of spikes
+    // (Owner, Nov 2026: more detail.) Bark with its shag painted on, a knuckle at every fork, and each arm ending in a
+    // rosette of thin blades (it was a faceted ball and ten spikes) over a skirt of dead ones.
     const limb = (p, dir, len, rad, depth) => {
-      const g = new T.CylinderGeometry(rad * 0.8, rad, len, 7); g.translate(0, len / 2, 0); put(along(g, dir), mBark, p.x, p.y, p.z);
+      const g = new T.CylinderGeometry(rad * 0.8, rad, len, 10, 3); { const q2 = g.attributes.position; for (let i = 0; i < q2.count; i++) { const k = 1 + 0.07 * Math.sin(q2.getY(i) * 9 + q2.getX(i) * 20); q2.setX(i, q2.getX(i) * k); q2.setZ(i, q2.getZ(i) * k); } g.computeVertexNormals(); }
+      g.translate(0, len / 2, 0); put(along(g, dir), mBark, p.x, p.y, p.z);
       const e = p.clone().addScaledVector(dir, len);
       if (!depth) {
-        const sk = new T.CylinderGeometry(rad * 1.2, rad * 1.8, len * 0.4, 9, 1, true); sk.translate(0, len * 0.76, 0); put(along(sk, dir), mShag, p.x, p.y, p.z);
-        put(new T.IcosahedronGeometry(rad * 2.6, 0), mLeaf, e.x, e.y, e.z, TQ(0, 3));
-        for (let i = 0; i < 10; i++) { const L = TQ(0.4, 0.62), c = new T.ConeGeometry(0.05, L, 4); c.translate(0, L / 2, 0); put(along(c, tilt(dir, TQ(0, 6.3), TQ(0.15, 1.5))), mLeaf, e.x, e.y, e.z); }
+        const sk = new T.CylinderGeometry(rad * 1.15, rad * 2.0, len * 0.45, 12, 1, true); sk.translate(0, len * 0.74, 0); put(along(sk, dir), mShag, p.x, p.y, p.z);
+        for (let i = 0; i < 12; i++) { const L = TQ(0.3, 0.5), c = new T.ConeGeometry(0.03, L, 3); c.translate(0, L / 2, 0); put(along(c, tilt(dir, TQ(0, 6.3), TQ(2.2, 2.75))), mShag, e.x - dir.x * len * 0.12, e.y - dir.y * len * 0.12, e.z - dir.z * len * 0.12); } // dead blades, hanging
+        put(new T.SphereGeometry(rad * 1.5, 8, 6), mHeart, e.x, e.y, e.z);
+        for (let i = 0; i < 42; i++) { const L = TQ(0.45, 0.75), c = new T.ConeGeometry(0.046, L, 4); c.scale(1, 1, 0.4); c.translate(0, L / 2, 0); put(along(c, tilt(dir, TQ(0, 6.3), Math.acos(1 - 1.25 * t()))), i % 3 ? mLeaf : mLeaf2, e.x, e.y, e.z); }
         return;
       }
+      put(new T.SphereGeometry(rad * 0.84, 10, 8), mBark, e.x, e.y, e.z);
       const n = depth > 1 && t() < 0.3 ? 3 : 2, a0 = TQ(0, 6.3);
       for (let k = 0; k < n; k++) { const d2 = tilt(dir, a0 + (k / n) * 2 * PI + TQ(-0.5, 0.5), TQ(0.55, 0.95)); d2.y += 0.3; limb(e, d2.normalize(), len * TQ(0.6, 0.8), rad * 0.74, depth - 1); }
     };
