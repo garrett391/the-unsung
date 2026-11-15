@@ -575,7 +575,8 @@ export function buildLevel() {
   // waystation). o.sky overrides the site's pair of skies with one; o.muster adds the muster's dressing.
   W.setSite = (name, o = {}) => {
     site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls'; foreG.visible = name === 'fore'; for (const m of farW) m.visible = name !== 'fore'; W.after = !!o.after; warG.visible = fore.war.visible = !W.after; fore.whole.visible = W.after; // after: the halls as they are once the Usurper is sealed and his years never happened
-    halls.day.material.color.setRGB(...(W.after ? [2.2, 1.8, 1.3] : [0.62, 0.2, 0.09])); halls.stairL.color.setHex(W.after ? 0xffe2b8 : 0xff7a40); halls.stairL.intensity = W.after ? 12 : 16; // the head of the stair he came down: firelight from the forecourt, or daylight halls.glow.material.color.setRGB(...(W.after ? [0.02, 0.02, 0.025] : [0.2, 0.62, 0.56]));
+    halls.day.material.color.setRGB(...(W.after ? [2.2, 1.8, 1.3] : [0.62, 0.2, 0.09])); halls.stairL.color.setHex(W.after ? 0xffe2b8 : 0xff7a40); halls.stairL.intensity = W.after ? 12 : 16; // the head of the stair he came down: firelight from the forecourt, or daylight
+    halls.glow.material.color.setRGB(...(W.after ? [0.07, 0.065, 0.06] : [0.2, 0.62, 0.56]));
     OBSTACLES.length = 0; OBSTACLES.push(...(name === 'fore' && W.after ? fore.obsWhole : site.obs), ...(o.muster ? way.obsMuster : [])); // (the forecourt afterwards has no barricade or rubble to walk round)
     const sk = Array.isArray(o.sky) ? o.sky : [o.sky || site.sky[0], o.sky || site.sky[1]]; SA = SKIES[sk[0]]; SB = SKIES[sk[1]]; // (o.sky may be a pair, for setDawn to run between)
   };

@@ -72,6 +72,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #knob{width:46px;height:46px;margin:-23px 0 0 -23px;background:rgba(239,230,210,.55)}
 #title,#pause{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;
   background:radial-gradient(ellipse at center,rgba(7,9,19,.55),rgba(7,9,19,.95))}
+#title{overflow-y:auto;justify-content:safe center}
 #pause{display:none;background:rgba(5,6,12,.94);overflow-y:auto;justify-content:flex-start}
 #pause h2{font-size:15px;letter-spacing:.4em;text-indent:.4em;font-weight:500;color:#e9c15a;margin:auto 0 22px}#pause>:last-child{margin-bottom:auto}
 .btn{font:700 17px "Cormorant Garamond",Georgia,serif;letter-spacing:.3em;text-indent:.3em;color:#efe6d2;background:rgba(8,8,14,.5);border:1.5px solid rgba(217,178,74,.75);
@@ -95,6 +96,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #title p.sub{letter-spacing:.3em;font-size:13px;margin-top:8px;opacity:.75;font-style:italic}
 #title dl{margin-top:12px;display:grid;grid-template-columns:auto auto;gap:5px 16px;font-size:15px;text-align:left}
 #title dt{color:#e9c15a;text-align:right}#title dd{opacity:.9}
+.chaps{display:flex;flex-direction:column;align-items:center;margin-top:8px}.chaps .btn{margin:3px 0}.chaps .btn:disabled{opacity:.3;cursor:default;background:none}
 
 @keyframes pulse{50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){#dlg .more,#chron .tap,#obj.new,#hint.new{animation:none}}
@@ -131,6 +133,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
   <button class="btn main" id="tcont" style="display:none"></button>
   <p class="sub" id="tcwhere"></p>
   <button class="btn main" id="tplay">PLAY</button>
+  <details id="tchapg" style="display:none"><summary>Chapters</summary><div class="chaps" id="tchap"></div></details>
   <details><summary>Controls</summary><dl id="thelp"></dl></details>
 </div>
 <div id="pause">
@@ -143,6 +146,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
     <input type="range" id="psens" min="0.25" max="2" step="0.05">
     <button class="btn small" id="pblood" style="margin-top:12px"></button>
   </details>
+  <details name="pgrp"><summary>Chapters</summary><div class="chaps" id="pchap"></div></details>
   <details name="pgrp"><summary>Controls</summary><dl id="phelp"></dl></details>
   <details name="pgrp"><summary>Trials</summary>
     <p class="note">Things being tried out. They may look unfinished.</p>

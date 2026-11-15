@@ -46,8 +46,13 @@ G.resetWorld = (o) => {
 // existed were stage numbers: OLD maps them.) The first checkpoint is where a new game starts.
 const SAVE = 'the-unsung.checkpoint', OLD = { 2: 'raid', 4: 'hold', 5: 'vessa' };
 const loadSave = () => { try { const v = localStorage.getItem(SAVE), k = STAGES.findIndex((s) => s.name === (OLD[v] || v)); return k > 0 && STAGES[k].checkpoint ? k : 0; } catch (_) { return 0; } };
-const writeSave = (k) => { try { localStorage.setItem(SAVE, STAGES[k].name); } catch (_) { /* storage blocked: play on without saving */ } };
-const LABEL = { halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+// Chapters reached, for replaying them (title and pause menu). Every checkpoint up to the saved one counts as reached, so
+// saves from before this list existed open the chapters already played.
+const REACHED = 'the-unsung.reached';
+const loadReached = () => { const r = new Set([STAGES[0].name]); try { for (const n of JSON.parse(localStorage.getItem(REACHED) || '[]')) r.add(n); const v = localStorage.getItem(SAVE), k = STAGES.findIndex((s) => s.name === (OLD[v] || v)); for (let i = 0; i <= k; i++) if (STAGES[i].checkpoint) r.add(STAGES[i].name); } catch (_) { /* storage blocked */ } return r; };
+const reached = loadReached();
+const writeSave = (k) => { reached.add(STAGES[k].name); try { localStorage.setItem(SAVE, STAGES[k].name); localStorage.setItem(REACHED, JSON.stringify([...reached])); } catch (_) { /* storage blocked: play on without saving */ } if (G.drawChapters) G.drawChapters(); };
+const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
@@ -123,6 +128,18 @@ function leave(from) {
   setTimeout(() => begin(from), 1000);
 }
 $('tplay').addEventListener('click', () => leave(0));
+// Replaying a chapter plays it as if for the first time: the cutscenes and lessons that a retry skips are shown again.
+const fresh = () => { G.seenHalls = G.seenWay = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
+const CHAPTERS = STAGES.map((s, k) => [s, k]).filter(([s]) => s.checkpoint);
+const chapName = (s) => { const l = LABEL[s.name] || s.name; return l[0].toUpperCase() + l.slice(1); };
+G.drawChapters = () => {
+  for (const [id, pick] of [['tchap', (k) => { fresh(); leave(k); }], ['pchap', (k) => { fresh(); G.pause(false); ui.fade(1, 0.3); if (k === 0) playMusic('title', { cross: 1 }); else stopMusic(1.5); setTimeout(() => G.runFrom(k), 350); }]]) {
+    const box = $(id); box.innerHTML = '';
+    for (const [s, k] of CHAPTERS) { const b = document.createElement('button'); b.className = 'btn small'; b.textContent = chapName(s).toUpperCase(); b.disabled = !reached.has(s.name); b.addEventListener('click', () => pick(k)); box.appendChild(b); }
+  }
+  $('tchapg').style.display = reached.size > 1 ? '' : 'none'; // nothing to replay until a second chapter has been reached
+};
+G.drawChapters();
 const saved = loadSave();
 if (saved) {
   const b = $('tcont'); b.style.display = ''; b.textContent = 'CONTINUE'; $('tcwhere').textContent = 'from ' + (LABEL[STAGES[saved].name] || STAGES[saved].name);

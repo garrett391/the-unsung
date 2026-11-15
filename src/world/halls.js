@@ -141,11 +141,23 @@ export function buildHalls(scene, kit) {
   }
   // ---- the descent, and the head of the stair
   hall(-46, -58, 2.6, 4.0, { veins: 30, seed: 71, bays: [-48.5, -52.5, -56.2] });
-  { still(add(new T.PlaneGeometry(5.2, 7), toon(0xffffff, { map: tex(ashlar, 1.3, 2.7) }), 0, 3.5, -58));
-    const sp = new T.Shape(); sp.moveTo(-1.25, 0); sp.lineTo(1.25, 0); sp.lineTo(1.25, 2.5); sp.absarc(0, 2.5, 1.25, 0, PI); sp.lineTo(-1.25, 0);
-    glow = new T.Mesh(new T.ShapeGeometry(sp, 16), new T.MeshBasicMaterial({ color: new T.Color(0.2, 0.62, 0.56), fog: false })); glow.position.set(X(0), 0.04, Z(-57.96)); scene.add(glow); // the stair down: the Door's light comes up it
-    still(add(new T.TorusGeometry(1.38, 0.19, 8, 22, PI), mVault, 0, 2.5, -57.93)); for (const sd of [-1, 1]) { add(new T.CylinderGeometry(0.19, 0.19, 2.5, 12), mVault, sd * 1.38, 1.25, -57.93); add(new T.CylinderGeometry(0.26, 0.26, 0.16, 12), mVaultD, sd * 1.38, 0.08, -57.93); }
-    for (let k = 0; k < 3; k++) still(add(new T.BoxGeometry(2.4, 0.16, 0.4), mVaultD, 0, 0.06 - k * 0.1, -57.75 + k * 0.1)); }
+  let deepZ, deepY;
+  { // the head of the stair to the vault: an arch cut through the end wall, and a flight going down out of sight into the dark.
+    // (It used to be a flat arch painted on the wall, which read as a plain colour once the war's light was gone.)
+    const A = 1.25, SP = 2.5, N = 14, RISE = 0.2, RUN = 0.42, z0 = -58, z1 = z0 - N * RUN, drop = N * RISE;
+    wall(5.2, 7, A, SP, 0, z0, 0, mWall());
+    for (const sd of [-1, 1]) { add(new T.CylinderGeometry(0.19, 0.19, SP, 12), mVault, sd * (A + 0.13), SP / 2, z0 + 0.07); add(new T.CylinderGeometry(0.26, 0.26, 0.16, 12), mVaultD, sd * (A + 0.13), 0.08, z0 + 0.07); }
+    const parts = []; for (let k = 0; k < N; k++) { const top = -RISE * k, g = new T.BoxGeometry(A * 2, 8 + top, RUN); g.translate(X(0), (-8 + top) / 2, Z(z0 - RUN * (k + 0.5))); parts.push(g); }
+    { const m = new T.Mesh(mergeGeometries(parts), mVaultD); m.receiveShadow = true; scene.add(m); }
+    for (let k = 0; k < N; k++) still(add(new T.BoxGeometry(A * 2, 0.04, 0.05), mVault, 0, -RISE * k + 0.005, z0 - RUN * k - 0.025)); // worn nosings, so the treads read in the half-light
+    for (const sd of [-1, 1]) still(add(new T.PlaneGeometry(N * RUN + 0.1, drop + SP + A + 0.4), mStoneD, sd * A, (SP + A + 0.4 - drop) / 2, (z0 + z1) / 2, -sd * PI / 2));
+    { const l = Math.hypot(N * RUN, drop), c = still(add(new T.PlaneGeometry(A * 2, l), mStoneD, 0, SP + A - drop / 2 + 0.02, (z0 + z1) / 2)); c.rotation.x = PI / 2 - Math.atan2(drop, N * RUN); } // the roof, falling with the steps
+    for (let k = 1; k < 4; k++) { const z = z0 - (N * RUN * k) / 4, y = SP - (drop * k) / 4; still(add(new T.TorusGeometry(A - 0.04, 0.12, 8, 18, PI), mStoneD, 0, y, z)); } // arches over the flight
+    // at the foot, the flight turns away: a wall lit from round the corner, by the Door's light while the war is on, dark afterwards (`glow`; level.setSite sets its colour)
+    const fade = canvasTex(64, (g, n) => { const gr = g.createLinearGradient(0, 0, 0, n); gr.addColorStop(0, '#0a0a0a'); gr.addColorStop(0.45, '#4a4a4a'); gr.addColorStop(0.85, '#e0e0e0'); gr.addColorStop(1, '#ffffff'); g.fillStyle = gr; g.fillRect(0, 0, n, n); });
+    glow = new T.Mesh(new T.PlaneGeometry(A * 2, SP + A + 0.6), new T.MeshBasicMaterial({ color: new T.Color(0.2, 0.62, 0.56), map: fade, fog: false })); glow.position.set(X(0), -drop + (SP + A + 0.6) / 2, Z(z1 + 0.01)); scene.add(glow);
+    deepZ = z1 + 1.1; deepY = -drop + 1.2;
+  }
 
   // ---- age: damp and dirt on the stone, cracks in it, and dust hanging in the air. Painted patches, merged into one mesh per kind.
   const dq = rng(91), DQ = (a, b) => a + dq() * (b - a); // its own numbers, so the layout below stays where it was
@@ -199,6 +211,7 @@ export function buildHalls(scene, kit) {
   };
   const lights = [];
   sconce(-3.3, -2.5, true); sconce(3.3, -7.5, false); sconce(3.3, -12.5, true); sconce(-3.3, -17.5, false); sconce(-3.3, -22.5, true); sconce(3.3, -27.5, false);
+  { const l = new T.PointLight(0x8fdcd0, 7, 9, 2); l.position.set(X(0), deepY, Z(deepZ)); scene.add(l); } // the Door's light, coming up the flight
   const cold = [[RC, 6.5, 7, 22], [-52, 3.2, 8, 14], [-57, 2.4, 8, 16]].map(([z, y, i, d]) => { const l = new T.PointLight(0x8fdcd0, i, d, 2); l.position.set(X(0), y, Z(z)); l.userData.base = i; scene.add(l); return l; });
 
   // ---- what the fight left: banners, rubble, dropped arms, blood, and the dead of both sides

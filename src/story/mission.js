@@ -95,7 +95,7 @@ stage('forecourt', {
     await glance(d, ...fx(0, -13.2), { from: fx3(3.4, 2.3, -5.6), y: 1.5, hold: 2.3 });
     await d.until(() => live() === 0);
     ui.objective('Go in through the doors'); L.marker(...fx(0, -12.2));
-    await d.until(() => P.pos.z < FORE.z - 14.0 && Math.abs(P.pos.x - FORE.x) < 1.5);
+    await d.until(() => P.pos.z < FORE.z - 12.0 && Math.abs(P.pos.x - FORE.x) < 1.6); // at the pillar of light, in the mouth of the doorway (it used to wait until he was well inside the passage)
     L.marker(null); ui.objective(''); P.controlEnabled = false; ui.fade(1, 1.3); await d.wait(1.5);
   },
 });
@@ -382,6 +382,7 @@ stage('door', {
 stage('ascent', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'halls', after: true, player: [...hx(0, -52.6), 0], corin: null });
+    preloadMusic('well'); // the yard's theme, for the road cards
     const P = G.player; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true;
     const motes = d.every((dt) => { if (Math.random() < dt * 14) FX.dust.emit(new T.Vector3(P.pos.x + rnd(-3, 3), rnd(0.4, 4.5), P.pos.z + rnd(-2, 12)), 1, 0.12, 0xd8c8a8, 3.2, { grav: 0.05, spread: 0.3 }); }); // dust hanging in the light
     cam.shot(hx3(0.9, 1.5, -49.6), hx3(0, 1.4, -57)); cam.shot(hx3(1.4, 1.7, -48.2), hx3(-0.3, 2.2, -36), 6.5); ui.fade(0, 3); // from the dark stair where the light was, round to the empty halls
@@ -421,6 +422,7 @@ stage('ascent', {
 stage('road', {
   async run(d) {
     G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false;
+    playMusic('well', { cross: 3, fade: 3 }); // (owner, Nov 2026) the yard's theme comes in with the road cards and runs on into the waystation
     // (Owner, Nov 2026: tell it better.) Two pages: what he found, then the years. Things that happened, not a summary of
     // them: the armour he sells explains the yard hand's clothes, and the caravans that stop coming are the war beginning. Drafts.
     await d.chronicle('The road', [
