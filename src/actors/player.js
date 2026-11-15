@@ -117,7 +117,8 @@ export class Player extends Char {
     FX.dust.emit(this.pos, 5, 1.2, 0xb8a37c, 0.4, { flat: 1, grav: -1, up: 0.4 });
   }
   // An enemy's blow arrives. Returns 'miss' | 'parry' | 'block' | 'hit'.
-  receive(e, dmg) {
+  // `through`: a blow a raised shield can't stop (a shield rush). It breaks the guard; a parry still turns it.
+  receive(e, dmg, through) {
     if (this.dead || this.inv > 0 || G.talking) return 'miss'; // nothing lands while a line of dialogue holds him still
     const dir = tmpA.subVectors(this.pos, e.pos).setY(0).normalize(), ang = Math.abs(wrap(Math.atan2(-dir.x, -dir.z) - this.face));
     const hp = tmpB.copy(this.pos).addScaledVector(dir, -0.5).setY(1.15);
@@ -127,7 +128,7 @@ export class Player extends Char {
         e.parried(); this.state = 'parry'; this.aT = 0; this.play(CL.par, 0.04); this.inv = 0.5; this.st = Math.min(100, this.st + 25); return 'parry';
       }
       const cost = dmg * 1.35;
-      if (this.st >= cost) {
+      if (this.st >= cost && !through) {
         this.st -= cost; this.stDelay = 0.9; SFX.clang(); FX.sparks.emit(hp, 10, 4, 0xffd890, 0.25, { boost: 1.5 });
         this.vel.addScaledVector(dir, 4.5 + dmg * 0.12); this.recoil = 1; G.shake = 0.12; G.hitstop = 0.04; return 'block';
       }

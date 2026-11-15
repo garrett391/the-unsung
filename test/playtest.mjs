@@ -121,7 +121,9 @@ if (at('muster')) {
   await play(3.2); await shot('0p-muster');
   log('bout', await play(40, { tap: true, until: "G.player.controlEnabled" })); await play(0.5); await shot('0q-bout');
   await play(6, { bot: true, god: true }); await shot('0q2-bout');
-  log('yields', await play(180, { bot: true, god: true, heavy: true, until: "G.cinematic" })); await play(2.0); await shot('0r-yields');
+  log('round two', await play(180, { bot: true, god: true, heavy: true, tap: true, until: "G.enemies.some(e=>e.kind==='sergeant')&&G.player.controlEnabled&&!G.talking" })); await play(1.0); await shot('0q3-sergeant'); // the soldier yields, and the sergeant takes the ring
+  log('rush', await play(40, { bot: true, god: true, until: "G.enemies[0].mv.rush&&G.enemies[0].state==='strike'" })); await shot('0q4-rush');
+  log('yields', await play(240, { bot: true, god: true, heavy: true, until: "G.cinematic" })); await play(2.0); await shot('0r-yields');
   await play(30, { tap: true, until: "G.player.walk" }); await play(40, { until: "G.talking" }); await play(1.2); await shot('0s-clerk');
   log('to act one', await play(60, { tap: true, until: stageIs('intro') }));
   await page.evaluate(() => { G.auto = true; });

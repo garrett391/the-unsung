@@ -13,7 +13,7 @@ import { coarse, opts } from '../core/input.js';
 import { makeStretchers } from './stretchers.js';
 import { CL } from '../actors/anim.js';
 import { Extra } from '../actors/extra.js';
-import { LOOKS } from '../actors/data.js';
+import { LOOKS, TYPES } from '../actors/data.js';
 
 // The campaign, as a list of stages: the prologue (the forecourt, the halls, the Glass Door, the road, the
 // waystation, the muster), then the first night at the ruins (Act I). Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
@@ -573,24 +573,52 @@ stage('muster', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'way', sky: 'morning', muster: true, look: 'drifter', player: [...wy(1.5, -8.6), 0], corin: null });
     const P = G.player, ring = wy(1.5, -1.5); G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; G.blunt = true; playMusic('well', { cross: 2, fade: 3 }); preloadMusic('measure', 'flagstones'); // (it is already playing if he came here from the yard)
-    const S = G.spawn('sergeant', ...wy(1.5, 0.9), { spare: true }); S.face = PI;
+    // Two rounds (owner, Nov 2026: one bout was a few blows and over). First one of the line, then the sergeant
+    // himself, who is harder and has a shield rush that a raised shield does not stop. Until his turn the sergeant
+    // is an Extra at the ring's edge (an Enemy standing by could be locked on to and struck).
+    const T1 = G.spawn('trooper', ...wy(1.5, 0.9), { spare: true }); T1.face = PI;
+    const sgt = new Extra(TYPES.sergeant.look, ...wy(-1.2, 3.6), 2.6, { scale: TYPES.sergeant.scale }); sgt.watch = P;
     const off = new Extra(LOOKS.officer, ...wy(5.2, -6.2), -0.75), clerk = new Extra(LOOKS.clerk, ...wy(7.6, -9.3), 0, { scale: 0.96 }); clerk.watch = P;
-    for (const [a, r] of [[0.5, 6.8], [1.25, 6.8], [-0.6, 6.8], [-1.35, 5.6], [-2.3, 6.8]]) { const e = new Extra(LOOKS.soldier, ring[0] + Math.sin(a) * r, ring[1] + Math.cos(a) * r, a + PI, /* the company, standing well back from the ring */ { scale: 0.97 + Math.abs(a) * 0.02 }); e.watch = S; }
+    for (const [a, r] of [[0.5, 6.8], [1.25, 6.8], [-0.6, 6.8], [-1.35, 5.6], [-2.3, 6.8]]) { const e = new Extra(LOOKS.soldier, ring[0] + Math.sin(a) * r, ring[1] + Math.cos(a) * r, a + PI, /* the company, standing well back from the ring */ { scale: 0.97 + Math.abs(a) * 0.02 }); e.watch = P; }
     cam.shot(wy3(-6.5, 3.6, -10), wy3(2.5, 1.2, -2)); cam.shot(wy3(-4.5, 2.6, -8.5), wy3(2.5, 1.3, -2), 6); ui.fade(0, 2.2);
     await d.wait(2.6);
-    await d.talk([['Officer', 'You came.'], ['Officer', 'I know what I saw in this yard. I want my sergeant to see it.'], ['Sergeant', 'Blunt steel. First to yield. Whenever you like, yard hand.']]);
+    await d.talk([['Officer', 'You came.'], ['Officer', 'I know what I saw in this yard. I want my sergeant to see it.'], ['Sergeant', 'Then he can show one of mine first. Blunt steel. First to yield.'], ['Soldier', 'Whenever you like, yard hand.']]);
     await stroll(d, ...wy(1.5, -3.9), 2.0, 5);
-    G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = P.angleTo(S); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = S; S.cd = 1.6; playMusic('measure', { cross: 1.5, fade: 2 }); // the bout's own music: a contest, not a battle
-    // Two objectives, so the shield is a thing to do and not a tip to read: beat it down, then win.
-    ui.objective("Beat down the sergeant's shield"); ui.hint('Strike it with {l}. It gives on the third blow.'); let broke = false;
-    const tick = d.every(() => { if (!broke && (S.open || S.hp < S.maxHp)) { broke = true; ui.objective('Win the bout'); ui.hint(''); } });
-    for (;;) {
-      await d.until(() => S.hp <= 1 || P.hp <= 1); if (S.hp <= 1) break;
-      G.freezeAI = true; await settled(d, 1); await d.talk([['Sergeant', 'Yield? No. Again.']]); // beaten: they go again
-      P.hp = 100; S.hp = S.maxHp; G.freezeAI = false; S.cd = 1.6;
-    }
+    // A round: fought until the other yields. Beaten, he is stood up and they go again.
+    const round = async (E, again) => {
+      P.calm = false; P.face = P.angleTo(E); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = E; E.cd = 1.6;
+      for (;;) {
+        await d.until(() => E.hp <= 1 || P.hp <= 1); if (E.hp <= 1) break;
+        G.freezeAI = true; await settled(d, 1); await d.talk([again]); // beaten: they go again
+        P.hp = 100; E.hp = E.maxHp; G.freezeAI = false; E.cd = 1.6;
+      }
+    };
+    G.cinematic = false; ui.cinematic(false); playMusic('measure', { cross: 1.5, fade: 2 }); // the bout's own music: a contest, not a battle
+    ui.objective('Make the soldier yield');
+    await round(T1, ['Soldier', 'Up. Again.']);
+    // The soldier yields, and the sergeant takes the ring. The change-over is behind a short dip to black.
+    ui.objective(''); G.boss = null; G.slow = 0.8; await settled(d); P.controlEnabled = false; P.lock = null; P.calm = true; G.freezeAI = true;
+    T1.stagDur = 1e9; T1.open = false; T1.set('stagger'); T1.vel.set(0, 0, 0); T1.trailOn = false; T1.yoff = 0; T1.play(CL.kneel, 0.3);
+    await d.wait(1.2);
+    await d.talk([['Soldier', 'I yield. ...Sergeant, he is not what he looks.'], ['Sergeant', 'I have eyes. Out of the ring, lad.']]);
+    ui.fade(1, 0.5); await d.wait(0.7);
+    T1.gone = true; sgt.setVisible(false); sgt.place(...wy(-9, 9.5), 0); /* out of everyone's way */ { const e = new Extra(LOOKS.soldier, ...wy(-1.2, 3.6), 2.6); e.watch = P; }
+    const S = G.spawn('sergeant', ...wy(1.5, 0.9), { spare: true }); S.face = PI;
+    P.place(...wy(1.5, -3.9), 0); P.hp = 100; P.st = 100; cam.behind(); ui.fade(0, 0.6); await d.wait(0.7);
+    await d.talk([['Sergeant', 'He fights fair. I stopped doing that twenty years ago.']]);
+    ui.objective('Make the sergeant yield');
+    // His rush: called for here, every so often while he circles, and oftener once he is half beaten. The first
+    // one comes with the one thing the player has not met before: a blow the shield will not stop.
+    let rt = 5, told = false, pressed = false; const RUSH = TYPES.sergeant.moves[2];
+    const offR = G.on((k) => { if (k === 'rush' && !told) { told = true; const tip = 'His shield rush breaks a guard. Roll clear of it: a direction and {d}'; ui.hint(tip); d.wait(5).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); } });
+    const tick = d.every((dt) => {
+      if (!pressed && S.hp < S.maxHp * 0.5) { pressed = true; rt = Math.min(rt, 1.5); ui.thought('He was holding back.', 3.5); } // (a thought, not a spoken line: the dialogue box would sit on his health bar)
+      if (G.freezeAI || G.talking || S.hp <= 1 || P.dead) return;
+      if ((rt -= dt) <= 0 && S.state === 'circle' && P.dist(S) < 5.5) { rt = pressed ? rnd(4, 6) : rnd(7, 10); S.startMove(RUSH); }
+    });
+    await round(S, ['Sergeant', 'Yield? No. Again.']);
     // He yields. The clerk's table.
-    tick(); G.slow = 0.8; ui.objective(''); ui.hint(''); G.boss = null; playMusic('well', { cross: 3, fade: 4 }); await settled(d); // and the yard's again for the clerk's table; it runs on under the Act I cards
+    tick(); offR(); G.slow = 0.8; ui.objective(''); ui.hint(''); G.boss = null; playMusic('well', { cross: 3, fade: 4 }); await settled(d); // and the yard's again for the clerk's table; it runs on under the Act I cards
     P.controlEnabled = false; P.lock = null; P.calm = true; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
     S.stagDur = 1e9; S.open = false; S.set('stagger'); S.vel.set(0, 0, 0); S.trailOn = false; S.yoff = 0; S.play(CL.kneel, 0.3);
     { const dx = P.pos.x - S.pos.x, dz = P.pos.z - S.pos.z, l = Math.hypot(dx, dz) || 1, mx = (P.pos.x + S.pos.x) / 2, mz = (P.pos.z + S.pos.z) / 2;
@@ -639,11 +667,10 @@ stage('spar', {
       ['Corin', 'Captain! You promised me one lesson before the night watch.'],
       ['Corin', "I've been drilling the guard you showed me. Try to get through it."],
     ]);
-    ui.objective('Spar with Corin in the ring'); ui.hint('Move with {move}, then lock on to Corin with {k}');
-    await d.until(() => P.lock === C);
-    await lesson("Strike Corin's shield", 'Strike: {l}. Tap up to three times for a combo.', 'blocked', 3, 'guard');
+    // (Owner, Nov 2026: no tips here for moving, locking on or striking. The prologue has taught them.)
+    await lesson("Strike Corin's shield", '', 'blocked', 3, 'guard');
     await d.talk([['Corin', 'Ha! Not a scratch on me. My turn.']]);
-    await lesson("Block Corin's swings", 'Hold {b} to raise your shield', 'playerBlocked', 2, 'attack');
+    await lesson("Block Corin's swings", '', 'playerBlocked', 2, 'attack');
     await d.talk([['Corin', 'Anyone can hide behind a shield.'], ['Captain', 'Then stop hiding. Meet the blade as it lands.']]);
     SFX.learn(); ui.banner('PARRY', 1.6);
     await lesson('Parry a swing, then strike back', 'Tap {b} just before his sword lands, then {l} while he reels', 'riposte', 1, 'attack');
@@ -675,10 +702,9 @@ stage('raid', {
   async run(d) {
     const C = G.corin; G.spar = false; G.maxAtk = 1; actOne(true);
     await d.talk([['Corin', 'Raiders at the breach!'], ['Captain', 'Corin. Guard my right side.'], ['Corin', 'Always, Captain.']]);
-    C.setMode('battle'); ui.objective('Drive back the raiders'); ui.hint('Lock on with {k} to keep a raider in front of you');
+    C.setMode('battle'); ui.objective('Drive back the raiders'); // (no lock-on tip any more: the prologue teaches it)
     for (let i = 0; i < 3; i++) G.spawn('raider', ...breach());
     await glance(d, 0, 27);
-    await d.wait(6); ui.hint('');
     await d.until(() => live() === 0);
     await d.wait(0.8);
     await d.talk([['Corin', 'Bronze shields, coming through the gap!']]);

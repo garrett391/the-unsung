@@ -197,8 +197,27 @@ export function buildFore(scene, kit) {
   });
   // afterwards the court is a place people use: cypresses in stone tubs along the way to the doors, benches under
   // the west wall, stores stacked under the east one, and braziers standing either side of the doors, unlit in the daytime
-  only(whole, () => { const mYew = toon(0x3a5632);
-    for (const sd of [-1, 1]) for (const z of [-9, -4.5, 0, 9.6]) { const x = sd * 3.5; put(tcyl(0.5, 0.4, 0.7, 12), mTrim, x, 0.35, z); put(new T.CylinderGeometry(0.46, 0.46, 0.06, 12), mChar, x, 0.69, z); put(new T.ConeGeometry(0.44, 2.7, 9), mYew, x, 2.0, z); put(new T.SphereGeometry(0.4, 9, 6), mYew, x, 0.95, z); block(x, z, 0.55); }
+  only(whole, () => {
+    // The cypresses (owner, Nov 2026: more detail; each was one smooth cone on a ball). A short trunk out of the tub's
+    // soil; a dark flame-shaped body, fluted and uneven, with its foliage painted on; over it a coat of upswept sprays
+    // in two lighter greens, which is what breaks the outline; and a thin leader at the top, a little off true.
+    // Its own random numbers, so the court's stay as they were.
+    const c = rng(905), CQ = (a2, b2) => a2 + c() * (b2 - a2);
+    const leafTex = canvasTex(128, (g, n) => { speck(g, n, [206, 214, 196], 30, c);
+      for (let i = 0; i < 520; i++) { g.fillStyle = `rgba(0,0,0,${0.12 + c() * 0.3})`; g.fillRect(c() * n, c() * n, 1 + c() * 1.5, 5 + c() * 16); } // the shadow between sprays: short, upright
+      for (let i = 0; i < 200; i++) { g.fillStyle = `rgba(255,255,230,${0.1 + c() * 0.22})`; g.fillRect(c() * n, c() * n, 1, 3 + c() * 9); } });
+    const mYew = toon(0x2b4226, { map: leafTex }), mSpray = toon(0x3d5a31, { map: leafTex }), mSpray2 = toon(0x58733c, { map: leafTex }), mStem = toon(0x4a3a2c);
+    const PROF = [[0, 0.1], [0.05, 0.3], [0.14, 0.43], [0.3, 0.47], [0.5, 0.41], [0.7, 0.3], [0.86, 0.17], [0.96, 0.07], [1, 0.012]]; // height (0 to 1), radius
+    const radAt = (t2) => { for (let i = 1; i < PROF.length; i++) if (t2 <= PROF[i][0]) { const [t0, r0] = PROF[i - 1], [t1, r1] = PROF[i]; return r0 + (r1 - r0) * ((t2 - t0) / (t1 - t0)); } return 0; };
+    for (const sd of [-1, 1]) for (const z of [-9, -4.5, 0, 9.6]) { const x = sd * 3.5; put(tcyl(0.5, 0.4, 0.7, 12), mTrim, x, 0.35, z); put(new T.CylinderGeometry(0.46, 0.46, 0.06, 12), mChar, x, 0.69, z); block(x, z, 0.55);
+      const H = CQ(3.1, 3.9), W = CQ(0.92, 1.12), y0 = 1.0, ph = CQ(0, 6.3);
+      put(new T.CylinderGeometry(0.06, 0.085, 0.5, 7), mStem, x, 0.94, z);
+      const body = new T.LatheGeometry(PROF.map(([t2, r]) => new T.Vector2(r * W, t2 * H)), 18), bp = body.attributes.position;
+      for (let i = 0; i < bp.count; i++) { const px = bp.getX(i), pz = bp.getZ(i), az = Math.atan2(pz, px), k = 1 + 0.1 * Math.sin(az * 5 + bp.getY(i) * 2.6 + ph) + 0.06 * Math.sin(az * 11 - bp.getY(i) * 4.3 + ph * 2); bp.setX(i, px * k); bp.setZ(i, pz * k); }
+      body.computeVertexNormals(); body.attributes.uv.array.forEach((v, i, arr) => { arr[i] = v * (i % 2 ? H / 1.1 : 3); }); put(body, mYew, x, y0, z);
+      for (let i = 0; i < 84; i++) { const t2 = Math.pow(c(), 0.8) * 0.95, r = radAt(t2) * W, L = CQ(0.38, 0.68) * (1 - t2 * 0.35), g = new T.ConeGeometry(CQ(0.07, 0.11), L, 5); g.scale(1, 1, 0.55); g.translate(0, L / 2, 0); g.rotateZ(-CQ(0.16, 0.5)); g.translate(r * 0.8, y0 + t2 * H - L * 0.3, 0); put(g, i % 3 ? mSpray : mSpray2, x, 0, z, CQ(0, 6.3)); }
+      for (let i = 0; i < 9; i++) { const L = CQ(0.25, 0.4), g = new T.ConeGeometry(0.08, L, 5); g.scale(1, 1, 0.55); g.translate(0, L / 2, 0); g.rotateZ(-CQ(1.0, 1.5)); g.translate(0.12, y0 + CQ(0.02, 0.2), 0); put(g, mYew, x, 0, z, CQ(0, 6.3)); } // the skirt, hanging out over the trunk
+      put(new T.ConeGeometry(0.035, 0.5, 5), mSpray2, x + CQ(-0.03, 0.03), y0 + H + 0.18, z + CQ(-0.03, 0.03), 0, CQ(-0.12, 0.12), CQ(-0.12, 0.12)); }
     for (const z of [-3, 4]) { box(0.5, 0.1, 2.2, mWood, -10.2, 0.5, z); for (const k of [-0.8, 0.8]) box(0.4, 0.45, 0.3, mTrim, -10.2, 0.225, z + k); block(-10.2, z - 0.6, 0.45); block(-10.2, z + 0.6, 0.45); }
     for (const [x, z, sz, r, y] of [[9.9, 3.2, 0.9, 0.1, 0], [9.8, 4.3, 0.9, -0.15, 0], [9.9, 3.7, 0.7, 0.4, 0.9]]) { box(sz, sz, sz, mCrate, x, y + sz / 2, z, r); if (!y) block(x, z, sz * 0.7); }
     for (const [x, z] of [[9.9, 5.5], [9.2, 6.1], [10.0, 6.4]]) { put(new T.CylinderGeometry(0.34, 0.3, 0.9, 12), mBarrel, x, 0.45, z, x * 3); block(x, z, 0.45); } });

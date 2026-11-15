@@ -89,7 +89,8 @@ export class Enemy extends Char {
   }
   startMove(m, blend) {
     this.mv = m; this.set('wind'); this.hitDone = false; this.slam = false; this.play(m.clip, blend || 0.14); SFX.tele();
-    FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 8, 2, this.type.tele || this.type.look.eye, 0.4, { grav: 0, boost: 2 });
+    if (m.rush) { this.flash = 0.8; FX.sparks.emit(tmpB.copy(this.pos).addScaledVector(this.fwd(tmpA), 0.5).setY(1.2 * this.scale), 18, 3, 0xff6a3c, 0.5, { grav: 0, boost: 2 }); G.emit('rush', { enemy: this }); } // a rush is its own warning: red, off the shield
+    else FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 8, 2, this.type.tele || this.type.look.eye, 0.4, { grav: 0, boost: 2 });
   }
   update(dt) {
     this.st += dt; const t = this.type, P_ = G.player, m = this.mv;
@@ -129,7 +130,7 @@ export class Enemy extends Char {
       case 'strike': {
         const sp = this.st < 0.15 ? m.lunge : 0; this.vel.x = damp(this.vel.x, f.x * sp, 25, dt); this.vel.z = damp(this.vel.z, f.z * sp, 25, dt); this.trailOn = this.st < 0.2; eye = 2.6;
         if (m.leap) this.yoff = Math.sin(PI * clamp((0.2 + this.st) / 0.42, 0, 1)) * 1.5;
-        if (!this.hitDone && this.st > 0.04 && this.st < 0.17 && d < m.range && Math.abs(wrap(ang - this.face)) < 0.95) { this.hitDone = true; G.emit('struck', { enemy: this, result: P_.receive(this, m.dmg * (this.dmgK == null ? 1 : this.dmgK)) }); } // dmgK: a stage script can pull his blows (a lesson)
+        if (!this.hitDone && this.st > 0.04 && this.st < 0.17 && d < m.range && Math.abs(wrap(ang - this.face)) < 0.95) { this.hitDone = true; G.emit('struck', { enemy: this, result: P_.receive(this, m.dmg * (this.dmgK == null ? 1 : this.dmgK), m.rush) }); } // dmgK: a stage script can pull his blows (a lesson)
         if (m.slam && !this.slam && this.st > 0.1) {
           this.slam = true; const c = tmpB.copy(this.pos).addScaledVector(f, 1.6 * this.scale); shock(c, m.slam, t.boss ? 0xc79bff : 0xffe2a0); SFX.boom(); G.shake = Math.max(G.shake, 0.3);
           if (!this.hitDone && P_.pos.distanceTo(c) < m.slam + 0.3) { this.hitDone = true; P_.receive(this, m.dmg * 0.7); }

@@ -80,9 +80,16 @@ export const TYPES = {
     look: { ...HELMED, armor: 0x4a302a, trim: 0xb9853a, eye: 0xffb24a, horns: 1, cape: 0x5a2420, skirt: 0x5a2420, blade: 1.05, lames: 1 },
     moves: [{ style: 'slash', wind: 0.6, rec: 0.8, dmg: 15, range: 2.75, lunge: 7, chain: 0.4, then: 1 }, { style: 'over', wind: 0.8, rec: 1.1, dmg: 22, range: 3.0, lunge: 6, slam: 1.4 }] },
   // The muster's trial bout (G.blunt: nothing bleeds and nobody dies). A line soldier who knows his shield.
-  sergeant: { name: 'THE SERGEANT', hp: 190, speed: 3.0, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0,
+  // The bout has two rounds (owner, Nov 2026: it was a few blows and over). First one of the line: no shield work, plain cuts.
+  trooper: { name: 'SOLDIER OF THE LINE', hp: 96, speed: 3.3, poise: 2, scale: 1.0, tele: 0xfff0c0, look: SOLDIER,
+    moves: [{ style: 'slash', wind: 0.6, rec: 0.75, dmg: 11, range: 2.4, lunge: 6.5, chain: 0.3, then: 1 }, { style: 'thrust', wind: 0.5, rec: 0.85, dmg: 11, range: 2.7, lunge: 8, follow: true }] },
+  // Then the sergeant, who is harder: more of him, a cut that can run on into a thrust, and a shield rush
+  // (`rush`: a raised shield does not stop it, so it has to be rolled or parried; `follow` keeps it out of his
+  // own choice of moves: the muster's script calls for it).
+  sergeant: { name: 'THE SERGEANT', hp: 230, speed: 3.1, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0,
     look: { ...SOLDIER, hair: 0x9a9690, skin: 0xb98a66 },
-    moves: [{ style: 'slash', wind: 0.62, rec: 0.8, dmg: 14, range: 2.4, lunge: 6.5 }, { style: 'thrust', wind: 0.7, rec: 0.9, dmg: 14, range: 2.8, lunge: 8 }] },
+    moves: [{ style: 'slash', wind: 0.62, rec: 0.8, dmg: 14, range: 2.4, lunge: 6.5, chain: 0.3, then: 1 }, { style: 'thrust', wind: 0.7, rec: 0.9, dmg: 14, range: 2.8, lunge: 8 },
+      { style: 'bash', wind: 0.9, rec: 1.25, dmg: 16, range: 2.5, lunge: 13, rush: true, follow: true }] },
   // The prologue's fight at the Glass Door. The game opens on the last moments of it: he is
   // already beaten (`hurt`: hunched, panting, bleeding; see Enemy) and slow, so the first round can
   // teach the basics (the `door` stage: lock on, strike, shield). He is still dangerous: an

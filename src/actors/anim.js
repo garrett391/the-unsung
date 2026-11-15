@@ -103,7 +103,7 @@ const sideRoll=s=>C(.56,[.06,P({hips:[.35,0,s*.9],pos:[0,-.42,0]},PZ.r0)],[.24,P
   [.56,B({hips:[0,-.42,s*6.283],pos:[0,-.3,0],thL:[-.9,.3,.1],knL:[1.4],thR:[-.2,-.1,-.1],knR:[1.5]}),'l']);
 CL.sideL=sideRoll(-1);CL.sideR=sideRoll(1);
 export function eClip(style,w,rec){
-  const W=style==='over'?PZ.hw:style==='thrust'?PZ.thw:PZ.l1w,Sx=style==='over'?PZ.hs:style==='thrust'?PZ.ths:PZ.l1s;
+  const W=style==='bash'?PZ.bw:style==='over'?PZ.hw:style==='thrust'?PZ.thw:PZ.l1w,Sx=style==='bash'?PZ.bs:style==='over'?PZ.hs:style==='thrust'?PZ.ths:PZ.l1s; // bash: the shield arm drives through (the captain's own bash poses)
   return C(w+.3+rec,[w*.5,W],[w,W],[w+.1,Sx,'i'],[w+.34,Sx],[w+.3+rec*.8,PZ.guard]);}
 
 // Stride amplitude for a normalized speed.
