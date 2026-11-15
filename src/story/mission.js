@@ -579,7 +579,7 @@ stage('muster', {
     const T1 = G.spawn('trooper', ...wy(1.5, 0.9), { spare: true }); T1.face = PI;
     const sgt = new Extra(TYPES.sergeant.look, ...wy(-1.2, 3.6), 2.6, { scale: TYPES.sergeant.scale }); sgt.watch = P;
     const off = new Extra(LOOKS.officer, ...wy(5.2, -6.2), -0.75), clerk = new Extra(LOOKS.clerk, ...wy(7.6, -9.3), 0, { scale: 0.96 }); clerk.watch = P;
-    for (const [a, r] of [[0.5, 6.8], [1.25, 6.8], [-0.6, 6.8], [-1.35, 5.6], [-2.3, 6.8]]) { const e = new Extra(LOOKS.soldier, ring[0] + Math.sin(a) * r, ring[1] + Math.cos(a) * r, a + PI, /* the company, standing well back from the ring */ { scale: 0.97 + Math.abs(a) * 0.02 }); e.watch = P; }
+    const co = []; for (const [a, r] of [[0.5, 6.8], [1.25, 6.8], [-0.6, 6.8], [-1.35, 5.6], [-2.3, 6.8]]) { const e = new Extra(LOOKS.soldier, ring[0] + Math.sin(a) * r, ring[1] + Math.cos(a) * r, a + PI, /* the company, standing well back from the ring */ { scale: 0.97 + Math.abs(a) * 0.02 }); e.watch = P; co.push(e); }
     cam.shot(wy3(-6.5, 3.6, -10), wy3(2.5, 1.2, -2)); cam.shot(wy3(-4.5, 2.6, -8.5), wy3(2.5, 1.3, -2), 6); ui.fade(0, 2.2);
     await d.wait(2.6);
     await d.talk([['Officer', 'You came.'], ['Officer', 'I know what I saw in this yard. I want my sergeant to see it.'], ['Sergeant', 'Then he can show one of mine first. Blunt steel. First to yield.'], ['Soldier', 'Whenever you like, yard hand.']]);
@@ -617,10 +617,51 @@ stage('muster', {
       if ((rt -= dt) <= 0 && S.state === 'circle' && P.dist(S) < 5.5) { rt = pressed ? rnd(4, 6) : rnd(7, 10); S.startMove(RUSH); }
     });
     await round(S, ['Sergeant', 'Yield? No. Again.']);
+    // Round three (owner, Nov 2026: the sergeant was too easy to put down). Beaten, he will not yield: he calls two of
+    // the line into the ring and gets up again, short of breath. Three at once, two of them may swing together. Each
+    // one beaten to 1 hp yields where he stands (`kneelDown`: out of the fight and no longer a target); the soldiers
+    // then get up and walk back to the line, the sergeant stays on his knees. A lost round is fought again, all three.
+    G.slow = 0.8; ui.objective(''); ui.hint(''); G.boss = null; await settled(d);
+    P.controlEnabled = false; P.lock = null; P.calm = true; G.freezeAI = true;
+    const kneelDown = (e) => { e.dead = true; e.hold = true; e.stagDur = 1e9; e.open = false; e.set('stagger'); e.vel.set(0, 0, 0); e.trailOn = false; e.yoff = 0; e.play(CL.kneel, 0.3); e.yT = G.time; };
+    kneelDown(S);
+    await d.wait(1.2);
+    await d.talk([['Sergeant', 'On my knees is not the same as yielding.'], ['Sergeant', 'Hale. Brann. In the ring.']]);
+    const pair = [co[0], co[2]], spots = [wy(-1.4, 0.2), wy(4.4, 0.2)], home = pair.map((e) => [e.pos.x, e.pos.z]);
+    pair.forEach((e, i) => e.go(...spots[i], 2.2, PI));
+    cam.shot(wy3(-5.5, 3.2, -9.5), wy3(1.5, 1.2, 0.5)); cam.shot(wy3(-4.2, 2.6, -8.6), wy3(1.5, 1.2, 0.5), 5);
+    await d.wait(2.2);
+    await d.talk([['Officer', 'Sergeant.'], ['Sergeant', 'You wanted me to see it, sir. I mean to see all of it.']]);
+    { const t0 = G.time; await d.until(() => pair.every((e) => !e.to) || G.time - t0 > 4); }
+    const HP3 = 0.55, TROOP = 72; let out = []; // he gets up with a little over half of himself; the two fresh ones are lighter than the first soldier
+    const rise = (e) => { e.dead = false; e.hold = false; e.stagDur = 0.3; e.st = 0; e.stop(0.5); e.set('circle'); };
+    const ready = () => { // the two soldiers become foes where they stand; the sergeant gets up
+      const T = pair.map((x, i) => { x.setVisible(false); x.place(-200, -200 - i * 3, 0); const e = G.spawn('trooper', ...spots[i], { spare: true }); e.yoff = 0; e.set('circle'); e.face = PI; e.hp = e.maxHp = TROOP; e.home = home[i]; return e; });
+      rise(S); S.hp = Math.round(S.maxHp * HP3); return [S, ...T];
+    };
+    let foes = ready(); await d.wait(0.6);
+    playMusic('measure', { cross: 0.5, fade: 1 });
+    const count = () => foes.filter((e) => e.dead).length;
+    const obj = d.every(() => { if (!G.talking) ui.objective(`Make them yield (${count()}/3)`); });
+    const walkOff = d.every(() => { for (const e of foes) if (e !== S && e.dead && !e.gone && G.time - e.yT > 1.8) { // a yielded soldier gets up and goes back to the line
+      e.gone = true; const x = new Extra(e.type.look, e.pos.x, e.pos.z, e.face, { scale: e.type.scale }); x.play(CL.kneel, 0, CL.kneel.dur); x.stop(0.6); x.go(...e.home, 1.8); x.watch = P; out.push(x); } });
+    G.maxAtk = 2;
+    for (;;) {
+      P.calm = false; P.face = P.angleTo(S); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.boss = S; foes.forEach((e, i) => { e.cd = 1.4 + i * 0.9; });
+      ui.objective('Make them yield (0/3)');
+      await d.until(() => { for (const e of foes) if (!e.dead && e.hp <= 1) { kneelDown(e); if (e === S) G.boss = null; } return foes.every((e) => e.dead) || P.hp <= 1; });
+      if (foes.every((e) => e.dead)) break;
+      G.freezeAI = true; await settled(d, 1); await d.talk([['Sergeant', 'Again. All of you.']]);
+      ui.fade(1, 0.5); await d.wait(0.6); // behind a dip to black, everyone back to their marks
+      for (const e of foes) if (e !== S) e.gone = true;
+      for (const x of out) { x.setVisible(false); x.place(-200, -220, 0); } out = [];
+      foes = ready(); S.place(...wy(1.5, 0.9), PI); P.place(...wy(1.5, -3.9), 0); P.hp = 100; P.st = 100; P.lock = null; cam.behind(); ui.fade(0, 0.6); await d.wait(0.6);
+    }
+    obj(); walkOff(); G.maxAtk = 1;
     // He yields. The clerk's table.
     tick(); offR(); G.slow = 0.8; ui.objective(''); ui.hint(''); G.boss = null; playMusic('well', { cross: 3, fade: 4 }); await settled(d); // and the yard's again for the clerk's table; it runs on under the Act I cards
     P.controlEnabled = false; P.lock = null; P.calm = true; G.freezeAI = true; G.cinematic = true; ui.cinematic(true);
-    S.stagDur = 1e9; S.open = false; S.set('stagger'); S.vel.set(0, 0, 0); S.trailOn = false; S.yoff = 0; S.play(CL.kneel, 0.3);
+    if (!S.dead) kneelDown(S);
     { const dx = P.pos.x - S.pos.x, dz = P.pos.z - S.pos.z, l = Math.hypot(dx, dz) || 1, mx = (P.pos.x + S.pos.x) / 2, mz = (P.pos.z + S.pos.z) / 2;
       cam.shot([mx - (dz / l) * 3.4, 1.5, mz + (dx / l) * 3.4], [mx, 1.1, mz]); cam.shot([mx - (dz / l) * 3.0, 1.4, mz + (dx / l) * 3.0], [mx, 1.1, mz], 5); }
     await d.wait(1.4);
