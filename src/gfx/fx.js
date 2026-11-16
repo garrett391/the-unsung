@@ -9,14 +9,16 @@ let GY = null; // the ground's height at (x, z) in open country, or null where t
 export const setGround = (fn) => { GY = fn; };
 const EASE_OUT = (u) => 1 - Math.pow(1 - u, 3);
 
-// Pooled point sprites. Additive ones fade by dimming; the rest just expire.
+// Pooled point sprites. Additive ones fade by dimming; with `fade` the rest thin out as they go (through a per-point alpha);
+// otherwise they just expire.
 export class Parts {
-  constructor(n, size, add, opacity = 0.5, map = TEX.glow) {
-    this.n = n; this.add = add; this.i = 0; this.onLand = null; // onLand(x, z): called once when a falling particle reaches the ground, which then ends it
+  constructor(n, size, add, opacity = 0.5, map = TEX.glow, fade = false) {
+    this.n = n; this.add = add; this.i = 0; this.fade = fade; this.alpha = fade ? new Float32Array(n).fill(0) : null; this.onLand = null; // onLand(x, z): called once when a falling particle reaches the ground, which then ends it
     this.pos = new Float32Array(n * 3).fill(-999); this.col = new Float32Array(n * 3); this.vel = new Float32Array(n * 3);
     this.base = new Float32Array(n * 3); this.life = new Float32Array(n); this.max = new Float32Array(n); this.grav = new Float32Array(n);
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.BufferAttribute(this.pos, 3)); g.setAttribute('color', new T.BufferAttribute(this.col, 3));
+    if (fade) { this.rgba = new Float32Array(n * 4); g.setAttribute('color', new T.BufferAttribute(this.rgba, 4)); } // (a four-part colour: three draws it with alpha)
     this.pts = new T.Points(g, new T.PointsMaterial({ size, map, vertexColors: true, blending: add ? T.AdditiveBlending : T.NormalBlending,
       transparent: true, depthWrite: false, fog: !add, opacity: add ? 1 : opacity }));
     this.pts.frustumCulled = false; G.scene.add(this.pts);
@@ -47,6 +49,7 @@ export class Parts {
         } }
       const f = this.add ? this.life[i] / this.max[i] : 1;
       this.col[j] = this.base[j] * f; this.col[j + 1] = this.base[j + 1] * f; this.col[j + 2] = this.base[j + 2] * f;
+      if (this.fade) { const u = 1 - this.life[i] / this.max[i], k = i * 4; this.rgba[k] = this.col[j]; this.rgba[k + 1] = this.col[j + 1]; this.rgba[k + 2] = this.col[j + 2]; this.rgba[k + 3] = Math.min(1, u * 10) * Math.pow(1 - u, 1.4); } // in quickly, then thinning away
     }
     this.pts.geometry.attributes.position.needsUpdate = true; this.pts.geometry.attributes.color.needsUpdate = true;
   }
@@ -144,13 +147,15 @@ class Stains {
 }
 const ZERO = new T.Matrix4().makeScale(0, 0, 0), tmpM = new T.Matrix4(), tmpN = new T.Matrix4(), tmpC = new T.Color(), UPV = new V3(0, 1, 0);
 const tmpS = new V3();
-export const FX = { sparks: null, dust: null, blood: null, gouts: null, stains: null, shocks: [] };
+export const FX = { sparks: null, dust: null, blood: null, gouts: null, stains: null, puff: null, grit: null, shocks: [] };
 export function initFx() {
-  FX.sparks = new Parts(500, 0.22, true); FX.dust = new Parts(200, 0.5, false);
+  FX.sparks = new Parts(500, 0.22, true); FX.dust = new Parts(320, 0.5, false);
+  FX.puff = new Parts(200, 2.5, false, 0.9, TEX.glow, true); // big soft billows that thin out (a raider bursting up out of the sand)
   // drops are small hard-edged beads, not soft glows, so they read as paint with the cel look
   const drop = canvasTex(32, (g, n) => { g.clearRect(0, 0, n, n); g.fillStyle = '#fff'; g.beginPath(); g.arc(16, 16, 13, 0, 7); g.fill(); });
   FX.blood = new Parts(360, 0.065, false, 1, drop); FX.blood.pts.material.alphaTest = 0.5;
   FX.gouts = new Parts(90, 0.11, false, 1, drop); FX.gouts.pts.material.alphaTest = 0.5;
+  FX.grit = new Parts(260, 0.09, false, 1, drop); FX.grit.pts.material.alphaTest = 0.5; FX.grit.onLand = () => {}; // thrown sand: hard grains that fall and are gone
   FX.stains = new Stains(40);
   FX.blood.onLand = (x, z) => { if (Math.random() < 0.7) FX.stains.add(x, z, rnd(0.04, 0.1)); };
   FX.gouts.onLand = (x, z) => FX.stains.add(x, z, rnd(0.1, 0.19), 26);
@@ -187,8 +192,18 @@ export function shock(p, r, color = 0xffe2a0) {
   FX.sparks.emit(new V3(p.x, gy + 0.15, p.z), 26, r * 2.2, color, 0.45, { flat: 1, up: 2 });
   FX.dust.emit(new V3(p.x, gy + 0.1, p.z), 12, r * 1.2, 0xb8a37c, 0.5, { flat: 1, grav: -1, up: 0.5 });
 }
+// Sand bursting up where something gets up out of it (owner, Nov 2026: so the player sees where a raider is rising). A ring
+// of dust rolling out low, a column of billows, and grains thrown up that fall back. `k` scales it (the figure's size).
+const SAND = 0xf0e2c4, SAND_D = 0xd6c19a, GRIT = 0x8a6f4a, tmpP = new V3(); // (paler than the ground, or it does not read against it)
+export function poof(p, k = 1) {
+  const gy = GY ? GY(p.x, p.z) : p.y;
+  FX.puff.emit(tmpP.set(p.x, gy + 0.35, p.z), Math.round(12 * k), 2.2 * k, SAND, 1.6, { flat: 1, grav: -0.2, up: 0.3, spread: 0.4 }); // rolling out along the ground
+  FX.puff.emit(tmpP.set(p.x, gy + 0.8, p.z), Math.round(8 * k), 0.9 * k, SAND_D, 1.9, { grav: -0.6, up: 1.5, spread: 0.35 }); // and up
+  FX.dust.emit(tmpP.set(p.x, gy + 0.1, p.z), Math.round(16 * k), 3.4 * k, SAND, 0.7, { flat: 1, grav: -1, up: 0.4, spread: 0.3 });
+  FX.grit.emit(tmpP.set(p.x, gy + 0.2, p.z), Math.round(30 * k), 2.8 * k, GRIT, 1.1, { up: 3.6 * k, spread: 0.3 });
+}
 export function updateFx(dt) {
-  FX.sparks.update(dt); FX.dust.update(dt); FX.blood.update(dt); FX.gouts.update(dt); FX.stains.update(dt);
+  FX.sparks.update(dt); FX.dust.update(dt); FX.puff.update(dt); FX.grit.update(dt); FX.blood.update(dt); FX.gouts.update(dt); FX.stains.update(dt);
   for (let i = FX.shocks.length - 1; i >= 0; i--) {
     const s = FX.shocks[i]; s.t += dt; const u = s.t / 0.45;
     s.m.scale.setScalar(s.r * EASE_OUT(Math.min(1, u))); s.m.material.opacity = 1 - u;

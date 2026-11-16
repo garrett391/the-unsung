@@ -7,12 +7,12 @@ import { NJ, PL, JI } from './rig.js';
 import { drip } from '../gfx/fx.js';
 import { CL } from './anim.js';
 import { TYPES } from './data.js';
-import { FX, Trail, shock, blood } from '../gfx/fx.js';
+import { FX, Trail, shock, blood, poof } from '../gfx/fx.js';
 import { pickLock } from './player.js';
 import { steer, route } from '../world/level.js';
 import { throwJavelin } from './missile.js';
 
-const tmpA = new T.Vector3(), tmpB = new T.Vector3();
+const tmpA = new T.Vector3(), tmpB = new T.Vector3(), tmpR = new T.Vector3();
 export const attackers = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && !e.marked() && !e.mv.throw ? 1 : 0), 0); // those swinging at him (one set on a soldier is not his to worry about, and a javelin is not a blade at his shoulder)
 const throwing = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && e.mv.throw ? 1 : 0), 0);
 // Who is fighting whom: how many raiders are on the captain, or on one soldier (not counting `self`).
@@ -151,10 +151,12 @@ export class Enemy extends Char {
         this.cd -= dt;
         if (this.cd <= 0 && d >= r.min - 1.5 && d <= r.max + 2 && !P_.dead && throwing() < 2) { this.thrown = false; this.startMove(t.moves.find((x) => x.throw)); }
         break; }
-      case 'spawn':
+      case 'spawn': // getting up out of the sand: it bursts up round him as he starts, streams off him as he rises, and puffs again as he steps clear
+        if (!this.poofed) { this.poofed = true; poof(this.pos, this.scale); }
         this.yoff = lerp(-1.9 * this.scale, 0, sstep(Math.min(1, this.st / 0.9)));
-        if (Math.random() < 0.5) FX.dust.emit(this.pos, 1, 1.5, 0xb8a37c, 0.4, { flat: 1, spread: 0.4, grav: -1 });
-        if (this.st >= 0.9) { this.yoff = 0; this.set('chase'); } break;
+        if (Math.random() < 0.8) FX.dust.emit(this.pos, 2, 1.5, 0xf0e2c4, 0.5, { flat: 1, spread: 0.45, grav: -1 });
+        if (Math.random() < 0.35) FX.grit.emit(tmpR.set(this.pos.x, this.pos.y + 0.3 + this.yoff * 0.3 + 1.2 * this.scale, this.pos.z), 2, 0.6, 0x8a6f4a, 0.9, { spread: 0.3, up: 0.4 }); // sand running off his shoulders
+        if (this.st >= 0.9) { this.yoff = 0; poof(this.pos, this.scale * 0.45); this.set('chase'); } break;
       case 'chase': { const via = route(this.pos, P_.pos); // round by the gate, if a wall stands between
         this.turnTo(steer(this.pos, this.radius, via ? Math.atan2(via[0] - this.pos.x, via[1] - this.pos.z) : ang, d, this), 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt);
         if (d < 3.6 * this.scale && !via) this.set('circle'); break; }

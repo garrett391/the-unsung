@@ -7,6 +7,12 @@ ramp.minFilter = ramp.magFilter = T.NearestFilter; ramp.needsUpdate = true;
 // A face exactly edge-on to a light sits on the boundary between two bands and flips between them
 // as the camera moves (the vault's light runs dead along its walls): nudge it into the darker one.
 T.ShaderChunk.gradientmap_pars_fragment = T.ShaderChunk.gradientmap_pars_fragment.replace('dotNL * 0.5 + 0.5', 'dotNL * 0.5 + 0.495');
+// A shadow map covers a box round where the camera looks, and used to stop dead at its edge: in open country, where that
+// edge is in view, shadows (and the shade under every rock) snapped on a few metres ahead of him as he ran (owner, Nov 2026).
+// They now fade out over the outer part of the box instead, for every directional shadow (the first getShadow; the point
+// lights' is the second, and is left alone).
+T.ShaderChunk.shadowmap_pars_fragment = T.ShaderChunk.shadowmap_pars_fragment.replace('return mix( 1.0, shadow, shadowIntensity );',
+  'vec2 shEdge = min( shadowCoord.xy, 1.0 - shadowCoord.xy );\n\t\treturn mix( 1.0, shadow, shadowIntensity * smoothstep( 0.0, 0.08, min( shEdge.x, shEdge.y ) ) );');
 
 // Toon material with an optional fresnel rim, so figures read against a dark scene.
 // `shine` (0..1) makes it metal: each light adds a hard-edged highlight in two steps, tinted

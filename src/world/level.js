@@ -9,6 +9,7 @@ import { buildWaystation, roadOff, lineOff } from './waystation.js';
 import { buildHalls, HALLS, GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W } from './halls.js';
 import { buildFore, FORE, FCOURT, FGATE, FDOOR, FROAD } from './forecourt.js';
 import { buildFront, FRONT, FAREA, frontRoute } from './front.js';
+import { coarse } from '../core/input.js';
 
 // Layout (north = +z). A walled camp in front of a cliff. Raiders come through the
 // breach in the north wall and a gap in the east wall. South, a slot canyon
@@ -35,7 +36,7 @@ const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARR
   fore: { at: [FORE.x, FORE.z], player: [FCOURT, FGATE, FDOOR], all: [FCOURT, FGATE, FDOOR], obs: [], sky: ['ember', 'ember'], shadow: 26, fogNear: 12 },
   // the frontier beyond the last wells (world/front.js): open country. Its walkable ground is a run of overlapping circles, not
   // rectangles; it has real height (`ground`, set when it is built), and the shadows and the camera follow him instead of sitting on a yard.
-  front: { at: [FRONT.x, FRONT.z], player: FAREA, all: FAREA, obs: [], sky: ['morning', 'day'], shadow: 30, open: true, fogNear: 38, fogFar: 210 } }; // (and it is seen a long way off: the haze is thinner than a yard's dust) // the forecourt before them (world/forecourt.js), where the game opens
+  front: { at: [FRONT.x, FRONT.z], player: FAREA, all: FAREA, obs: [], sky: ['morning', 'day'], shadow: 56, open: true, fogNear: 38, fogFar: 210 } }; // (and it is seen a long way off: the haze is thinner than a yard's dust) // the forecourt before them (world/forecourt.js), where the game opens
 let PLAYER_AREA = SITES.ruins.player, ALL_AREA = SITES.ruins.all;
 export const OBSTACLES = []; // the current site's
 
@@ -551,7 +552,7 @@ export function buildLevel() {
   sun.target.position.set(0, 0, 0); scene.add(sun); scene.add(sun.target);
   scene.fog = new T.Fog(NIGHT.fog, 26, 150);
 
-  const cA = new T.Color(), cB = new T.Color(), cZ = new T.Color(), cH = new T.Color(), sunOff = V(0, 1, 0), aim = V(0, 0, 0);
+  const cA = new T.Color(), cB = new T.Color(), cZ = new T.Color(), cH = new T.Color(), sunOff = V(0, 1, 0), aim = V(0, 0, 0), lF = V(0, 0, 0), lR = V(0, 0, 0), lU = V(0, 0, 0), lC = V(0, 0, 0), UPY = V(0, 1, 0);
   const mixC = (a, b, u) => cA.set(a).lerp(cB.set(b), u);
   // u runs from the site's first sky to its second: at the ruins, 0 is night and 1 is dawn
   let site = SITES.ruins, SA = NIGHT, SB = DAWN;
@@ -576,7 +577,9 @@ export function buildLevel() {
     const door = W.doorMode; for (const b of gateBanners) b.visible = !door; mRock.color.setHex(door ? 0x6f86b8 : 0xffffff); mBlock.color.setHex(door ? 0x8f9bb4 : 0xffffff); mStone.color.setHex(door ? 0x7c8698 : 0xb09a78); mGold.color.setHex(door ? 0x8f7a3c : 0xd9b24a); // and its gilding is old and dull, so the thin fillets don't sparkle as the camera moves // the Door's surround is the vault's cold stone, not the camp's sandstone
     endCliff.castShadow = !door; for (const l of W.fires) l.visible = !door && site === SITES.ruins; gateL.visible = site === SITES.ruins;
     for (const m of [mBlock, mStone, mGold, mDark, mIron]) m.shadowSide = door ? T.FrontSide : null; // the Door's surround is seen from its unlit side: cast its shadow from the faces toward the light, so the faces toward us lie well inside it (cast from themselves, they speckled)
-    const k = door ? 13 : site.shadow || 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : 2; /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(site.at[0], 0, site.at[1] + (door ? -19 : 0));
+    const k = door ? 13 : site.shadow || 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : site.open ? -40 : 2; sc.far = site.open ? 150 : 140; sun.shadow.bias = site.open ? -0.0009 : -0.0012; // (open country: a wider box, deeper toward the sun so the buttes up-sun still cast into it)
+    { const ms = site.open && !coarse ? 4096 : 2048; if (sun.shadow.mapSize.x !== ms) { sun.shadow.mapSize.set(ms, ms); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } } } // the wider box keeps its detail on a desktop; a phone keeps the smaller map
+    /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(site.at[0], 0, site.at[1] + (door ? -19 : 0));
     if (door) { sun.color.setHex(0xd2efe9); sun.intensity = 2.3; sun.position.set(0, 4.14, -29.5); /* just behind the glass, so nothing outside the vault shadows it */ hemi.color.setHex(0x7284a8); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.95; }
     else if (W.setDawn) W.setDawn(W.dawn);
     // Under a roof (the halls): no ground or sky to light. The one strong light is the Door's, coming up
@@ -624,8 +627,14 @@ export function buildLevel() {
     }
     if (site.indoor) halls.update(t); if (site === SITES.fore) fore.update(t);
     if (site.open) { // open country is far bigger than a shadow map: the sun's box goes where the camera is looking (in whole steps, so the shadows' edges don't swim)
-      front.update(t, dt); G.camera.getWorldDirection(aim); const ax = Math.round((G.camera.position.x + aim.x * 9) / 3) * 3, az = Math.round((G.camera.position.z + aim.z * 9) / 3) * 3, ay = W.ground(ax, az);
-      sun.target.position.set(ax, ay, az); sun.position.set(ax + sunOff.x, ay + sunOff.y, az + sunOff.z); }
+      // (owner, Nov 2026: shadows and the shade under small rocks came on a few metres ahead of him, which looked glitchy. The box
+      // is now nearly twice as wide and sits well ahead of the camera, its far edge fades (materials.js), and it moves a texel
+      // at a time in the light's own frame instead of 3 m jumps, so its edge slides instead of popping.)
+      front.update(t, dt); G.camera.getWorldDirection(aim); aim.y = 0; if (aim.lengthSq() < 1e-6) aim.set(0, 0, 1); aim.normalize();
+      const k = sc.right, cx = G.camera.position.x + aim.x * k * 0.45, cz = G.camera.position.z + aim.z * k * 0.45;
+      lF.copy(sunOff).negate().normalize(); lR.crossVectors(lF, UPY).normalize(); lU.crossVectors(lR, lF); lC.set(cx, W.ground(cx, cz), cz);
+      const tx = (2 * k) / sun.shadow.mapSize.x, la = Math.round(lC.dot(lR) / tx) * tx, lb = Math.round(lC.dot(lU) / tx) * tx, ld = lC.dot(lF);
+      lC.copy(lR).multiplyScalar(la).addScaledVector(lU, lb).addScaledVector(lF, ld); sun.target.position.copy(lC); sun.position.copy(lC).add(sunOff); }
     if (site === SITES.way) way.update(t, SA === LATE ? W.dawn : SA === DUSK ? 1 : 0, sun.position.x - site.at[0], sun.position.y, sun.position.z - site.at[1]);
     if (site.indoor && W.after) { for (const m of W.vault.veined) m.emissiveIntensity = 0; }
     else if (site.indoor) { const fl = W.flare, pulse = 0.5 + Math.sin(t * 1.3) * 0.12 + Math.sin(t * 2.9 + 1) * 0.05; sun.intensity = 2.0 + fl * 3;
