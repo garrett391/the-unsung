@@ -131,7 +131,12 @@ export const SFX = {
   clang: () => { if (!take('clang', 0.8)) { steel(410, 0.09, 0.16); noise(0.09, 0.3, 900, 300, 'bandpass', 0.8); } },
   parry: () => { if (!take('parry', 1.0, 1.06)) { steel(560, 0.13, 0.32); noise(0.28, 0.16, 6000, 2200, 'bandpass', 1.2); } tone(140, 0.16, 'triangle', 0.22, 70); },
   roll: () => noise(0.26, 0.14, 250, 800, 'bandpass', 0.8),
-  hurt: () => { tone(190, 0.28, 'sawtooth', 0.2, 70); noise(0.12, 0.3, 900, 300); },
+  // The captain is struck: a dull blow to the body and a shiver of mail. No pitched tone (owner, Nov 2026: the old falling sawtooth sounded like an 8-bit game).
+  hurt: () => { noise(0.2, 0.6, 420, 80, 'lowpass', 0.9); noise(0.1, 0.1, 5600, 3200, 'bandpass', 1.4); },
+  // A javelin striking home: the point knocking on plate (a recorded clang, pitched well down and quiet) over a hard short thud.
+  pierce: () => { if (!take('clang', 0.32, 0.55)) noise(0.06, 0.3, 2600, 900, 'bandpass', 1.2); noise(0.08, 0.5, 1400, 160, 'lowpass', 1); },
+  // A javelin that misses goes into the sand with a soft thunk.
+  stick: () => { noise(0.1, 0.22, 600, 120, 'lowpass', 1); noise(0.07, 0.06, 2400, 1200, 'bandpass', 1); },
   // an enemy draws back to strike: a short breath of cloth and leather, not a beep
   tele: () => noise(0.16, 0.12, 380, 1100, 'bandpass', 0.9),
   charged: () => { noise(0.4, 0.14, 500, 2600, 'bandpass', 2); tone(220, 0.4, 'triangle', 0.1, 330); },

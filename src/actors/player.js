@@ -134,7 +134,7 @@ export class Player extends Char {
       }
       this.st = 0; this.stDelay = 1.4; dmg *= 0.5; this.hitDur = 0.95; SFX.clang();
     } else this.hitDur = 0.42;
-    this.hp -= dmg; if (G.blunt && this.hp < 1) this.hp = 1; /* a bout with blunted steel: nothing bleeds and nobody dies */ this.flash = 1; if (dmg > 0 || !G.spar) SFX.hurt(); else SFX.hit(); /* a sparring touch (no damage): the plain recorded hit, not the synthesized grunt */ if (dmg > 0) { (dmg > 20 ? SFX.big : SFX.hit)(); if (!G.blunt) blood(hp, dir, dmg > 20 ? 2 : 1, this.hp <= 0, e); G.hurt = Math.min(1, 0.5 + dmg * 0.02); } // sparring blows (no damage) draw none
+    this.hp -= dmg; if (G.blunt && this.hp < 1) this.hp = 1; /* a bout with blunted steel: nothing bleeds and nobody dies */ this.flash = 1; if (dmg > 0 || !G.spar) SFX.hurt(); else SFX.hit(); /* a sparring touch (no damage): the plain recorded hit, not the synthesized grunt */ if (dmg > 0) { (e.missile ? SFX.pierce : dmg > 20 ? SFX.big : SFX.hit)(); /* a javelin is not a sword's cut */ if (!G.blunt) blood(hp, dir, dmg > 20 ? 2 : 1, this.hp <= 0, e); G.hurt = Math.min(1, 0.5 + dmg * 0.02); } // sparring blows (no damage) draw none
     FX.sparks.emit(hp, 12, 4, 0xff5040, 0.3); G.shake = 0.3 + dmg * 0.01; G.hitstop = 0.07;
     this.vel.copy(dir).multiplyScalar(6 + dmg * 0.15); this.charge = 0; this.trailOn = false;
     if (this.hp <= 0) { this.hp = 0; this.dead = true; this.state = 'dead'; this.aT = 0; this.play(CL.death, 0.1); this.lock = null; SFX.fall(); G.emit('playerDead'); return 'hit'; }

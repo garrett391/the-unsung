@@ -55,7 +55,7 @@ export function updateMissiles(dt) {
       if (!j.spent) for (const c of targets()) {
         if (!near(j.pos, c)) continue;
         // the thrower stands in for "who struck": its position gives the blow's direction, and a parry knocks the javelin aside instead of stunning him
-        const by = { pos: tmp2.copy(j.pos).addScaledVector(j.vel, -0.25), parried: () => {}, type: j.from.type, scale: j.from.scale };
+        const by = { pos: tmp2.copy(j.pos).addScaledVector(j.vel, -0.25), parried: () => {}, type: j.from.type, scale: j.from.scale, missile: true };
         const r = c === G.player ? c.receive(by, j.dmg) : c.receive(by, j.dmg * 0.8);
         if (r === 'miss') continue; // rolled through it (or nothing lands while someone talks): it flies on
         if (r === 'hit') { j.mesh.visible = false; done = true; break; }
@@ -67,6 +67,7 @@ export function updateMissiles(dt) {
       if (!done && j.pos.y <= gy + 0.05) { // into the ground
         if (j.spent) { j.pos.y = gy + 0.03; j.mesh.position.copy(j.pos); j.mesh.rotation.set(0, Math.random() * 6.3, 0); } // (it lies along its own length)
         else { j.pos.y = gy + 0.05; j.mesh.position.copy(j.pos); look.copy(j.pos).add(j.vel); j.mesh.lookAt(look); j.mesh.translateZ(-0.35); } // sunk head first
+        if (!j.spent) SFX.stick();
         FX.dust.emit(tmp.copy(j.pos).setY(gy + 0.05), 6, 1.4, 0xb8a37c, 0.5, { flat: 1, grav: -1, spread: 0.2 });
         STUCK.push({ mesh: j.mesh, t: 7 }); LIVE.splice(i, 1); done = 2; break;
       }

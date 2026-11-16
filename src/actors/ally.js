@@ -40,7 +40,7 @@ export class Ally extends Char {
     if (this.out || G.talking) return 'miss';
     const dir = tmpA.subVectors(this.pos, e.pos).setY(0).normalize(), hp = new T.Vector3().copy(this.pos).addScaledVector(dir, -0.4).setY(this.pos.y + 1.1);
     if (this.state === 'loco' && Math.random() < 0.65) { SFX.clang(); FX.sparks.emit(hp, 9, 4, 0xffe0a0, 0.25, { boost: 1.5 }); this.vel.addScaledVector(dir, 3); this.recoil = 1; this.blockT = G.time + 0.5; return 'block'; }
-    SFX.hit(); this.flash = 0.8; FX.sparks.emit(hp, 8, 4, 0xff5040, 0.3); if (!G.blunt) blood(hp, dir, 1, false, e); this.hp -= dmg; this.vel.copy(dir).multiplyScalar(4); this.trailOn = false;
+    (e.missile ? SFX.pierce : SFX.hit)(); this.flash = 0.8; FX.sparks.emit(hp, 8, 4, 0xff5040, 0.3); if (!G.blunt) blood(hp, dir, 1, false, e); this.hp -= dmg; this.vel.copy(dir).multiplyScalar(4); this.trailOn = false;
     if (this.hp <= 0) { this.hp = 0; this.out = true; this.set('out'); this.play(CL.kneel, 0.25); G.emit('allyDown', { ally: this }); } // to one knee, out of it until someone gets him up
     else { this.set('reel'); this.play(CL.hit, 0.05); }
     return 'hit';
