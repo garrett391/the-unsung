@@ -433,7 +433,7 @@ stage('road', {
     G.cinematic = true; ui.cinematic(true); ui.fade(1, 0); G.player.controlEnabled = false;
     playMusic('well', { cross: 3, fade: 3 }); // (owner, Nov 2026) the yard's theme comes in with the road cards and runs on into the waystation
     // (Owner, Nov 2026: tell it better.) Two pages: what he found, then the years. Things that happened, not a summary of
-    // them: the armour he sells explains the yard hand's clothes, and the caravans that stop coming are the war beginning. Drafts.
+    // them: the armour he sells explains the yard hand's clothes, and the caravans that stop coming are the war beginning. (Owner, Nov 2026) He comes to doubt it ever happened, and his hands forget the sword: what the waystation's lessons bring back. Drafts.
     await d.chronicle('The road', [
       'At the first well he asked for news of the war. They laughed, and asked him which war.',
       'He asked again in the next town, and the next. Then he stopped asking.',
@@ -442,6 +442,8 @@ stage('road', {
     await d.chronicle('The years', [
       "He mended walls. He dug wells. He loaded other men's carts, and moved on before anyone thought to ask his name.",
       'The realm had its peace, and never knew what it had been spared.',
+      'In time even he began to doubt it. Nobody else remembered the war; perhaps there had been nothing to remember. The Door came to him only in dreams, and less often.',
+      'His hands forgot the weight of a sword. He let them.',
       'Then, out past the last wells, the caravans began to come in late. Some did not come in at all.',
       '<em>A waystation on the caravan road.</em>',
     ], TAP);
