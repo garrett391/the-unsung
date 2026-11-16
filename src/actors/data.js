@@ -86,9 +86,12 @@ export const TYPES = {
   // Then the sergeant, who is harder: more of him, a cut that can run on into a thrust, and a shield rush
   // (`rush`: a raised shield does not stop it, so it has to be rolled or parried; `follow` keeps it out of his
   // own choice of moves: the muster's script calls for it).
-  sergeant: { name: 'THE SERGEANT', hp: 230, speed: 3.1, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0,
+  // Owner, Nov 2026: still too easy. Now aggressive: he stands closer (`close`), leaves less time between attacks
+  // (`press`), answers a blow on his shield with one of his own more often than not (`counter`), runs his cut into
+  // the thrust more often and the thrust sometimes on into the rush. The stage turns `phase2` on below half health.
+  sergeant: { name: 'THE SERGEANT', hp: 230, speed: 3.3, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0, close: 0.4, press: 0.6, counter: 0.6,
     look: { ...SOLDIER, hair: 0x9a9690, skin: 0xb98a66 },
-    moves: [{ style: 'slash', wind: 0.62, rec: 0.8, dmg: 14, range: 2.4, lunge: 6.5, chain: 0.3, then: 1 }, { style: 'thrust', wind: 0.7, rec: 0.9, dmg: 14, range: 2.8, lunge: 8 },
+    moves: [{ style: 'slash', wind: 0.52, rec: 0.7, dmg: 14, range: 2.4, lunge: 6.5, chain: 0.55, then: 1 }, { style: 'thrust', wind: 0.58, rec: 0.85, dmg: 14, range: 2.8, lunge: 8, chain: 0.3, then: 2 },
       { style: 'bash', wind: 0.9, rec: 1.25, dmg: 16, range: 2.5, lunge: 13, rush: true, follow: true }] },
   // The prologue's fight at the Glass Door. The game opens on the last moments of it: he is
   // already beaten (`hurt`: hunched, panting, bleeding; see Enemy) and slow, so the first round can

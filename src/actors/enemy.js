@@ -50,12 +50,14 @@ export class Enemy extends Char {
   flee() { if (!this.dead) this.set('flee'); }
   // Returns 'block' | 'hit' | 'kill'.
   takeHit(a, from, dmg) {
+    const t_counter = (e) => e.type.counter && Math.random() < e.type.counter;
     const dir = tmpA.subVectors(this.pos, from.pos).setY(0).normalize(), hp = new T.Vector3().copy(this.pos).addScaledVector(dir, -0.4).setY(1.1 * this.scale + this.yoff);
     const facing = Math.abs(wrap(Math.atan2(-dir.x, -dir.z) - this.face)) < 1.25;
     if (this.type.shield && facing && !this.open && (this.state === 'chase' || this.state === 'circle' || this.state === 'wind') && !a.crit) {
       if (a.poise < 3) {
         this.gp--; SFX.clang(); FX.sparks.emit(hp, 9, 4, 0xffe0a0, 0.25, { boost: 1.5 }); G.hitstop = Math.max(G.hitstop, 0.05); G.shake = Math.max(G.shake, 0.1);
         this.vel.addScaledVector(dir, 3); this.recoil = 1;
+        if (t_counter(this)) this.cd = Math.min(this.cd, 0.15); // counter: a foe who answers a blow on his shield at once
         if (this.gp <= 0) { this.gp = 3; this.stagDur = 1.3; this.open = true; this.set('stagger'); this.play(CL.stun, 0.08); }
         return 'block';
       }
@@ -115,7 +117,7 @@ export class Enemy extends Char {
         this.turnTo(steer(this.pos, this.radius, via ? Math.atan2(via[0] - this.pos.x, via[1] - this.pos.z) : ang, d, this), 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt);
         if (d < 3.6 * this.scale && !via) this.set('circle'); break; }
       case 'circle': {
-        this.turnTo(ang, 7, dt); const want = 2.7 + this.radius, rad = clamp((d - want) * 2.2, -1.6, speed), tan = this.dir * 1.35, nx = dx / d, nz = dz / d;
+        this.turnTo(ang, 7, dt); const want = 2.7 + this.radius - (t.close || 0), rad = clamp((d - want) * 2.2, -1.6, speed), tan = this.dir * 1.35, nx = dx / d, nz = dz / d;
         this.vel.x = damp(this.vel.x, nx * rad + nz * tan, 6, dt); this.vel.z = damp(this.vel.z, nz * rad - nx * tan, 6, dt);
         if (Math.random() < dt * 0.25) this.dir *= -1; if (d > 6.5 && !t.boss) this.set('chase'); this.cd -= dt;
         const reach = t.boss ? 12 : 4.4 * this.scale;
@@ -140,7 +142,7 @@ export class Enemy extends Char {
           if (m.chain && Math.random() < m.chain + (this.phase2 ? 0.2 : 0) && !P_.dead) this.startMove(t.moves[m.then], 0.1);
           else this.set('recover');
         } break; }
-      case 'recover': brake(8); if (this.st >= m.rec) { this.set('circle'); this.stop(0.2); this.cd = rnd(0.9, 2.3) * (this.phase2 ? 0.45 : t.boss ? 0.7 : 1); } break;
+      case 'recover': brake(8); if (this.st >= m.rec) { this.set('circle'); this.stop(0.2); this.cd = rnd(0.9, 2.3) * (this.phase2 ? 0.45 : t.boss ? 0.7 : 1) * (t.press || 1); } break; // press: a foe who gives less time between attacks
       case 'stagger': brake(6); if (this.st >= this.stagDur) { this.open = false; this.set('circle'); this.stop(0.2); this.cd = rnd(0.5, 1.4); } break;
       case 'parried':
         brake(8); if (Math.random() < 0.3) FX.sparks.emit(tmpB.copy(this.pos).setY(2 * this.scale), 1, 0.8, 0xfff0b0, 0.4, { grav: -1 });

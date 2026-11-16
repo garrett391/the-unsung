@@ -555,19 +555,27 @@ stage('waystation', {
     drover.place(...wy(0.4, -11), 0); drover.setVisible(true); drover.go(...wy(2.6, -0.6), 2.6); drover.watch = off;
     cam.shot(wy3(-0.6, 1.6, 5.6), wy3(1.4, 1.4, 0.6)); cam.shot(wy3(-0.5, 1.6, 5.2), wy3(1.4, 1.4, 0.6), 5);
     await d.talk([['Drover', 'Him. The yard hand.'], ['Drover', "He took the dead man's sword, and then... I don't know what I saw."]]);
-    onOfficer(4);
-    await d.talk([['Officer', 'Where did you learn to do that?']]);
+    // (Owner, Nov 2026: he is not invited, he is taken. The column came after the fighting and saw none of it: a dead
+    // guard, the gate, and a stranger holding the guard's sword. Two stations have been opened from the inside.)
+    onOfficer(5);
+    await d.talk([['Officer', 'What I see is a dead guard, his gate, and a stranger holding his sword.'], ['Officer', 'Two stations this month were opened from the inside.']]);
+    s1.go(P.pos.x - 1.3, P.pos.z + 0.9, 2.0); s2.go(P.pos.x + 1.3, P.pos.z + 0.9, 2.0); s1.watch = P; s2.watch = P; // the two soldiers close in on either side of him
+    cam.shot(wy3(-3.2, 2.2, 0.2), [P.pos.x, 1.3, P.pos.z + 1]); cam.shot(wy3(-3.0, 2.0, 0.6), [P.pos.x, 1.3, P.pos.z + 1], 5);
+    { const t0 = G.time; await d.until(() => (s1.fixed && s2.fixed) || G.time - t0 > 5); } await d.wait(0.4); // let them reach him
+    await d.talk([['Officer', 'Put it down.']]);
     cam.shot(wy3(-1.0, 1.55, 5.0), [P.pos.x, 1.5, P.pos.z]); cam.shot(wy3(-0.8, 1.55, 4.7), [P.pos.x, 1.5, P.pos.z], 4);
-    await d.talk([['Yard hand', "It doesn't matter."]]);
+    await d.wait(0.8);
+    await d.talk([['Yard hand', 'I did not open your gate.']]);
     onOfficer(6);
-    await d.talk([['Officer', 'It does to me. The dunes are waking up, and I am short of soldiers.'], ['Officer', "The column musters here at first light. Stand in the line, or don't."]]);
+    await d.talk([['Officer', 'Then you can show me so in the morning, in front of my sergeant.'], ['Officer', 'Hold him.']]);
     await d.wait(0.6); ui.fade(1, 1.6); await d.wait(1.8);
   },
 });
 
-// Prologue 5: the muster, the next morning, in the same yard. The trial bout is fought with
-// blunted steel (G.blunt): nothing bleeds, nobody dies, and a lost bout is simply fought again.
-// The sergeant fights from behind his shield, which is the lesson. Then the clerk asks his name.
+// Prologue 5: the muster, the next morning, in the same yard. He is brought out under guard: the officer
+// holds him for a deserter or the raiders' man, and the bout is how the sergeant means to find out which.
+// It is fought with blunted steel (G.blunt): nothing bleeds, nobody dies, and a lost bout is simply fought
+// again. Then he is put on the roll whether he likes it or not, and the clerk asks his name.
 stage('muster', {
   checkpoint: true,
   async run(d) {
@@ -580,9 +588,13 @@ stage('muster', {
     const sgt = new Extra(TYPES.sergeant.look, ...wy(-1.2, 3.6), 2.6, { scale: TYPES.sergeant.scale }); sgt.watch = P;
     const off = new Extra(LOOKS.officer, ...wy(5.2, -6.2), -0.75), clerk = new Extra(LOOKS.clerk, ...wy(7.6, -9.3), 0, { scale: 0.96 }); clerk.watch = P;
     const co = []; for (const [a, r] of [[0.5, 6.8], [1.25, 6.8], [-0.6, 6.8], [-1.35, 5.6], [-2.3, 6.8]]) { const e = new Extra(LOOKS.soldier, ring[0] + Math.sin(a) * r, ring[1] + Math.cos(a) * r, a + PI, /* the company, standing well back from the ring */ { scale: 0.97 + Math.abs(a) * 0.02 }); e.watch = P; co.push(e); }
-    cam.shot(wy3(-6.5, 3.6, -10), wy3(2.5, 1.2, -2)); cam.shot(wy3(-4.5, 2.6, -8.5), wy3(2.5, 1.3, -2), 6); ui.fade(0, 2.2);
+    const guards = [new Extra(LOOKS.soldier, ...wy(0.4, -9.5), 0), new Extra(LOOKS.soldier, ...wy(2.6, -9.5), 0)]; // his escort
+    cam.shot(wy3(1.2, 1.9, -4.6), wy3(1.5, 1.3, -8.9)); cam.shot(wy3(1.4, 1.8, -5.2), wy3(1.5, 1.3, -8.9), 7); ui.fade(0, 2.2); // first on him, between his guards
     await d.wait(2.6);
-    await d.talk([['Officer', 'You came.'], ['Officer', 'I know what I saw in this yard. I want my sergeant to see it.'], ['Sergeant', 'Then he can show one of mine first. Blunt steel. First to yield.'], ['Soldier', 'Whenever you like, yard hand.']]);
+    await d.talk([['Officer', 'The drover swears you killed them. The other stations swear a man on the inside opened the gate.'], ['Officer', 'A man with no name who fights like a soldier is a deserter, or he is theirs.']]);
+    cam.shot(wy3(-6.5, 3.6, -10), wy3(2.5, 1.2, -2)); cam.shot(wy3(-4.5, 2.6, -8.5), wy3(2.5, 1.3, -2), 6); // then the yard, the ring and the sergeant
+    await d.talk([['Sergeant', "Or both. Give him blunt steel, sir, and I'll tell you which."], ['Soldier', 'Whenever you like, yard hand.']]);
+    guards[0].go(...wy(-0.6, -7.6), 1.8); guards[1].go(...wy(3.6, -7.6), 1.8); for (const g of guards) { g.watch = P; } // they walk him to the ring and stand off behind it
     await stroll(d, ...wy(1.5, -3.9), 2.0, 5);
     // A round: fought until the other yields. Beaten, he is stood up and they go again.
     const round = async (E, again) => {
@@ -612,7 +624,7 @@ stage('muster', {
     let rt = 5, told = false, pressed = false; const RUSH = TYPES.sergeant.moves[2];
     const offR = G.on((k) => { if (k === 'rush' && !told) { told = true; const tip = 'His shield rush breaks a guard. Roll clear of it: a direction and {d}'; ui.hint(tip); d.wait(5).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); } });
     const tick = d.every((dt) => {
-      if (!pressed && S.hp < S.maxHp * 0.5) { pressed = true; rt = Math.min(rt, 1.5); ui.thought('He was holding back.', 3.5); } // (a thought, not a spoken line: the dialogue box would sit on his health bar)
+      if (!pressed && S.hp < S.maxHp * 0.5) { pressed = true; S.phase2 = true; rt = Math.min(rt, 1.5); /* quicker on his feet, chains oftener, less time between attacks */ ui.thought('He was holding back.', 3.5); } // (a thought, not a spoken line: the dialogue box would sit on his health bar)
       if (G.freezeAI || G.talking || S.hp <= 1 || P.dead) return;
       if ((rt -= dt) <= 0 && S.state === 'circle' && P.dist(S) < 5.5) { rt = pressed ? rnd(4, 6) : rnd(7, 10); S.startMove(RUSH); }
     });
@@ -631,7 +643,7 @@ stage('muster', {
     pair.forEach((e, i) => e.go(...spots[i], 2.2, PI));
     cam.shot(wy3(-5.5, 3.2, -9.5), wy3(1.5, 1.2, 0.5)); cam.shot(wy3(-4.2, 2.6, -8.6), wy3(1.5, 1.2, 0.5), 5);
     await d.wait(2.2);
-    await d.talk([['Officer', 'Sergeant.'], ['Sergeant', 'You wanted me to see it, sir. I mean to see all of it.']]);
+    await d.talk([['Officer', 'Sergeant.'], ['Sergeant', 'A deserter quits when it goes bad, sir. Let us see it go bad.']]);
     { const t0 = G.time; await d.until(() => pair.every((e) => !e.to) || G.time - t0 > 4); }
     const HP3 = 0.55, TROOP = 72; let out = []; // he gets up with a little over half of himself; the two fresh ones are lighter than the first soldier
     const rise = (e) => { e.dead = false; e.hold = false; e.stagDur = 0.3; e.st = 0; e.stop(0.5); e.set('circle'); };
@@ -665,14 +677,14 @@ stage('muster', {
     { const dx = P.pos.x - S.pos.x, dz = P.pos.z - S.pos.z, l = Math.hypot(dx, dz) || 1, mx = (P.pos.x + S.pos.x) / 2, mz = (P.pos.z + S.pos.z) / 2;
       cam.shot([mx - (dz / l) * 3.4, 1.5, mz + (dx / l) * 3.4], [mx, 1.1, mz]); cam.shot([mx - (dz / l) * 3.0, 1.4, mz + (dx / l) * 3.0], [mx, 1.1, mz], 5); }
     await d.wait(1.4);
-    await d.talk([['Sergeant', 'Enough. I yield.'], ['Officer', 'Put him on the roll.']]);
+    await d.talk([['Sergeant', 'Enough. I yield.'], ['Sergeant', "He's no deserter, sir. A deserter would have run by now."], ['Officer', 'Then he is a soldier. Put him on the roll.']]);
     cam.shot(wy3(9.9, 1.8, -3.2), wy3(7.4, 1.3, -8.2)); cam.shot(wy3(9.5, 1.7, -3.8), wy3(7.4, 1.3, -8.2), 6);
     await stroll(d, ...wy(7.2, -5.9), 2.0, 6);
     if (Math.hypot(P.pos.x - wy(7.2, -5.9)[0], P.pos.z - wy(7.2, -5.9)[1]) > 1) P.place(...wy(7.2, -5.9), PI);
     await turnTo(d, P, P.angleTo(clerk), 0.4);
     await d.talk([['Clerk', 'Name?'], ['Clerk', 'I need something for the roll.'], ['Yard hand', 'Write whatever you like.']]);
     await d.wait(0.5);
-    await d.talk([['Clerk', '...Western Watch, Third Company. It is the worst posting on the frontier.'], ['Officer', 'It is where I need him.']]);
+    await d.talk([['Clerk', '...Western Watch, Third Company. It is the worst posting on the frontier.'], ['Officer', 'It is where I need him.'], ['Officer', 'You belong to the Watch now. Walk away from it, and you are the deserter I took you for.']]);
     await d.wait(0.6); ui.fade(1, 1.6); await d.wait(1.8);
   },
 });

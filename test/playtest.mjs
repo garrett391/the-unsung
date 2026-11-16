@@ -115,6 +115,7 @@ if (at('waystation')) { // real timing through the opening, so the shots catch i
   log('column', await play(180, { bot: true, god: true, heavy: true, until: "G.extras.length>2" })); await play(4.5); await shot('0n-column');
   await play(30, { until: "G.talking" }); await play(1); await shot('0o-officer');
   await play(30, { tap: true, until: "G.talking&&G.extras[1].root.visible" }); await play(1.5); await shot('0o2-drover');
+  await play(30, { tap: true, until: "G.extras.some(e=>e.watch===G.player&&Math.hypot(e.pos.x-G.player.pos.x,e.pos.z-G.player.pos.z)<1.8)" }); await play(1.2); await shot('0o3-held'); // the soldiers close in on him
   log('to muster', await play(60, { tap: true, until: stageIs('muster') }));
 }
 if (at('muster')) {
