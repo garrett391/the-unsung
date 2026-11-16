@@ -1,9 +1,30 @@
 // Most sound effects are synthesized. Music, and the steel of blows landing and being stopped, are loaded from files.
 let AC = null, master = null, nbuf = null;
+// Called on every tap, click and key. It wakes the context whenever it is not running: not only the
+// 'suspended' of a fresh page but iOS's 'interrupted', which is what switching away from Safari leaves it in
+// (owner, Nov 2026: on a phone the music stopped when he left the browser and never came back; only
+// 'suspended' used to be resumed). If iOS won't wake it, the context is rebuilt and the music started again.
+let waking = 0;
 export function initAudio() {
-  if (AC) { if (AC.state === 'suspended') AC.resume().catch(() => {}); return; }
-  makeContext();
-  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
+  if (!AC) makeContext();
+  if (!AC || AC.state === 'running' || document.hidden) return;
+  try { const p = AC.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ }
+  const ctx = AC; clearTimeout(waking);
+  waking = setTimeout(() => { if (AC === ctx && AC.state !== 'running' && !document.hidden) rebuild(); }, 900); // a tap should wake it at once: still asleep after one, it is dead
+}
+// Leaving the page: let the music rest (phones stop it anyway). Coming back: wake it where the browser
+// allows it without a tap (desktop, Android); on iOS the next tap does it.
+document.addEventListener('visibilitychange', () => {
+  if (!AC) return;
+  if (document.hidden) { if (AC.state === 'running') AC.suspend().catch(() => {}); }
+  else AC.resume().catch(() => {});
+});
+// A new context in place of one that will not wake. Decoded buffers carry over; the track that was wanted starts again from its top.
+function rebuild() {
+  const old = AC, w = want; try { old.close(); } catch (e) { /* ignore */ }
+  AC = null; mus = null; quietAt = 0; makeContext(); if (!AC) return;
+  try { AC.resume().catch(() => {}); } catch (e) { /* ignore */ }
+  if (w) { want = { ...w, at: 0, fade: 1.5 }; AC.addEventListener('statechange', startMusic); loadTrack(w.name).then(startMusic); }
 }
 // Creating the context needs no gesture; it simply stays suspended (silent) until
 // initAudio() runs from a tap, click or key, which is when browsers allow sound.
@@ -15,7 +36,7 @@ function makeContext() {
     nbuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = nbuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    loadTakes(); loadLongs();
+    if (!takes.hit) loadTakes(); if (!Object.keys(longs).length) loadLongs(); // (a rebuilt context keeps what was already decoded)
   } catch (e) { AC = null; }
 }
 

@@ -195,7 +195,7 @@ G.resetWorld({ player: [0.6, 12.5, PI], corin: null, gate: 'door' }); player.set
 // Title music. Browsers keep sound off until the player first taps, clicks or presses a
 // key, so it is queued now and fades in on that first touch; PLAY / CONTINUE fade it out.
 playMusic('title');
-for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(ev, initAudio, { passive: true });
+for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(ev, initAudio, { passive: true, capture: true }); // (capture: a control that stops the event still wakes the sound)
 
 // rdt is clamped at zero: the first frame can carry a timestamp earlier than this one.
 let last = performance.now();
