@@ -67,6 +67,7 @@ const ballS = (r) => memo('S' + r, () => new T.SphereGeometry(r, 28, 20)); // sk
 const folded = (k, pts, fold, seg = 36, n = 14) => memo(k, () => {
   const g = new T.LatheGeometry(new T.SplineCurve(pts.map(([a, b]) => new T.Vector2(a, b))).getPoints(n), seg, PI), p = g.attributes.position, uv = g.attributes.uv, nm = g.attributes.normal, rows = n + 1;
   for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), f = 1 + fold(Math.atan2(x, z), uv.getY(i)); p.setX(i, x * f); p.setZ(i, z * f); }
+  if (pts[0][1] > pts[pts.length - 1][1]) { const ix = g.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = t; } } // a profile drawn from the top down is turned inside out: face it outward again (the sleeves were, and under a one-sided cloth the near side of the upper arm was not drawn at all)
   g.computeVertexNormals();
   for (let j = 0; j < rows; j++) { const a = j, b = seg * rows + j, x = nm.getX(a) + nm.getX(b), y = nm.getY(a) + nm.getY(b), z = nm.getZ(a) + nm.getZ(b), l = Math.hypot(x, y, z) || 1; nm.setXYZ(a, x / l, y / l, z / l); nm.setXYZ(b, x / l, y / l, z / l); } // no crease down the seam
   return g;

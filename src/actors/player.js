@@ -121,7 +121,7 @@ export class Player extends Char {
   receive(e, dmg, through) {
     if (this.dead || this.inv > 0 || G.talking) return 'miss'; // nothing lands while a line of dialogue holds him still
     const dir = tmpA.subVectors(this.pos, e.pos).setY(0).normalize(), ang = Math.abs(wrap(Math.atan2(-dir.x, -dir.z) - this.face));
-    const hp = tmpB.copy(this.pos).addScaledVector(dir, -0.5).setY(1.15);
+    const hp = tmpB.copy(this.pos).addScaledVector(dir, -0.5).setY(this.pos.y + 1.15);
     if (this.state === 'loco' && I.block && this.controlEnabled && ang < 1.7) {
       if (G.time - this.blockT < 0.24) {
         SFX.parry(); FX.sparks.emit(hp, 26, 6, 0xfff0b0, 0.4, { up: 1, boost: 2 }); G.hitstop = 0.13; G.slow = 0.28; G.shake = 0.25;

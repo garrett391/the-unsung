@@ -40,6 +40,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #thought{position:absolute;left:50%;transform:translate(-50%,6px);bottom:64px;width:max-content;max-width:min(88vw,560px);text-align:center;
   font-size:17px;font-style:italic;line-height:1.35;letter-spacing:.02em;color:rgba(232,226,244,.92);pointer-events:none;
   text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.7),0 0 22px rgba(0,0,0,.5);opacity:0;transition:opacity .9s ease-in,transform .9s ease-in}
+#tgt.boss~#thought{bottom:128px} /* a boss's bar sits low in the middle on a desktop: the thought goes above it */
 #thought.on{opacity:1;transform:translate(-50%,0);transition:opacity .35s ease-out,transform .6s ease-out}
 #dlg{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;width:min(94vw,640px);padding:14px 20px 18px;background:rgba(8,8,14,.82);
   border-top:1px solid rgba(217,178,74,.7);display:none}
@@ -107,7 +108,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 @keyframes pulse{50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){#dlg .more,#chron .tap,#obj.new,#hint.new{animation:none}}
 @media (max-width:600px){#bars{width:40vw}#tgt{left:auto;right:62px;transform:none;width:36vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}}
-@media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}#thought{bottom:auto;top:170px;font-size:15px}}
+@media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}#thought,#tgt.boss~#thought{bottom:auto;top:170px;font-size:15px}}
 @media (pointer:coarse) and (max-width:600px){#tgt.boss~#thought{top:238px}}
 </style>
 </head>

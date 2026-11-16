@@ -31,9 +31,11 @@ initInput(canvas, cam);
 const ringMat = new T.MeshBasicMaterial({ color: new T.Color(2, 1.5, 0.5), transparent: true, opacity: 0.95, depthWrite: false, fog: false, side: T.DoubleSide });
 const lockRing = new T.Mesh(new T.RingGeometry(0.78, 0.9, 4), ringMat), lockRing2 = new T.Mesh(new T.RingGeometry(0.52, 0.57, 28), ringMat);
 for (const m of [lockRing, lockRing2]) { m.rotation.x = -PI / 2; m.visible = false; G.scene.add(m); }
+let lockSpin = 0;
 
 G.spawn = (kind, x, z, o) => { const e = new Enemy(kind, x, z, o); G.enemies.push(e); return e; };
-G.clearEnemies = () => { for (const e of G.enemies) e.dispose(); G.enemies.length = 0; for (const e of G.extras) e.dispose(); G.extras.length = 0; };
+G.clearEnemies = () => { for (const e of G.enemies) e.dispose(); G.enemies.length = 0; for (const e of G.extras) e.dispose(); G.extras.length = 0; for (const e of G.allies) e.dispose(); G.allies.length = 0; };
+G.enlist = (o) => { const a = new Ally(o); G.allies.push(a); return a; }; // a soldier who fights beside him (actors/ally.js)
 // Put the world in a known state for the start of a stage.
 G.resetWorld = (o) => {
   G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.wear(o.look || 'captain'); player.reset(...o.player); G.blunt = false; G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = G.hurt = 0; clearBlood();
@@ -53,7 +55,7 @@ const loadReached = () => { const r = new Set([STAGES[0].name]); try { for (cons
 const reached = loadReached();
 const writeSave = (k) => { reached.add(STAGES[k].name); try { localStorage.setItem(SAVE, STAGES[k].name); localStorage.setItem(REACHED, JSON.stringify([...reached])); } catch (_) { /* storage blocked: play on without saving */ } if (G.drawChapters) G.drawChapters(); };
 const LESSONS = { taughtStrike: 'forecourt', taughtDoor: 'halls', taughtWay: 'waystation' }; // which chapter teaches what
-const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', patrol: 'the patrol', beacon: 'the beacon', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
@@ -85,9 +87,10 @@ function step(rdt, noRender) {
     if (G.running) {
       player.update(dt);
       if (corin.root.visible) corin.update(dt);
+      for (const a of G.allies) a.update(dt);
       for (const e of G.enemies) e.update(dt);
       for (const e of G.extras) e.update(dt);
-      const all = [player, ...(corin.root.visible ? [corin] : []), ...G.enemies, ...G.extras];
+      const all = [player, ...(corin.root.visible ? [corin] : []), ...G.allies, ...G.enemies, ...G.extras];
       for (const c of all) c.pos.addScaledVector(c.vel, dt);
       // bodies push each other apart; a rolling player slips through
       const ghost = player.state === 'roll' || (player.at === ATK.sa && player.state === 'atk');
@@ -96,7 +99,7 @@ function step(rdt, noRender) {
         const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z, d = Math.hypot(dx, dz) || 0.001, m = a.radius + b.radius + 0.12;
         if (d < m) { const o = m - d, wa = a.fixed ? 0 : b.fixed ? 1 : i === 0 ? 0.65 : 0.5; /* a bystander standing still (an Extra) is not shoved about */ a.pos.x -= (dx / d) * o * wa; a.pos.z -= (dz / d) * o * wa; b.pos.x += (dx / d) * o * (1 - wa); b.pos.z += (dz / d) * o * (1 - wa); }
       }
-      for (let i = 0; i < all.length; i++) confine(all[i].pos, all[i].radius, i === 0 || all[i] === corin);
+      for (let i = 0; i < all.length; i++) confine(all[i].pos, all[i].radius, i === 0 || all[i] === corin || all[i].ally);
       for (const c of all) c.animate(dt, G.time);
       for (let i = G.enemies.length - 1; i >= 0; i--) if (G.enemies[i].gone) { G.enemies[i].dispose(); G.enemies.splice(i, 1); }
     } else { player.animate(dt, G.time); if (corin.root.visible) corin.animate(dt, G.time); }
@@ -104,7 +107,7 @@ function step(rdt, noRender) {
   }
   if (G.running) director.update(rdt);
   const t = player.lock; lockRing.visible = lockRing2.visible = !!t;
-  if (t) { lockRing.position.set(t.pos.x, 0.08, t.pos.z); lockRing2.position.copy(lockRing.position); lockRing.rotation.z += rdt * 2.2; const s = t.scale * (1 + Math.sin(G.time * 6) * 0.05); lockRing.scale.setScalar(s); lockRing2.scale.setScalar(s); }
+  if (t) { lockSpin += rdt * 2.2; level.lay(lockRing, t.pos.x, t.pos.z, 0.08, lockSpin); level.lay(lockRing2, t.pos.x, t.pos.z, 0.08); const s = t.scale * (1 + Math.sin(G.time * 6) * 0.05); lockRing.scale.setScalar(s); lockRing2.scale.setScalar(s); }
   updateCamera(rdt, false); ui.frame(); if (!noRender) G.composer.render();
 }
 
@@ -133,10 +136,10 @@ function leave(from) {
 $('tplay').addEventListener('click', () => leave(0));
 // Replaying a chapter plays it as if for the first time: the cutscenes and lessons that a retry skips are shown again.
 // (Its own lessons, that is: runFrom marks the earlier chapters' as learned. Picking the Glass Door used to teach lock, strike and shield over again.)
-const fresh = () => { G.seenHalls = G.seenWay = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
+const fresh = () => { G.seenHalls = G.seenWay = G.seenFront = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
 // The list is grouped by act, numbered, and quiet: rows of text, not a column of boxed buttons. A chapter not yet reached
 // shows no name (some are spoilers); the one being played is marked.
-const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
+const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The Western Watch', ['patrol', 'beacon']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 const CHAPTERS = STAGES.map((s, k) => [s, k]).filter(([s]) => s.checkpoint);
 const chapName = (s) => { const l = LABEL[s.name] || s.name; return l[0].toUpperCase() + l.slice(1); };
 G.drawChapters = () => {

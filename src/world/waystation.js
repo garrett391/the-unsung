@@ -47,7 +47,8 @@ export function buildWaystation(scene, ox, oz) {
   const mAdobe = toon(0xffffff, { map: adobe }), mCap = toon(0xa8937a, { map: adobe }), mWood = toon(0x6a4a2c), mWoodD = toon(0x46301e), mStone = toon(0xb09a78), mIron = toon(0x2a2c32);
   const mAwn = toon(0xffffff, { map: stripe, side: T.DoubleSide }), mCrate = toon(0xffffff, { map: TEX.crate }), mBarrel = toon(0xffffff, { map: TEX.barrel }), mSack = toon(0xa89674), mStraw = toon(0xb9a25a);
   const mJar = toon(0xb0653a), mFrond = toon(0x5d7838, { side: T.DoubleSide }), mTrunk = toon(0x7d6546), mRope = toon(0x8a7650), mIn = new T.MeshBasicMaterial({ color: 0x0c0a09 }), mWater = toon(0x2c4e58);
-  const add = (geo, mat, x, y, z, ry, to = g) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); if (ry) m.rotation.y = ry; m.castShadow = m.receiveShadow = !!mat.isMeshToonMaterial; to.add(m); return m; };
+  let dest = null, mesaFn = null; // (dest: the frontier borrows the palm and the mesa, and has them built into its own group)
+  const add = (geo, mat, x, y, z, ry, to = dest || g) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); if (ry) m.rotation.y = ry; m.castShadow = m.receiveShadow = !!mat.isMeshToonMaterial; to.add(m); return m; };
   // A box whose texture is laid at a fixed size in metres (`tile`), so long walls aren't smeared.
   const box = (w, h, d, mat, x, y, z, ry, tile, to) => {
     const geo = new T.BoxGeometry(w, h, d);
@@ -322,6 +323,7 @@ export function buildWaystation(scene, ox, oz) {
       const nr = geo.attributes.normal; for (let j = 0; j < rows; j++) { const p = j * (N + 1), q2 = p + N, nx = nr.getX(p) + nr.getX(q2), ny = nr.getY(p) + nr.getY(q2), nz = nr.getZ(p) + nr.getZ(q2), l = Math.hypot(nx, ny, nz) || 1; nr.setXYZ(p, nx / l, ny / l, nz / l); nr.setXYZ(q2, nx / l, ny / l, nz / l); } // close the seam
       const m = add(geo, mMesa, x, 0, z, o.ry); m.castShadow = m.receiveShadow = false; return m;
     };
+    mesaFn = mesa;
     mesa(44, 56, 11, 17, { sx: 1.2, ry: 0.4 }); // the one the road goes behind
     mesa(-17, 60, 6.5, 21, { sx: 0.85, ry: 1.1 }); // a butte close on the west of the road: it stands in the gate's arch from inside the yard
     mesa(-36, 70, 9, 24, { sx: 0.9 }); mesa(-52, 60, 6, 15); // two buttes to the north-west
@@ -342,5 +344,6 @@ export function buildWaystation(scene, ox, oz) {
       for (const e of [-1, 1]) { const k = new T.Mesh(new T.SphereGeometry(0.07, 8, 6), mGold); k.position.x = e * 0.62; b.add(k); } banners.push(b); }
   }
   muster.visible = false;
-  return { group: g, muster, obs, obsMuster, banners, update };
+  const into = (grp, fn) => { dest = grp; try { fn(); } finally { dest = null; } };
+  return { group: g, muster, obs, obsMuster, banners, update, kit: { palm, mesa: mesaFn, into } };
 }

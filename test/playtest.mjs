@@ -8,7 +8,7 @@ import { extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..'), dist = join(root, 'dist'), shots = join(root, 'test/shots');
-const phone = process.argv[2] === 'phone', ORDER = ['forecourt', 'halls', 'door', 'ascent', 'road', 'waystation', 'muster', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
+const phone = process.argv[2] === 'phone', ORDER = ['forecourt', 'halls', 'door', 'ascent', 'road', 'waystation', 'muster', 'patrol', 'beacon', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
 const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg' };
 const server = http.createServer(async (q, s) => {
   try { const f = join(dist, q.url === '/' ? 'index.html' : q.url.split('?')[0]), d = await readFile(f); s.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); s.end(d); }
@@ -53,7 +53,7 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
 const stageIs = (n) => `G.STAGES[G.stage].name==='${n}'`;
 const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
-await page.evaluate(([from, real]) => { G.manual = true; /* the game's own frame loop stops stepping: only play() advances it, so nothing happens during a screenshot */ G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['halls', 'waystation', 'muster'].includes(ORDER[only])]);
+await page.evaluate(([from, real]) => { G.manual = true; /* the game's own frame loop stops stepping: only play() advances it, so nothing happens during a screenshot */ G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['halls', 'waystation', 'muster', 'patrol', 'beacon'].includes(ORDER[only])]);
 if (!only) {
   await play(0.3); await page.evaluate(() => { G.auto = false; }); // past the opening cards, then real timing through the prologue so the shots catch it
   await play(3.4); await page.waitForTimeout(2500); await shot('0000a-forecourt'); /* the fade is a CSS transition, on the real clock */ await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('0000b-forecourt');
@@ -127,9 +127,33 @@ if (at('muster')) {
   log('round three', await play(240, { bot: true, god: true, heavy: true, tap: true, until: "G.enemies.filter(e=>e.kind==='trooper').length===2&&G.player.controlEnabled&&!G.talking" })); await play(1.0); await shot('0q5-three'); // he calls two of the line into the ring
   log('yields', await play(300, { bot: true, god: true, heavy: true, until: "G.cinematic" })); await play(2.0); await shot('0r-yields');
   await play(30, { tap: true, until: "G.player.walk" }); await play(40, { until: "G.talking" }); await play(1.2); await shot('0s-clerk');
-  log('to act one', await play(60, { tap: true, until: stageIs('intro') }));
+  log('to act one', await play(60, { tap: true, until: stageIs('patrol') }));
+}
+// The frontier is open country: the bot walks it by a line of points (it only ever heads straight for one).
+const walk = async (pts, until) => { let r; for (const [x, z] of pts) { r = await play(25, { bot: true, god: true, to: [260 + x, -160 + z], until: `(${until})||Math.hypot(G.player.pos.x-(${260 + x}),G.player.pos.z-(${-160 + z}))<1.6` }); if (await page.evaluate(until)) break; } return r; };
+const clear = "!G.enemies.some(e=>!e.dead)", foes = "G.enemies.some(e=>!e.dead)";
+if (at('patrol')) {
+  log('picket', await play(60, { tap: true, until: "G.talking" })); await play(1.2); await page.waitForTimeout(2500); await shot('0t-picket');
+  await play(60, { tap: true, until: "G.player.controlEnabled" }); await play(0.5); await shot('0t2-sets-out');
+  log('the rise', await walk([[3, -30], [8, -17]], foes)); await play(1.5); await shot('0u-out-of-the-sand');
+  await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('0u2-on-the-rise');
+  log('wave 1', await play(180, { bot: true, god: true, heavy: true, until: clear })); await play(1.5); await page.waitForTimeout(600); await shot('0u3-cleared');
+  log('riverbed', await walk([[8, -17], [5, -8], [-2, -2], [-9, 4], [-13, 9], [-15, 12]], foes)); await play(1.5); await shot('0v-riverbed');
+  await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('0v2-ambush');
+  log('wave 2', await play(240, { bot: true, god: true, heavy: true, until: clear })); await play(1.5);
+  log('to the basin', await walk([[-9, 4], [-15, 12], [-16, 20], [-12, 27], [-4, 32], [0, 35]], stageIs('beacon')));
+}
+if (at('beacon')) {
+  await play(2.2); await shot('0w-under-the-rock'); await play(20, { until: "G.player.controlEnabled" }); await play(0.4); await shot('0w2-basin');
+  log('to the patrol', await play(240, { bot: true, god: true, heavy: true, until: "G.cinematic" })); await play(40, { until: "G.talking" }); await play(1.0); await shot('0x-corporal');
+  await play(60, { tap: true, until: "G.hold" }); await play(0.5); await shot('0x2-hold');
+  log('hold 25s', await play(25, { bot: true, god: true, heavy: true, home: [278.4, -117.2] })); await shot('0x3-hold');
+  log('hold', await play(240, { bot: true, god: true, heavy: true, home: [278.4, -117.2], until: "!G.hold" })); await shot('0x4-dusk');
+  await play(30, { until: "G.cinematic" }); await play(3.0); await shot('0y-lit'); await play(30, { until: "G.talking" }); await play(1.0); await shot('0y2-after');
+  log('to the camp', await play(60, { tap: true, until: stageIs('intro') }));
   await page.evaluate(() => { G.auto = true; });
 }
+if (process.env.TO === 'beacon') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); } // TO=beacon stops after the frontier
 if (at('spar')) {
   log('intro', await play(6)); await shot('01-spar-start');
   log('lock+strike', await play(14, { bot: true, until: "G.corin.mode==='attack'" })); await shot('02-spar-strike');

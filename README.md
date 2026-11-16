@@ -58,7 +58,7 @@ A bot plays every stage in headless Chrome and saves screenshots to `test/shots/
 ```sh
 npm run build && npm test
 CHROME=/path/to/chrome npm test     # if Chrome is somewhere else
-FROM=raid npm test                  # start at a stage (door, waystation, muster, spar, raid, fallback, hold, vessa)
+FROM=raid npm test                  # start at a stage (door, waystation, muster, patrol, beacon, spar, raid, fallback, hold, vessa)
 TO=door npm test                    # stop after the prologue
 node test/playtest.mjs phone        # phone-sized touch layout
 node test/look.mjs                  # close-up turnarounds of the opening foe and the captain
@@ -80,7 +80,7 @@ node test/places.mjs                # the camp (night and dawn) and the waystati
 | `src/actors/anim.js` | Poses, attack clips and generated locomotion |
 | `src/actors/data.js` | Attack and enemy numbers: tune combat here |
 | `src/actors/player.js`, `enemy.js`, `ally.js`, `extra.js` | The captain, raiders and Vessa, Corin, scripted bystanders |
-| `src/world/` | Level geometry (the ruins and vault in `level.js`, the halls in `halls.js`, the waystation in `waystation.js`), collision, sky and lighting; camera |
+| `src/world/` | Level geometry (the ruins and vault in `level.js`, the halls in `halls.js`, the forecourt in `forecourt.js`, the waystation in `waystation.js`, the open frontier in `front.js`), collision, sky and lighting; camera |
 | `src/story/director.js` | Awaitable waits, tweens and dialogue for stage scripts |
 | `src/story/mission.js` | The stages, written as straight-line scripts |
 | `src/story/stretchers.js` | The stretcher bearers crossing the Narrows during the hold |

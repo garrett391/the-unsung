@@ -5,6 +5,8 @@ import { TEX, canvasTex } from './materials.js';
 import { opts } from '../core/input.js';
 
 const V3 = T.Vector3;
+let GY = null; // the ground's height at (x, z) in open country, or null where the ground is flat (level.js sets it with the site)
+export const setGround = (fn) => { GY = fn; };
 const EASE_OUT = (u) => 1 - Math.pow(1 - u, 3);
 
 // Pooled point sprites. Additive ones fade by dimming; the rest just expire.
@@ -38,10 +40,11 @@ export class Parts {
       if (this.life[i] <= 0) { this.pos[j + 1] = -999; continue; }
       this.vel[j + 1] -= this.grav[i] * dt;
       this.pos[j] += this.vel[j] * dt; this.pos[j + 1] += this.vel[j + 1] * dt; this.pos[j + 2] += this.vel[j + 2] * dt;
-      if (this.pos[j + 1] < 0.03 && this.grav[i] > 0) {
-        if (this.onLand) { this.onLand(this.pos[j], this.pos[j + 2]); this.life[i] = 0; this.pos[j + 1] = -999; continue; }
-        this.pos[j + 1] = 0.03; this.vel[j + 1] *= -0.3;
-      }
+      if (this.grav[i] > 0) { const fl = (GY ? GY(this.pos[j], this.pos[j + 2]) : 0) + 0.03;
+        if (this.pos[j + 1] < fl) {
+          if (this.onLand) { this.onLand(this.pos[j], this.pos[j + 2]); this.life[i] = 0; this.pos[j + 1] = -999; continue; }
+          this.pos[j + 1] = fl; this.vel[j + 1] *= -0.3;
+        } }
       const f = this.add ? this.life[i] / this.max[i] : 1;
       this.col[j] = this.base[j] * f; this.col[j + 1] = this.base[j + 1] * f; this.col[j + 2] = this.base[j + 2] * f;
     }
@@ -117,7 +120,8 @@ class Stains {
   // `dir` (optional) lays a streak along the way the blood was thrown.
   add(x, z, size, life = 20, grow = 0, dir = null) {
     const s = this.sets[dir ? 3 : (Math.random() * 3) | 0], k = (s.i = (s.i + 1) % s.n), d = s.d[k];
-    d.x = x; d.z = z; d.age = 0; d.life = life; d.grow = grow;
+    d.x = x; d.z = z; d.age = 0; d.life = life; d.grow = grow; d.y = 0; d.q = null;
+    if (GY) { d.y = GY(x, z); d.q = new T.Quaternion().setFromUnitVectors(UPV, tmpS.set(GY(x - 0.3, z) - GY(x + 0.3, z), 0.6, GY(x, z - 0.3) - GY(x, z + 0.3)).normalize()); } // on a slope it lies along the slope
     if (dir) { d.sx = size * rnd(0.3, 0.5); d.sz = size * rnd(0.9, 1.4); d.r = Math.atan2(dir.x, dir.z) + rnd(-0.35, 0.35); }
     else { d.sx = size * rnd(1.3, 1.9); d.sz = size * rnd(1.3, 1.9); d.r = rnd(0, PI * 2); }
   }
@@ -130,7 +134,7 @@ class Stains {
         const a = d.age, L = d.life, j = k * 4;
         if (a > L) { s.mesh.setMatrixAt(k, ZERO); t[j + 3] = 0; continue; }
         const f = d.grow ? 0.25 + 0.75 * EASE_OUT(Math.min(1, a / d.grow)) : 0.5 + 0.5 * EASE_OUT(Math.min(1, a / 0.14));
-        tmpM.makeRotationY(d.r).scale(tmpS.set(d.sx * f, 1, d.sz * f)).setPosition(d.x, s.y + k * 0.0002, d.z); s.mesh.setMatrixAt(k, tmpM);
+        tmpM.makeRotationY(d.r).scale(tmpS.set(d.sx * f, 1, d.sz * f)); if (d.q) tmpM.premultiply(tmpN.makeRotationFromQuaternion(d.q)); tmpM.setPosition(d.x, d.y + s.y + k * 0.0002, d.z); s.mesh.setMatrixAt(k, tmpM);
         const dry = Math.min(1, a / (7 + d.grow * 2)); tmpC.copy(FRESH).lerp(DRIED, dry * dry * (3 - 2 * dry));
         t[j] = tmpC.r; t[j + 1] = tmpC.g; t[j + 2] = tmpC.b; t[j + 3] = 0.86 * Math.min(1, (L - a) / 4);
       }
@@ -138,7 +142,7 @@ class Stains {
     }
   }
 }
-const ZERO = new T.Matrix4().makeScale(0, 0, 0), tmpM = new T.Matrix4(), tmpC = new T.Color();
+const ZERO = new T.Matrix4().makeScale(0, 0, 0), tmpM = new T.Matrix4(), tmpN = new T.Matrix4(), tmpC = new T.Color(), UPV = new V3(0, 1, 0);
 const tmpS = new V3();
 export const FX = { sparks: null, dust: null, blood: null, gouts: null, stains: null, shocks: [] };
 export function initFx() {
@@ -179,9 +183,9 @@ export function drip(p) { if (opts.blood) FX.blood.emit(p, 1, 0.15, BLOOD, 1.2, 
 export const clearBlood = () => FX.stains.clear();
 export function shock(p, r, color = 0xffe2a0) {
   const m = new T.Mesh(new T.RingGeometry(0.72, 1, 40), new T.MeshBasicMaterial({ color, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, side: T.DoubleSide }));
-  m.position.set(p.x, 0.07, p.z); m.rotation.x = -PI / 2; G.scene.add(m); FX.shocks.push({ m, r, t: 0 });
-  FX.sparks.emit(new V3(p.x, 0.15, p.z), 26, r * 2.2, color, 0.45, { flat: 1, up: 2 });
-  FX.dust.emit(new V3(p.x, 0.1, p.z), 12, r * 1.2, 0xb8a37c, 0.5, { flat: 1, grav: -1, up: 0.5 });
+  const gy = GY ? GY(p.x, p.z) : 0; if (G.level) G.level.lay(m, p.x, p.z, 0.07); else { m.position.set(p.x, 0.07, p.z); m.rotation.x = -PI / 2; } G.scene.add(m); FX.shocks.push({ m, r, t: 0 });
+  FX.sparks.emit(new V3(p.x, gy + 0.15, p.z), 26, r * 2.2, color, 0.45, { flat: 1, up: 2 });
+  FX.dust.emit(new V3(p.x, gy + 0.1, p.z), 12, r * 1.2, 0xb8a37c, 0.5, { flat: 1, grav: -1, up: 0.5 });
 }
 export function updateFx(dt) {
   FX.sparks.update(dt); FX.dust.update(dt); FX.blood.update(dt); FX.gouts.update(dt); FX.stains.update(dt);

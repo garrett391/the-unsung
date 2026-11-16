@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { G } from '../core/game.js';
-import { PI, wrap, damp, rnd, sstep } from '../core/util.js';
+import { PI, wrap, damp, rnd, sstep, lerp } from '../core/util.js';
 import { clampCamera } from './level.js';
 
 // Third-person camera: free orbit that drifts behind the runner, a lock-on
@@ -29,15 +29,15 @@ export function updateCamera(dt, snap) {
   if (p.lock) {
     const dx = p.lock.pos.x - p.pos.x, dz = p.lock.pos.z - p.pos.z, d = Math.hypot(dx, dz);
     const want = Math.atan2(-dx, -dz) + 0.36 * (portrait ? 0.5 : 1); cam.yaw += wrap(want - cam.yaw) * (1 - Math.exp(-(d < 1.5 ? 1.5 : 5) * dt));
-    cam.pitch = damp(cam.pitch, 0.32, 4, dt); dist += Math.min(3.5, d * 0.42); cLook.set(p.pos.x + dx * 0.4, 1.25, p.pos.z + dz * 0.4);
+    cam.pitch = damp(cam.pitch, 0.32, 4, dt); dist += Math.min(3.5, d * 0.42); cLook.set(p.pos.x + dx * 0.4, 1.25 + lerp(p.pos.y, p.lock.pos.y, 0.4), p.pos.z + dz * 0.4);
   } else {
     const sp = Math.hypot(p.vel.x, p.vel.z);
     if (sp > 1.5 && G.time - cam.manualT > 1.1 && p.state === 'loco') { const df = wrap(Math.atan2(p.vel.x, p.vel.z) + PI - cam.yaw); if (Math.abs(df) < 2.5) cam.yaw += df * (1 - Math.exp(-1.5 * dt)); }
-    cLook.set(p.pos.x, 1.3, p.pos.z);
+    cLook.set(p.pos.x, 1.3 + p.pos.y, p.pos.z);
   }
   dist *= cam.zoom; const cp = Math.cos(cam.pitch);
   cDes.set(cLook.x + Math.sin(cam.yaw) * cp * dist, cLook.y + Math.sin(cam.pitch) * dist, cLook.z + Math.cos(cam.yaw) * cp * dist);
   clampCamera(cDes, cLook);
   cam.pos.lerp(cDes, snap ? 1 : 1 - Math.exp(-11 * dt)); cam.look.lerp(cLook, snap ? 1 : 1 - Math.exp(-13 * dt));
-  camera.position.set(cam.pos.x + rnd(-sh, sh), Math.max(0.35, cam.pos.y + rnd(-sh, sh)), cam.pos.z + rnd(-sh, sh)); camera.lookAt(cam.look);
+  camera.position.set(cam.pos.x + rnd(-sh, sh), Math.max(0.35 + (G.level ? G.level.height(cam.pos.x, cam.pos.z) : 0), cam.pos.y + rnd(-sh, sh)), cam.pos.z + rnd(-sh, sh)); camera.lookAt(cam.look);
 }

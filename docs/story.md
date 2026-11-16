@@ -66,6 +66,7 @@ Vessa, the Witches' Hand, is the face of it: a recurring enemy commander who spe
 - He serves on the frontier with the Third Company and rises to captain because he is the one who keeps people alive.
 - Corin is assigned to him, a reluctant pairing at first.
 - Missions: patrols and skirmishes, then the raids start getting organised.
+- **The patrol and the beacon (playable; added Nov 2026, first draft, for the owner to correct).** Before he is a captain: a soldier of the line in the company's steel, nine days on the roll. From the well picket at the edge of the dunes the sergeant sends him north with Hale and Brann (the two he was made to fight at the muster) to find a patrol that went up to the beacon and went quiet. Raiders lie under the sand on the rise and in the dry riverbed and get up out of it. Under the beacon's rock the patrol is pinned: a wounded corporal, two soldiers. The stair is broken; one of them, Wren, can climb it if somebody keeps the raiders off the rock. He holds it until the beacon burns and the company's horn answers. Nobody of theirs dies. Asked what he is called, he does not say; the corporal means to report that it was the Third Company. (Departures and inventions to check: the names Hale, Brann and Wren; the corporal; that the sergeant from the muster is the picket's sergeant; raiders hiding under sand; that he keeps a closed helm on in these years so his face stays unseen.)
 - **The first night at the ruins (the current playable slice)** belongs here: the spar, the raid, holding the Narrows while the wounded reach the sanctum, Vessa. Everyone lives. It is the version of the Narrows where the choice costs nothing.
 - Quiet scenes in camp between missions: short, a little awkward, mostly Corin pulling him into ordinary life.
 
@@ -114,5 +115,5 @@ Vessa, the Witches' Hand, is the face of it: a recurring enemy commander who spe
 - Does the Usurper ever say the hero's name, and does the player ever hear it?
 - What does the Usurper want, and where did he come from? Not yet written. (Why he is sealed and not killed is settled: see The Usurper and the Glass Door.)
 - When does the captain understand what closing the Door cost? He doesn't know in the prologue.
-- How many missions per act, and which ones introduce new enemy types (more shield-bearers, allied soldiers who fight).
+- How many missions per act, and which ones introduce new enemy types (more shield-bearers). Allied soldiers who fight are in, from the patrol on; whether one of them can be lost, and what that costs, is not decided (as built, a soldier beaten down goes to one knee and gets up after the fight).
 - The quiet camp scenes: how much is playable and how much is dialogue.

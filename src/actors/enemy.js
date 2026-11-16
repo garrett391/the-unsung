@@ -12,7 +12,7 @@ import { pickLock } from './player.js';
 import { steer, route } from '../world/level.js';
 
 const tmpA = new T.Vector3(), tmpB = new T.Vector3();
-export const attackers = () => G.enemies.reduce((n, e) => n + (e.state === 'wind' || e.state === 'strike' ? 1 : 0), 0);
+export const attackers = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && !e.marked() ? 1 : 0), 0); // those swinging at him (one set on a soldier is not his to worry about)
 
 export class Enemy extends Char {
   constructor(kind, x, z, o = {}) {
@@ -28,6 +28,9 @@ export class Enemy extends Char {
     this.animate(0, G.time); // place the figure now: it is created after this frame's animation pass, and would be drawn once at the world origin
   }
   set(s) { this.state = s; this.st = 0; }
+  // `mark`: one of the soldiers beside him (an Ally) that this one fights instead of the captain, for as long as that soldier is on his feet
+  // and the captain has not cut it: then it turns on him.
+  marked() { const m = this.mark; return m && !m.out && m.root.visible ? m : null; }
   // A beaten fighter, laid over every pose: bent over a wound with the off hand pressed to it,
   // head hanging, knees soft, the whole trunk heaving with each breath. It eases off while he swings.
   hurtLayer(src) {
@@ -51,11 +54,11 @@ export class Enemy extends Char {
   // Returns 'block' | 'hit' | 'kill'.
   takeHit(a, from, dmg) {
     const t_counter = (e) => e.type.counter && Math.random() < e.type.counter;
-    const dir = tmpA.subVectors(this.pos, from.pos).setY(0).normalize(), hp = new T.Vector3().copy(this.pos).addScaledVector(dir, -0.4).setY(1.1 * this.scale + this.yoff);
+    const dir = tmpA.subVectors(this.pos, from.pos).setY(0).normalize(), hp = new T.Vector3().copy(this.pos).addScaledVector(dir, -0.4).setY(this.pos.y + 1.1 * this.scale + this.yoff);
     const facing = Math.abs(wrap(Math.atan2(-dir.x, -dir.z) - this.face)) < 1.25;
     if (this.type.shield && facing && !this.open && (this.state === 'chase' || this.state === 'circle' || this.state === 'wind') && !a.crit) {
       if (a.poise < 3) {
-        this.gp--; SFX.clang(); FX.sparks.emit(hp, 9, 4, 0xffe0a0, 0.25, { boost: 1.5 }); G.hitstop = Math.max(G.hitstop, 0.05); G.shake = Math.max(G.shake, 0.1);
+        this.gp--; SFX.clang(); FX.sparks.emit(hp, 9, 4, 0xffe0a0, 0.25, { boost: 1.5 }); if (!a.quiet) { G.hitstop = Math.max(G.hitstop, 0.05); G.shake = Math.max(G.shake, 0.1); }
         this.vel.addScaledVector(dir, 3); this.recoil = 1;
         if (t_counter(this)) this.cd = Math.min(this.cd, 0.15); // counter: a foe who answers a blow on his shield at once
         if (this.gp <= 0) { this.gp = 3; this.stagDur = 1.3; this.open = true; this.set('stagger'); this.play(CL.stun, 0.08); }
@@ -63,10 +66,11 @@ export class Enemy extends Char {
       }
       this.gp = 3; this.stagDur = 1.4; this.open = true; SFX.clang(); // guard broken: this hit lands
     }
+    if (from === G.player) this.mark = null;
     const wasOpen = this.open; dmg *= wasOpen && !a.crit ? 1.5 : 1; this.hp -= dmg; if (this.spare && this.hp < 1) this.hp = 1; this.flash = 1;
     (a.heavy || a.crit ? SFX.big : SFX.hit)();
     FX.sparks.emit(hp, a.crit ? 34 : a.heavy ? 20 : 11, a.crit ? 8 : 5.5, a.crit ? 0xffe890 : 0xfff4d0, 0.32, { vx: dir.x * 3, vz: dir.z * 3, up: 1, boost: 1.6 });
-    G.hitstop = Math.max(G.hitstop, a.stop || 0.05); G.shake = Math.max(G.shake, a.crit ? 0.5 : a.heavy ? 0.35 : 0.16); if (a.crit) G.slow = 0.4;
+    if (!a.quiet) { G.hitstop = Math.max(G.hitstop, a.stop || 0.05); G.shake = Math.max(G.shake, a.crit ? 0.5 : a.heavy ? 0.35 : 0.16); } if (a.crit) G.slow = 0.4; // quiet: a soldier's blow beside him, which must not stop the game's clock or shake his camera
     this.vel.copy(dir).multiplyScalar((a.knock || 2) / (this.scale * this.scale));
     if (!G.blunt) blood(hp, dir, a.crit ? 3 : a.heavy ? 2 : 1, this.hp <= 0, from);
     if (this.hp <= 0) { this.die(); if (a.launch) { this.yv = a.launch * 0.7; this.yoff = 0.01; } return 'kill'; }
@@ -91,14 +95,14 @@ export class Enemy extends Char {
   }
   startMove(m, blend) {
     this.mv = m; this.set('wind'); this.hitDone = false; this.slam = false; this.play(m.clip, blend || 0.14); SFX.tele();
-    if (m.rush) { this.flash = 0.8; FX.sparks.emit(tmpB.copy(this.pos).addScaledVector(this.fwd(tmpA), 0.5).setY(1.2 * this.scale), 18, 3, 0xff6a3c, 0.5, { grav: 0, boost: 2 }); G.emit('rush', { enemy: this }); } // a rush is its own warning: red, off the shield
+    if (m.rush) { this.flash = 0.8; FX.sparks.emit(tmpB.copy(this.pos).addScaledVector(this.fwd(tmpA), 0.5).setY(this.pos.y + 1.2 * this.scale), 18, 3, 0xff6a3c, 0.5, { grav: 0, boost: 2 }); G.emit('rush', { enemy: this }); } // a rush is its own warning: red, off the shield
     else FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 8, 2, this.type.tele || this.type.look.eye, 0.4, { grav: 0, boost: 2 });
   }
   update(dt) {
-    this.st += dt; const t = this.type, P_ = G.player, m = this.mv;
+    this.st += dt; const t = this.type, mk = this.marked(), P_ = mk || G.player, m = this.mv;
     const dx = P_.pos.x - this.pos.x, dz = P_.pos.z - this.pos.z, d = Math.hypot(dx, dz) || 0.001, ang = Math.atan2(dx, dz), f = this.fwd(tmpA);
     const brake = (k) => this.vel.multiplyScalar(Math.exp(-k * dt)); let eye = 1;
-    if (t.hurt && this.state !== 'down' && Math.random() < dt * 2.2) drip(tmpB.set(this.pos.x + rnd(-0.12, 0.12), 1.1 * this.scale, this.pos.z + rnd(-0.12, 0.12)));
+    if (t.hurt && this.state !== 'down' && Math.random() < dt * 2.2) drip(tmpB.set(this.pos.x + rnd(-0.12, 0.12), this.pos.y + 1.1 * this.scale, this.pos.z + rnd(-0.12, 0.12)));
     const speed = t.speed + (this.phase2 ? 0.8 : 0);
     if ((G.freezeAI || this.hold) && ['chase', 'circle', 'wind', 'strike', 'recover'].includes(this.state)) // hold: a stage script keeps this one out of the fight for now
       { brake(8); this.trailOn = false; this.setLoco(4, dt); return; }
@@ -121,7 +125,7 @@ export class Enemy extends Char {
         this.vel.x = damp(this.vel.x, nx * rad + nz * tan, 6, dt); this.vel.z = damp(this.vel.z, nz * rad - nx * tan, 6, dt);
         if (Math.random() < dt * 0.25) this.dir *= -1; if (d > 6.5 && !t.boss) this.set('chase'); this.cd -= dt;
         const reach = t.boss ? 12 : 4.4 * this.scale;
-        if (this.cd <= 0 && d < reach && !P_.dead && attackers() < G.maxAtk) this.startMove(this.pickMove(d));
+        if (this.cd <= 0 && d < reach && !P_.dead && (mk || attackers() < G.maxAtk)) this.startMove(this.pickMove(d));
         break; }
       case 'wind': {
         this.turnTo(ang, this.st < m.wind * 0.72 ? 6 : 0.8, dt); eye = 2.6;
@@ -145,7 +149,7 @@ export class Enemy extends Char {
       case 'recover': brake(8); if (this.st >= m.rec) { this.set('circle'); this.stop(0.2); this.cd = rnd(0.9, 2.3) * (this.phase2 ? 0.45 : t.boss ? 0.7 : 1) * (t.press || 1); } break; // press: a foe who gives less time between attacks
       case 'stagger': brake(6); if (this.st >= this.stagDur) { this.open = false; this.set('circle'); this.stop(0.2); this.cd = rnd(0.5, 1.4); } break;
       case 'parried':
-        brake(8); if (Math.random() < 0.3) FX.sparks.emit(tmpB.copy(this.pos).setY(2 * this.scale), 1, 0.8, 0xfff0b0, 0.4, { grav: -1 });
+        brake(8); if (Math.random() < 0.3) FX.sparks.emit(tmpB.copy(this.pos).setY(this.pos.y + 2 * this.scale), 1, 0.8, 0xfff0b0, 0.4, { grav: -1 });
         if (this.st >= (t.boss ? 1.5 : 1.9)) { this.open = false; this.set('circle'); this.stop(0.25); this.cd = rnd(0.6, 1.4); } break;
       case 'air':
         this.yv -= 20 * dt; this.yoff += this.yv * dt; this.vel.multiplyScalar(Math.exp(-1 * dt));
@@ -158,7 +162,7 @@ export class Enemy extends Char {
       case 'dead':
         brake(5); eye = Math.max(0, 1 - this.st);
         if (this.yoff > 0 || this.yv > 0) { this.yv -= 20 * dt; this.yoff = Math.max(0, this.yoff + this.yv * dt); }
-        else if (this.st > 1.0) { this.yoff -= dt * 0.9; if (Math.random() < 0.6) FX.sparks.emit(tmpB.copy(this.pos).setY(0.2), 1, 1, t.look.eye, 0.7, { spread: 0.5, grav: -2.5 }); }
+        else if (this.st > 1.0) { this.yoff -= dt * 0.9; if (Math.random() < 0.6) FX.sparks.emit(tmpB.copy(this.pos).setY(this.pos.y + 0.2), 1, 1, t.look.eye, 0.7, { spread: 0.5, grav: -2.5 }); }
         if (this.st > 2.3) this.gone = true; break;
     }
     if (this.open) eye = 0.3 + 0.3 * Math.sin(G.time * 20);

@@ -7,6 +7,7 @@ import { cam } from '../world/camera.js';
 import { MOUTH, RING, WAY } from '../world/level.js';
 import { HALLS } from '../world/halls.js';
 import { FORE } from '../world/forecourt.js';
+import { FRONT } from '../world/front.js';
 import { PZ, C, P as pose, eClip } from '../actors/anim.js';
 import { FX, shock, clearBlood, blood } from '../gfx/fx.js';
 import { coarse, opts } from '../core/input.js';
@@ -35,7 +36,8 @@ async function glance(d, x, z, o = {}) {
   const P = G.player, was = P.controlEnabled, dx = P.pos.x - x, dz = P.pos.z - z, l = Math.hypot(dx, dz) || 1, back = Math.min(o.back || 9, l * 0.8);
   const p0 = cam.pos.toArray(), l0 = cam.look.toArray();
   P.controlEnabled = false; P.inv = Math.max(P.inv, 3.8); G.cinematic = true; ui.cinematic(true);
-  cam.shot(o.from || [x + (dx / l) * back - (dz / l) * 2.2, o.h || 3.2, z + (dz / l) * back + (dx / l) * 2.2], [x, o.y || 1.3, z], 0.9); // o.from: a fixed camera position, where the usual one could land inside something
+  const cx = x + (dx / l) * back - (dz / l) * 2.2, cz = z + (dz / l) * back + (dx / l) * 2.2, gh = G.level.height; // (heights are above the ground there: it is not flat everywhere)
+  cam.shot(o.from || [cx, (o.h || 3.2) + Math.max(gh(cx, cz), gh(x, z)), cz], [x, (o.y || 1.3) + gh(x, z), z], 0.9); // o.from: a fixed camera position, where the usual one could land inside something
   await d.wait(o.hold || 1.9);
   cam.shot(p0, l0, 0.6); await d.wait(0.6);
   cam.release(); G.cinematic = false; ui.cinematic(false); P.controlEnabled = was; P.buf.a = '';
@@ -276,8 +278,14 @@ stage('door', {
     await d.wait(2.4);
     // He walks away, seen from the floor behind the body.
     const tz = Math.min(P.pos.z + 4.2, -14.3), tx = hall(U.pos.z > P.pos.z + 0.3 ? U.pos.x + (P.pos.x >= U.pos.x ? 1.5 : -1.5) : P.pos.x * 0.5);
-    const floorCam = [hall(U.pos.x + (tx >= U.pos.x ? -0.9 : 0.9)), 0.42, deep(U.pos.z - 2.5)], floorLook = [(U.pos.x + tx) / 2, 0.95, U.pos.z + 2.2];
-    cam.shot(floorCam, floorLook); cam.shot([hall(U.pos.x + (tx >= U.pos.x ? -0.7 : 0.7)), 0.4, deep(U.pos.z - 2.2)], [(U.pos.x + tx) / 2, 0.9, U.pos.z + 2.6], 5);
+    // (Owner, Nov 2026: the camera often sat at the body's feet, looking up between its legs.) He fell forward, along the way he
+    // faced: the camera goes down on the floor at his flank, never the feet end, on whichever side leaves the captain walking away beyond him.
+    const bf = [Math.sin(U.face), Math.cos(U.face)], body = [U.pos.x + bf[0] * 0.9 * U.scale, U.pos.z + bf[1] * 0.9 * U.scale]; let floorCam = null, fs = -1e9;
+    for (let k = 0; k < 24; k++) { const a = (k / 24) * PI * 2, x = hall(body[0] + Math.sin(a) * 2.5), z = deep(body[1] + Math.cos(a) * 2.5), dx = x - body[0], dz = z - body[1], l = Math.hypot(dx, dz); if (l < 1.5) continue;
+      const along = (dx * bf[0] + dz * bf[1]) / l, sc = Math.min(-dz / l, 0.5) - Math.max(0, -along - 0.3) * 3 - Math.max(0, along - 0.6) + l * 0.1 - (Math.hypot(x - tx, z - tz) < 2 ? 2 : 0); if (sc > fs) { fs = sc; floorCam = [x, 0.42, z]; } }
+    if (!floorCam) floorCam = [hall(body[0] + 2), 0.42, deep(body[1])];
+    const floorLook = [lerp(body[0], tx, 0.4), 0.95, lerp(body[1], tz, 0.4)];
+    cam.shot(floorCam, floorLook); cam.shot([lerp(floorCam[0], body[0], 0.1), 0.4, lerp(floorCam[2], body[1], 0.1)], [lerp(body[0], tx, 0.5), 0.9, lerp(body[1], tz, 0.5)], 5);
     P.state = 'loco'; go(tx, tz, 1.3, 6).catch(() => {});
     await d.wait(2.7); // a few steps
     // The vault shakes: a tremor more than a jolt (owner: keep the camera steadier). He stops and
@@ -639,7 +647,7 @@ stage('muster', {
     kneelDown(S);
     await d.wait(1.2);
     await d.talk([['Sergeant', 'On my knees is not the same as yielding.'], ['Sergeant', 'Hale. Brann. In the ring.']]);
-    const pair = [co[0], co[2]], spots = [wy(-1.4, 0.2), wy(4.4, 0.2)], home = pair.map((e) => [e.pos.x, e.pos.z]);
+    const pair = [co[0], co[2]], spots = [wy(4.4, 0.2), wy(-1.4, 0.2)], /* each to the mark on his own side: they used to cross in front of the sergeant and bump */ home = pair.map((e) => [e.pos.x, e.pos.z]);
     pair.forEach((e, i) => e.go(...spots[i], 2.2, PI));
     cam.shot(wy3(-5.5, 3.2, -9.5), wy3(1.5, 1.2, 0.5)); cam.shot(wy3(-4.2, 2.6, -8.6), wy3(1.5, 1.2, 0.5), 5);
     await d.wait(2.2);
@@ -689,14 +697,157 @@ stage('muster', {
   },
 });
 
+// Act I opens on the frontier (owner, Nov 2026): he is a soldier of the line, before the captain's red, and the country is
+// open: the site 'front' (world/front.js), where the ground has height and there are no walls. Two chapters on it.
+// 'patrol': from the well picket, over the rise and up the dry riverbed, with two of the line (Hale and Brann, the two the
+// sergeant called into the ring at the muster), who fight beside him (Ally; G.enlist). Raiders here lie under the sand and get
+// up out of it (`rise`), so nothing has to come in by a gate. 'beacon': the patrol that went quiet is pinned under the
+// beacon's rock; he gets to them, and holds the rock while one of them climbs to light it. All lines are drafts.
+const fr = (x, z) => [FRONT.x + x, FRONT.z + z], fr3 = (x, y, z) => [FRONT.x + x, y + G.level.height(FRONT.x + x, FRONT.z + z), FRONT.z + z]; // (fr3: y is above the ground at that point)
+const LINE = { ...LOOKS.soldier, eye: undefined };
+const file = (at) => [ // the two who go with him: each has his own place behind the captain's shoulder
+  G.enlist({ soldier: true, name: 'HALE', look: { ...LINE, hair: 0x4a3424 }, scale: 1.0, slot: [1.9, 1.3], at: at[0] }),
+  G.enlist({ soldier: true, name: 'BRANN', look: { ...LINE, skin: 0xb98a66, hair: 0x1e1814 }, scale: 0.96, slot: [-1.9, 1.6], at: at[1] })];
+// Raiders getting up out of the sand at these points; `marks` sets some of them on the soldiers instead of on him.
+const ambush = (list, marks = []) => list.map(([kind, x, z], i) => { const e = G.spawn(kind, ...fr(x, z), { rise: true }); if (marks[i]) e.mark = marks[i]; return e; });
+const rallyAll = () => { for (const a of G.allies) a.rally(); };
+stage('patrol', {
+  checkpoint: true,
+  async run(d) {
+    ui.fade(1, 0); G.resetWorld({ site: 'front', look: 'ranker', player: [...fr(1.2, -43.2), 0.5], corin: null }); G.carry = null;
+    const P = G.player, L = G.level; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 2; preloadMusic('flagstones', 'granite');
+    if (!G.seenFront) { G.seenFront = true; await d.chronicle('Act I: The Western Watch', [
+      'The Third Company held the last wells before the open dunes. Nobody had ever asked to be sent there.',
+      "They gave him a soldier's steel and a place in the line. He kept his helm on, and did what he was told.",
+      'It was a season of small things. A cut rope at a well. A herd run off in the night. A picket that came back one short.',
+      '<em>The well at the edge of the dunes.</em>',
+    ], TAP); ui.chronClose(); }
+    actOne(); forgetMusic();
+    let skyTo = 0, skyV = 0; const sky = d.every((dt) => { if (skyV < skyTo) L.setDawn((skyV = Math.min(skyTo, skyV + dt / 20))); }); // the morning wears on as they go (stopped at the end: a tween would run on into the next chapter and its sky)
+    const sgt = new Extra(TYPES.sergeant.look, ...fr(3.6, -39.4), 0, { scale: TYPES.sergeant.scale }); sgt.watch = P;
+    { const e = new Extra({ ...LINE, shield: undefined, weapon: 'none' }, ...fr(7.6, -39.6), 0, { scale: 0.98 }); e.face = Math.atan2(6.4 - 7.6, -38.2 + 39.6); } // one of the picket, at the fire
+    const [hale, brann] = file([[...fr(-0.6, -40.6), 1.9], [...fr(0.4, -38.6), 2.3]]);
+    cam.shot(fr3(-6.5, 2.6, -48.5), fr3(2.5, 1.3, -40)); cam.shot(fr3(-4.5, 2.0, -46.5), fr3(2.8, 1.3, -40), 8); ui.fade(0, 2.4);
+    await d.wait(2.2); await turnTo(d, P, P.angleTo(sgt), 0.5);
+    await d.talk([
+      ['Sergeant', 'The beacon on the north rock should have burned at dawn. It did not.'],
+      ['Sergeant', 'Three of ours went up to it yesterday. Hale, Brann: go and find out why they are quiet.'],
+      ['Sergeant', 'And take the yard hand with you.'],
+    ]);
+    cam.shot(fr3(2.4, 1.6, -41.6), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z]); cam.shot(fr3(2.2, 1.6, -41.9), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z], 5);
+    await d.talk([['Hale', 'Him, Sergeant? He has been on the roll nine days.'], ['Sergeant', 'And had the pair of you on your knees on the first of them. Go.']]);
+    G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = 0; cam.behind(); P.controlEnabled = true; G.freezeAI = false;
+    ui.objective('Go north, over the rise'); L.marker(...fr(8, -18));
+    // The rise. They are under the sand along its east end, and get up as he comes over the top.
+    await d.until(() => P.pos.z > FRONT.z - 21.5); L.marker(null);
+    const w1 = ambush([['raider', 17.5, -17], ['raider', 21, -22.5], ['raider', 24.5, -17.5], ['runner', 28, -21]], [null, hale, brann]);
+    G.freezeAI = true; actOne(true); SFX.tele(); ui.say('Brann', 'The sand! They are under the sand!', 3.5);
+    await glance(d, ...fr(21.5, -19.5), { hold: 1.7 }); G.freezeAI = false; for (const e of w1) e.cd = rnd(0.8, 2);
+    ui.objective('Cut them down');
+    await d.until(() => live() === 0); await d.wait(0.9); rallyAll();
+    skyTo = 0.5;
+    ui.say('Hale', 'Waiting on the rise. For us, or for anyone who came?', 4.5);
+    ui.objective('Follow the dry riverbed north'); L.marker(...fr(-9, 4));
+    // The riverbed. Both ends at once, and out of the pocket on its west bank.
+    await d.until(() => P.pos.z > FRONT.z + 5.5 && P.pos.x < FRONT.x - 5); L.marker(null);
+    const w2 = ambush([['raider', -16.5, 19], ['bulwark', -14.5, 23.5], ['runner', -3, -1.5], ['runner', -24.5, 10], ['raider', -27, 8]], [brann, hale]);
+    G.freezeAI = true; SFX.tele(); ui.say('Hale', 'Both ends! Backs together!', 3.5);
+    await glance(d, ...fr(-15.5, 21), { hold: 1.7 }); G.freezeAI = false; for (const e of w2) e.cd = rnd(0.8, 2.2);
+    ui.objective('Cut your way out of the riverbed');
+    await d.until(() => live() === 0); await d.wait(0.9); rallyAll();
+    skyTo = 1;
+    ui.say('Brann', 'That is twice he has been where the blade was going. ...I am walking behind him.', 5);
+    ui.objective('Go on, to the beacon'); L.marker(...fr(-6, 31));
+    await d.until(() => P.pos.z > FRONT.z + 29); L.marker(null);
+    sky(); G.carry = { hale, brann, run: G.runId };
+  },
+});
+
+stage('beacon', {
+  checkpoint: true,
+  async run(d) {
+    const P = G.player, L = G.level; let hale, brann;
+    if (G.carry && G.carry.run === G.runId && L.site === 'front') { ({ hale, brann } = G.carry); L.setSite('front', { sky: ['day', 'dusk'] }); L.setDawn(0); } // straight on from the riverbed
+    else { ui.fade(1, 0); G.resetWorld({ site: 'front', sky: ['day', 'dusk'], look: 'ranker', player: [...fr(-8.5, 29.5), 0.7], corin: null }); [hale, brann] = file([[...fr(-10.5, 28), 0.7], [...fr(-9, 27), 0.7]]); cam.behind(); ui.fade(0, 0.8); }
+    G.carry = null; G.maxAtk = 2; actOne(true); ui.objective(''); ui.hint('');
+    // Under the rock: what is left of the patrol. Two on their feet with their backs to it, the corporal down, one more who can climb.
+    const foot = fr(18.4, 42.8), post = (name, x, z, f, o) => { const a = G.enlist({ soldier: true, name, look: { ...LINE, ...o }, scale: 0.98, at: [...fr(x, z), f] }); a.post = [...fr(x, z), f]; a.hp = a.maxHp = 150; return a; };
+    const p1 = post('SOLDIER', 15.4, 41.6, -2.2, { hair: 0x6a4a2a }), wren = post('WREN', 19.6, 40.2, 2.8, { skin: 0xc4926c, hair: 0x2a1c14 });
+    const corp = new Extra({ ...LINE, weapon: 'none', shield: undefined, hair: 0x8a8680 }, ...fr(18.2, 44.0), -2.6); corp.play(C(0.1, [0, PZ.sit]), 0.01);
+    G.spawn('raider', ...fr(11.5, 39.5)).mark = p1; G.spawn('raider', ...fr(14, 36.5)).mark = p1; G.spawn('raider', ...fr(21, 35.5)).mark = wren; G.spawn('bulwark', ...fr(24, 38.5)).mark = wren; G.spawn('runner', ...fr(9, 44));
+    await settled(d, 1); ui.say('Hale', 'There, under the rock. They are still on their feet.', 4);
+    await glance(d, ...foot, { from: fr3(1.5, 2.6, 34.5), y: 1.6, hold: 2.4 });
+    ui.objective('Reach the patrol under the beacon');
+    await d.until(() => live() === 0); await d.wait(0.8); rallyAll(); await settled(d);
+    // The corporal. They cut the stair; she could not get anyone up to light it.
+    P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); G.freezeAI = true; ui.objective('');
+    ui.fade(1, 0.5); await d.wait(0.6); // (wherever the fight ended, they would be standing in the shot)
+    P.place(...fr(16.4, 42.0), 0); P.face = P.angleTo(corp); P.state = 'loco'; P.stop(0.1);
+    for (const [a, x, z] of [[hale, 12.4, 40.0], [brann, 15.0, 38.6], [p1, 16.8, 46.6], [wren, 20.4, 42.4]]) { a.rally(); a.place(...fr(x, z), 0); a.face = a.angleTo(corp); a.post = [...fr(x, z), a.face]; a.set('loco'); a.stop(0.1); }
+    cam.shot(fr3(12.6, 1.7, 44.4), fr3(18.0, 0.9, 43.4)); cam.shot(fr3(13.2, 1.5, 44.2), fr3(18.0, 0.9, 43.4), 9); ui.fade(0, 0.7); await d.wait(0.9);
+    await d.talk([
+      ['Corporal', 'The sergeant sent three. I asked for thirty.'],
+      ['Corporal', 'They broke the stair the first night. Nobody can get up to light it, and they will not let us walk out.'],
+      ['Wren', 'I can climb it, Corporal. I said so yesterday.'],
+      ['Corporal', 'Yesterday there was nobody to keep them off you while you did.'],
+    ]);
+    cam.shot(fr3(18.5, 1.0, 44.9), [P.pos.x, P.pos.y + 1.45, P.pos.z]); cam.shot(fr3(18.4, 1.05, 44.6), [P.pos.x, P.pos.y + 1.5, P.pos.z], 5); // from beside her, up at him
+    await d.talk([['Corporal', 'You. The quiet one. Can you hold this rock until she has it burning?']]);
+    await d.wait(0.9);
+    await d.talk([['Corporal', '...I will take that for a yes. Go, Wren.']]);
+    // She goes round the rock to climb it (an Extra from here: she is out of the fight).
+    { const i = G.allies.indexOf(wren); G.allies.splice(i, 1); wren.dispose(); const w = new Extra({ ...LINE, skin: 0xc4926c, hair: 0x2a1c14, weapon: 'none', shield: undefined }, wren.pos.x, wren.pos.z, wren.face, { scale: 0.98 }); w.go(...fr(20.6, 45.4), 3.4);
+      d.until(() => w.fixed).then(() => w.setVisible(false), () => {}); }
+    cam.shot(fr3(12, 2.4, 36), [L.front.beacon[0], L.front.top + 6, L.front.beacon[1]], 2.5); await d.wait(2.6);
+    G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; G.freezeAI = false; hale.post = [...fr(13.6, 43.6), -1.6]; brann.post = [...fr(21.4, 39.4), 2.4];
+    // The hold: about seventy seconds of it, as the light goes. They come out of the sand north and east of the basin, more of
+    // them as it goes on, and some go for the soldiers. Nothing counts while he is away from the rock.
+    const H = (G.hold = { progress: 0, far: false }); ui.holdBar(true); let spawnT = 1.2, brute = false; const SECS = 70;
+    const from = () => (Math.random() < 0.5 ? [rnd(3, 14), rnd(60, 72)] : [rnd(34, 45), rnd(33, 41)]);
+    const stop = d.every((dt) => {
+      const far = Math.hypot(P.pos.x - foot[0], P.pos.z - foot[1]) > 17;
+      if (!far && !P.dead) H.progress = Math.min(1, H.progress + dt / SECS); L.setDawn(H.progress);
+      if (far !== H.far) { H.far = far; ui.hint(far ? 'Get back to the rock!' : ''); }
+      ui.objective('Hold the rock until the beacon is lit');
+      spawnT -= dt; const cap = 3 + Math.floor(H.progress * 3);
+      if (spawnT <= 0 && live() < cap && H.progress < 0.97) {
+        spawnT = lerp(4.2, 2.4, H.progress); const u = H.progress, r = Math.random();
+        const kind = u > 0.55 && !brute ? ((brute = true), 'brute') : u > 0.3 && r < 0.25 ? 'bulwark' : u > 0.12 && r < 0.55 ? 'runner' : 'raider';
+        const e = G.spawn(kind, ...fr(...from()), { rise: true }), up = G.allies.filter((a) => !a.out);
+        if (kind !== 'brute' && up.length && Math.random() < 0.45) e.mark = up[(Math.random() * up.length) | 0]; // some of them go for the line
+      }
+    });
+    await d.until(() => H.progress >= 1);
+    stop(); ui.holdBar(false); G.hold = null; ui.hint(''); ui.objective('');
+    // It burns. Out in the dunes they see it too, and break off; and from the south, the company's horn.
+    await settled(d, 1); P.controlEnabled = false; P.lock = null; P.calm = true; P.inv = 1e6; G.cinematic = true; ui.cinematic(true);
+    L.front.light(true); SFX.flame(); SFX.boom(); G.shake = 0.2; for (const e of G.enemies) e.flee(); actOne();
+    cam.shot(fr3(9, 1.6, 37), [L.front.beacon[0], L.front.top + 7, L.front.beacon[1]]); cam.shot(fr3(7, 1.5, 34.5), [L.front.beacon[0], L.front.top + 8, L.front.beacon[1]], 7);
+    await d.wait(3.4); SFX.horn(); await d.wait(2.4); rallyAll(); G.freezeAI = true;
+    ui.fade(1, 0.6); await d.wait(0.7);
+    P.place(...fr(16.4, 42.0), 0); P.face = P.angleTo(corp); P.state = 'loco'; P.stop(0.1);
+    for (const [a, x, z] of [[hale, 12.4, 40.0], [brann, 15.0, 38.6], [p1, 16.8, 46.6]]) { a.place(...fr(x, z), 0); a.face = a.angleTo(corp); a.post = [...fr(x, z), a.face]; a.set('loco'); a.stop(0.1); }
+    cam.shot(fr3(12.6, 1.7, 44.4), fr3(18.0, 1.4, 43.4)); cam.shot(fr3(13.2, 1.5, 44.2), fr3(18.0, 1.2, 43.4), 9); ui.fade(0, 0.8); await d.wait(1.0);
+    await d.talk([
+      ['Corporal', 'There is the horn. The company has seen it.'],
+      ['Corporal', 'Everyone under this rock is walking back. I did not have that an hour ago.'],
+      ['Hale', 'It was him, Corporal. We stood behind him and tried to keep up.'],
+      ['Corporal', 'I have eyes. What do they call you, soldier?'],
+    ]);
+    await d.wait(1.0);
+    await d.talk([['Brann', 'He does not say. The clerk wrote something down. None of us can read it.'], ['Corporal', 'Then I will tell the captain it was the Third Company, and he can sort out which of you.']]);
+    await d.wait(0.6); ui.fade(1, 1.8); await d.wait(2.0); P.inv = 0;
+  },
+});
+
 stage('intro', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); // behind a black screen: the camp, and the captain in his guard armour
     G.cinematic = true; ui.cinematic(true); cam.shot([7, 5, 27], [0, 1.6, 8]);
     G.player.controlEnabled = false; // nothing moves until the cards are read and Corin has spoken
-    await d.chronicle('Act I: The Western Watch', [
-      'He served on the frontier with the Third Company, and rose to captain, because he was the one who kept people alive.',
-      'They gave him a squire, Corin, who would not leave him alone.',
+    await d.chronicle('The Western Watch', [
+      'He stayed with the Third Company through that season and the ones after it. In time they gave him the captain\'s red, because he was the one who kept people alive.',
+      'They gave him a squire, too: Corin, who would not leave him alone.',
       'The raids out of the dunes had been scattered and easily driven off. Lately they came organised.',
       '<em>The first night at the ruins.</em>',
     ], TAP);

@@ -30,7 +30,7 @@ export class Char {
   dress(look) {
     const vis = this.root.visible; G.scene.remove(this.root); for (const m of this.rig.mats) m.dispose(); if (this.rig.skel) this.rig.skel.dispose();
     this.rig = build(look); this.root = this.rig.root; this.root.scale.setScalar(this.scale); this.root.visible = vis; G.scene.add(this.root);
-    this.bladeBase = this.rig.bladeMat.color.clone(); this._wet = this._fl = true; this.apply(G.time); this.root.position.set(this.pos.x, this.yoff, this.pos.z); this.root.rotation.y = this.face;
+    this.bladeBase = this.rig.bladeMat.color.clone(); this._wet = this._fl = true; this.apply(G.time); this.root.position.set(this.pos.x, this.pos.y + this.yoff, this.pos.z); this.root.rotation.y = this.face;
   }
   _snap() { for (let i = 0; i < PL; i++) { let v = this.cur[i]; if (i < NJ * 3) v = wrap(v); this.snap[i] = v; } this.blend = 0; }
   play(clip, blend, t0) { this._snap(); this.blendDur = blend == null ? clip.keys[0].t || 0.08 : blend; this.clip = clip; this.ct = t0 || 0; }
@@ -50,7 +50,8 @@ export class Char {
     this.strafe = sa; this.strafeS = damp(this.strafeS, f, 12, dt); this.phase += (sp * 1.72 * dt * bk * (this.gait || 1)) / this.scale; // gait > 1: more steps for the ground covered (a slow scripted walk, which otherwise glides)
   }
   animate(dt, time) {
-    this.root.position.set(this.pos.x, this.yoff, this.pos.z); this.root.rotation.y = this.face;
+    this.pos.y = G.level && G.level.ground ? G.level.ground(this.pos.x, this.pos.z) : 0; // pos.y is the ground under him: zero everywhere but in open country
+    this.root.position.set(this.pos.x, this.pos.y + this.yoff, this.pos.z); this.root.rotation.y = this.face;
     const n = this.trailOn && this.trail && this.clip ? 3 : 1, t0 = this.ct;
     this.blend = Math.min(1, this.blend + dt / this.blendDur); const w = sstep(this.blend);
     for (let k = 1; k <= n; k++) {
@@ -72,7 +73,8 @@ export class Char {
       if (this.wet > 0.25 && !this.dead && Math.random() < dt * this.wet * 5) drip(this.rig.wBase.getWorldPosition(tmpA).lerp(this.rig.wTip.getWorldPosition(tmpB), 0.3 + Math.random() * 0.7));
     }
     const ss = clamp(1 - this.yoff * 0.25, 0.3, 1) * this.scale;
-    this.shadow.position.set(this.pos.x, 0.045, this.pos.z); this.shadow.scale.setScalar(ss); this.shadow.visible = this.yoff > -0.5 && this.root.visible;
+    if (G.level) G.level.lay(this.shadow, this.pos.x, this.pos.z, 0.045); else this.shadow.position.set(this.pos.x, 0.045, this.pos.z); // flat on the ground, along its slope
+    this.shadow.scale.setScalar(ss); this.shadow.visible = this.yoff > -0.5 && this.root.visible;
   }
   apply(time) {
     const J = this.rig.J, c = this.layer ? this.layer(this.cur) : this.cur;
@@ -90,7 +92,7 @@ export class Char {
       if (long) { // and it is kept off the floor: a length that would dip under it is bent back to trail along it (higher when he is down, over his own legs)
         const ch = cp[0].parent, q = cp[0].position; ch.updateWorldMatrix(true, false);
         const e = ch.matrixWorld.elements, uy = e[5], uz = e[9], R = Math.hypot(uy, uz), ph = Math.atan2(uz, uy), L = 0.3;
-        const fl = (0.05 + 0.15 * clamp(-c[NJ * 3 + 1] / 0.4, 0, 1)) * this.scale;
+        const fl = (0.05 + 0.15 * clamp(-c[NJ * 3 + 1] / 0.4, 0, 1)) * this.scale + this.pos.y;
         let h = e[1] * q.x + uy * q.y + uz * q.z + e[13], a = 0;
         if (h > fl) for (let k = 0; k < cp.length; k++) {
           a += cp[k].rotation.x; let dy = -(Math.cos(a) * uy + Math.sin(a) * uz) * L;
