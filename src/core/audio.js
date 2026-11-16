@@ -55,10 +55,10 @@ function fadeOut(fade) { // returns when the track will be silent
   } catch (e) { /* ignore */ }
   return (quietAt = t + fade);
 }
-// playMusic('blade', { loop, fade: seconds to come in, cross: seconds for the old track to go out first, vol })
+// playMusic('blade', { loop, fade: seconds to come in, cross: seconds for the old track to go out first, over: overlap the two instead, vol })
 export function playMusic(name, o = {}) {
   makeContext(); if (!AC || (want && want.name === name)) return;
-  const at = fadeOut(o.cross == null ? 2 : o.cross);
+  const q = fadeOut(o.cross == null ? 2 : o.cross), at = o.over ? 0 : q; // over: the new track comes in while the old goes out (a true crossfade, no gap)
   want = { name, at, loop: o.loop !== false, fade: o.fade == null ? 3 : o.fade, vol: o.vol == null ? 1 : o.vol };
   AC.removeEventListener('statechange', startMusic); AC.addEventListener('statechange', startMusic);
   loadTrack(name).then(startMusic);

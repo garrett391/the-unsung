@@ -29,7 +29,7 @@ const breach = () => [rnd(-2.6, 2.6), rnd(29, 36)]; // out on the raiders' road,
 const east = () => [rnd(22, 26), rnd(-4, -2)];
 // Act I's music ("Beneath the Flagstones"): whatever is playing fades out, then it fades in and loops
 // through the night. Every Act I stage asks for it, so a retry or CONTINUE has it too; asking while it plays does nothing.
-const actOne = (fight) => playMusic(fight ? 'granite' : 'flagstones', { cross: 3, fade: 4 }); // the camp's music, or (fight) the night's fighting: from the first raiders until Vessa is driven off
+const actOne = (fight) => playMusic(fight ? 'granite' : 'flagstones', { cross: 3, fade: 4, over: true }); // the camp's music, or (fight) the night's fighting: from the first raiders until Vessa is driven off
 // Turn the camera to something the player needs to know about (a wave coming in, where to go),
 // hold on it for a moment, then hand it back. The captain can't act or be hurt meanwhile.
 async function glance(d, x, z, o = {}) {
@@ -714,7 +714,7 @@ const rallyAll = () => { for (const a of G.allies) a.rally(); };
 // The first javelin on the frontier: one of the line shouts it (once, unless the chapter is picked again). Returns the unsubscribe.
 const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.seenJav = true; ui.say(who, 'Javelins! Shields up, or get out of the way!', 3.5); } });
 stage('patrol', {
-  checkpoint: true,
+  checkpoint: true, cards: true, // it opens on the Act I cards: main.js leaves the music playing under them
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'front', look: 'ranker', player: [...fr(1.2, -43.2), 0.5], corin: null }); G.carry = null;
     const P = G.player, L = G.level; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 2; preloadMusic('flagstones', 'granite');

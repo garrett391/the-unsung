@@ -121,7 +121,7 @@ const help = rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('') + (coa
 $('thelp').innerHTML = $('phelp').innerHTML = help;
 $('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
 function begin(from = 0) {
-  if (G.running) return; initAudio(); if (from) stopMusic(4); // a new game keeps the title theme through the opening cards
+  if (G.running) return; initAudio(); if (from && !STAGES[from].cards) stopMusic(4); // a new game keeps the title theme through the opening cards, and so does a chapter that opens on cards (owner, Nov 2026: no silence under them); the chapter's own music takes over from it
   $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
   player.setVisible(true); G.running = true; G.confirm = false; G.runFrom(from);
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
@@ -144,8 +144,9 @@ const fresh = () => { G.seenHalls = G.seenWay = G.seenFront = G.seenJav = G.taug
 const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The Western Watch', ['patrol', 'beacon']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 const CHAPTERS = STAGES.map((s, k) => [s, k]).filter(([s]) => s.checkpoint);
 const chapName = (s) => { const l = LABEL[s.name] || s.name; return l[0].toUpperCase() + l.slice(1); };
+// (A chapter that opens on cards keeps whatever is playing under them: STAGES[k].cards.)
 G.drawChapters = () => {
-  for (const [id, pick] of [['tchap', (k) => { fresh(); leave(k); }], ['pchap', (k) => { fresh(); G.pause(false); ui.fade(1, 0.3); if (k === 0) playMusic('title', { cross: 1 }); else stopMusic(1.5); setTimeout(() => G.runFrom(k), 350); }]]) {
+  for (const [id, pick] of [['tchap', (k) => { fresh(); leave(k); }], ['pchap', (k) => { fresh(); G.pause(false); ui.fade(1, 0.3); if (k === 0) playMusic('title', { cross: 1 }); else if (!STAGES[k].cards) stopMusic(1.5); setTimeout(() => G.runFrom(k), 350); }]]) {
     const box = $(id); box.innerHTML = ''; let act = null;
     CHAPTERS.forEach(([s, k], n) => {
       const a = (ACTS.find(([, names]) => names.includes(s.name)) || ['Later'])[0], open = reached.has(s.name);
