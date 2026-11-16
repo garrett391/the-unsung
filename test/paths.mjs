@@ -21,8 +21,8 @@ const run = (name, world, at, spawns, secs = 30) => page.evaluate(async ([name, 
     G.director.abort(); G.running = true; G.resetWorld(world); G.player.controlEnabled = false; G.player.inv = 1e9; G.maxAtk = 0; G.freezeAI = false; G.player.place(at[0], at[1], 0);
     const e = G.spawn(kind, x, z);
     for (let k = 0; k < secs * 60; k++) { G.step(1 / 60, true); G.player.inv = 1e9; if (k % 600 === 0) await null; }
-    const d = Math.hypot(e.pos.x - G.player.pos.x, e.pos.z - G.player.pos.z);
-    if (d > 6) bad.push(`${name}: ${kind} from ${x},${z} stuck at ${e.pos.x.toFixed(1)},${e.pos.z.toFixed(1)} (${d.toFixed(1)} m off)`);
+    const d = Math.hypot(e.pos.x - G.player.pos.x, e.pos.z - G.player.pos.z); // (a javelin thrower stops at throwing range on purpose: he only has to get within it)
+    if (d > (kind === 'skirmisher' ? 16 : 6)) bad.push(`${name}: ${kind} from ${x},${z} stuck at ${e.pos.x.toFixed(1)},${e.pos.z.toFixed(1)} (${d.toFixed(1)} m off)`);
   }
   return bad;
 }, [name, world, at, spawns, secs]);
@@ -35,5 +35,5 @@ if (!ONLY) for (const at of [[0, 120], [-9, 112], [10, 128], [0, 110.5]]) bad = 
 if (!ONLY) for (const at of [[-150, 71], [-158, 66], [-141, 50], [-150, 62], [-144, 55.5]]) bad = bad.concat(await run(`forecourt, captain at ${at}`, { site: 'fore', player: [-150, 60, 0], corin: null }, at, [['glasssentry', [[-150.4, 44.8], [-149.6, 43.9]]]]));
 // The frontier: open ground made of circles, with a riverbed that bends. From every place raiders get up out of the sand, to him anywhere on it.
 const FR = [[17.5, -17], [28, -21], [-16.5, 19], [-27, 8], [-3, -1.5], [9, 70], [42, 38], [11.5, 39.5]].map(([x, z]) => [260 + x, -160 + z]);
-if (!ONLY || ONLY === 'front') for (const at of [[0, -40], [8, -17], [-15, 12], [18, 43], [-25, 10], [47, -10]]) bad = bad.concat(await run(`frontier, captain at ${at}`, { site: 'front', player: [260, -200, 0], corin: null }, [260 + at[0], -160 + at[1]], [['raider', FR], ['brute', FR]], 75)); // (75 s: a Breaker walks, and it is a long way)
+if (!ONLY || ONLY === 'front') for (const at of [[0, -40], [8, -17], [-15, 12], [18, 43], [-25, 10], [47, -10]]) bad = bad.concat(await run(`frontier, captain at ${at}`, { site: 'front', player: [260, -200, 0], corin: null }, [260 + at[0], -160 + at[1]], [['raider', FR], ['brute', FR], ['skirmisher', FR]], 75)); // (75 s: a Breaker walks, and it is a long way)
 console.log(bad.length ? bad.join('\n') : 'every spawn reaches the captain'); await browser.close(); server.close(); process.exit(bad.length ? 1 : 0);

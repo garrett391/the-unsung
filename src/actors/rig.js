@@ -168,6 +168,12 @@ export function buildHumanoid(o) {
     mk(rbox(0.042, 0.5, 0.014, 0.005), mL, chest, 0, 0.17, 0.176).rotation.set(-0.2, 0, 0.6); mk(rbox(0.042, 0.5, 0.014, 0.005), mL, chest, 0, 0.17, -0.172).rotation.set(0.2, 0, -0.6);
     mk(rbox(0.075, 0.17, 0.2, 0.03), mL, hips, 0.232, -0.09, 0.02); mk(rbox(0.082, 0.085, 0.206, 0.02), mD, hips, 0.233, -0.04, 0.02); mk(ball(0.012), mT, hips, 0.276, -0.075, 0.02);
   }
+  if (o.quiver) { // javelins slung on the back in a leather case, their heads up over the right shoulder, and the sling across the chest
+    const mL = M(0x5a3c24), mW = M(0x7a5634), q = joint(chest, 0.04, 0.16, -0.21); q.rotation.set(0.14, 0, -0.42);
+    mk(new T.CylinderGeometry(0.07, 0.055, 0.46, 10), mL, q, 0, 0, 0);
+    for (const [x, z] of [[-0.022, 0.012], [0.026, 0.016], [0.002, -0.026]]) { mk(new T.CylinderGeometry(0.012, 0.012, 1.0, 5), mW, q, x, 0.36, z); mk(new T.ConeGeometry(0.024, 0.13, 4), mS, q, x, 0.92, z); }
+    mk(rbox(0.04, 0.54, 0.014, 0.005), mL, chest, 0, 0.17, 0.176).rotation.set(-0.2, 0, -0.6);
+  }
   if (o.mantle) { // a short shoulder cape, closed at the throat: it hangs over the shoulders in folds
     const mMn = M(o.mantle, { map: clothTex, side: T.DoubleSide });
     mk(folded('mantle', [[0.088, 0.418], [0.14, 0.404], [0.24, 0.372], [0.335, 0.31], [0.378, 0.2], [0.384, 0.12]], (a, v) => v * v * (0.05 * Math.cos(a * 9 + 0.4) + 0.02 * Math.cos(a * 4))), mMn, chest, 0, 0, 0).scale.z = 0.72;
@@ -347,6 +353,9 @@ export function buildHumanoid(o) {
   if (o.weapon === 'none') { /* unarmed */ } else if (o.weapon === 'maul') {
     mk(new T.CylinderGeometry(0.028, 0.028, len, 8), mD, w, 0, 0, len / 2).rotation.x = PI / 2;
     mk(new T.BoxGeometry(0.12, 0.46, 0.3), mS, w, 0, 0, len); mk(new T.BoxGeometry(0.14, 0.1, 0.34), mT, w, 0, 0, len);
+  } else if (o.weapon === 'javelin') { // a light throwing spear held at its middle: ash shaft, small iron head
+    const mW = M(0x7a5634); mk(new T.CylinderGeometry(0.015, 0.015, 1.6, 6), mW, w, 0, 0, len / 2 - 0.25).rotation.x = PI / 2;
+    const hd = mk(new T.ConeGeometry(0.032, 0.2, 4), mS, w, 0, 0, len / 2 + 0.65); hd.rotation.x = PI / 2; // (at the shaft's far end)
   } else if (o.weapon === 'glaive') {
     mk(new T.CylinderGeometry(0.022, 0.022, len, 8), mD, w, 0, 0, len / 2 - 0.25).rotation.x = PI / 2;
     mk(new T.BoxGeometry(0.02, 0.16, 0.7), mS, w, 0, 0.03, len + 0.05);

@@ -6,6 +6,7 @@ import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens,
 import { initRenderer } from './gfx/renderer.js';
 import { initFx, updateFx, clearBlood } from './gfx/fx.js';
 import { buildLevel, confine } from './world/level.js';
+import { updateMissiles, clearMissiles } from './actors/missile.js';
 import { cam, updateCamera } from './world/camera.js';
 import { Player } from './actors/player.js';
 import { Enemy } from './actors/enemy.js';
@@ -34,7 +35,7 @@ for (const m of [lockRing, lockRing2]) { m.rotation.x = -PI / 2; m.visible = fal
 let lockSpin = 0;
 
 G.spawn = (kind, x, z, o) => { const e = new Enemy(kind, x, z, o); G.enemies.push(e); return e; };
-G.clearEnemies = () => { for (const e of G.enemies) e.dispose(); G.enemies.length = 0; for (const e of G.extras) e.dispose(); G.extras.length = 0; for (const e of G.allies) e.dispose(); G.allies.length = 0; };
+G.clearEnemies = () => { clearMissiles(); for (const e of G.enemies) e.dispose(); G.enemies.length = 0; for (const e of G.extras) e.dispose(); G.extras.length = 0; for (const e of G.allies) e.dispose(); G.allies.length = 0; };
 G.enlist = (o) => { const a = new Ally(o); G.allies.push(a); return a; }; // a soldier who fights beside him (actors/ally.js)
 // Put the world in a known state for the start of a stage.
 G.resetWorld = (o) => {
@@ -90,6 +91,7 @@ function step(rdt, noRender) {
       for (const a of G.allies) a.update(dt);
       for (const e of G.enemies) e.update(dt);
       for (const e of G.extras) e.update(dt);
+      updateMissiles(dt);
       const all = [player, ...(corin.root.visible ? [corin] : []), ...G.allies, ...G.enemies, ...G.extras];
       for (const c of all) c.pos.addScaledVector(c.vel, dt);
       // bodies push each other apart; a rolling player slips through
@@ -108,7 +110,7 @@ function step(rdt, noRender) {
   if (G.running) director.update(rdt);
   const t = player.lock; lockRing.visible = lockRing2.visible = !!t;
   if (t) { lockSpin += rdt * 2.2; level.lay(lockRing, t.pos.x, t.pos.z, 0.08, lockSpin); level.lay(lockRing2, t.pos.x, t.pos.z, 0.08); const s = t.scale * (1 + Math.sin(G.time * 6) * 0.05); lockRing.scale.setScalar(s); lockRing2.scale.setScalar(s); }
-  updateCamera(rdt, false); ui.frame(); if (!noRender) G.composer.render();
+  updateCamera(rdt, false); level.skyAt(G.camera.position); ui.frame(); if (!noRender) G.composer.render();
 }
 
 // title screen
@@ -136,7 +138,7 @@ function leave(from) {
 $('tplay').addEventListener('click', () => leave(0));
 // Replaying a chapter plays it as if for the first time: the cutscenes and lessons that a retry skips are shown again.
 // (Its own lessons, that is: runFrom marks the earlier chapters' as learned. Picking the Glass Door used to teach lock, strike and shield over again.)
-const fresh = () => { G.seenHalls = G.seenWay = G.seenFront = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
+const fresh = () => { G.seenHalls = G.seenWay = G.seenFront = G.seenJav = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
 // The list is grouped by act, numbered, and quiet: rows of text, not a column of boxed buttons. A chapter not yet reached
 // shows no name (some are spoilers); the one being played is marked.
 const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The Western Watch', ['patrol', 'beacon']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];

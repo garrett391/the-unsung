@@ -79,7 +79,7 @@ node test/places.mjs                # the camp (night and dawn) and the waystati
 | `src/actors/rig.js` | The procedural armored figure every character is built from |
 | `src/actors/anim.js` | Poses, attack clips and generated locomotion |
 | `src/actors/data.js` | Attack and enemy numbers: tune combat here |
-| `src/actors/player.js`, `enemy.js`, `ally.js`, `extra.js` | The captain, raiders and Vessa, Corin, scripted bystanders |
+| `src/actors/player.js`, `enemy.js`, `ally.js`, `extra.js`, `missile.js` | The captain, raiders and Vessa, Corin and the soldiers of the line, scripted bystanders, thrown javelins |
 | `src/world/` | Level geometry (the ruins and vault in `level.js`, the halls in `halls.js`, the forecourt in `forecourt.js`, the waystation in `waystation.js`, the open frontier in `front.js`), collision, sky and lighting; camera |
 | `src/story/director.js` | Awaitable waits, tweens and dialogue for stage scripts |
 | `src/story/mission.js` | The stages, written as straight-line scripts |

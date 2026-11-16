@@ -10,9 +10,13 @@ import { TYPES } from './data.js';
 import { FX, Trail, shock, blood } from '../gfx/fx.js';
 import { pickLock } from './player.js';
 import { steer, route } from '../world/level.js';
+import { throwJavelin } from './missile.js';
 
 const tmpA = new T.Vector3(), tmpB = new T.Vector3();
-export const attackers = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && !e.marked() ? 1 : 0), 0); // those swinging at him (one set on a soldier is not his to worry about)
+export const attackers = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && !e.marked() && !e.mv.throw ? 1 : 0), 0); // those swinging at him (one set on a soldier is not his to worry about, and a javelin is not a blade at his shoulder)
+const throwing = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && e.mv.throw ? 1 : 0), 0);
+// Who is fighting whom: how many raiders are on the captain, or on one soldier (not counting `self`).
+const load = (who, self) => { let n = 0; for (const e of G.enemies) if (e !== self && !e.dead && !e.hold && e.state !== 'spawn' && e.state !== 'flee' && (e.marked() || G.player) === who) n++; return n; };
 
 export class Enemy extends Char {
   constructor(kind, x, z, o = {}) {
@@ -31,6 +35,22 @@ export class Enemy extends Char {
   // `mark`: one of the soldiers beside him (an Ally) that this one fights instead of the captain, for as long as that soldier is on his feet
   // and the captain has not cut it: then it turns on him.
   marked() { const m = this.mark; return m && !m.out && m.root.visible ? m : null; }
+  // A raider that nobody set on anyone picks his own fight when there are soldiers on the field (owner, Nov 2026: they all
+  // came for him). He goes for a soldier when the captain already has two on him, or when a soldier is much nearer; a
+  // soldier takes at most two. He asks again every few seconds while he is circling or closing; one the captain has just
+  // cut stays on the captain for a while (`mineT`). The captain always keeps the first two: the fight is still his.
+  share() {
+    if (this.marked() || this.post || this.type.heavy || this.type.boss || G.time < (this.mineT || 0)) return; // (the big ones are his)
+    const P = G.player; let best = null, bs = 1e9;
+    const onP = load(P, this), dP = this.dist(P);
+    for (const a of G.allies) {
+      if (!a.soldier || a.out || !a.root.visible) continue;
+      const n = load(a, this), da = this.dist(a); if (n >= 2) continue;
+      if (onP < 2 && da + 6 > dP) continue; // he is free and as near: go for him
+      const sc = n * 8 + da; if (sc < bs) { bs = sc; best = a; }
+    }
+    if (best) this.mark = best;
+  }
   // A beaten fighter, laid over every pose: bent over a wound with the off hand pressed to it,
   // head hanging, knees soft, the whole trunk heaving with each breath. It eases off while he swings.
   hurtLayer(src) {
@@ -66,7 +86,7 @@ export class Enemy extends Char {
       }
       this.gp = 3; this.stagDur = 1.4; this.open = true; SFX.clang(); // guard broken: this hit lands
     }
-    if (from === G.player) this.mark = null;
+    if (from === G.player) { this.mark = null; this.mineT = G.time + 6; }
     const wasOpen = this.open; dmg *= wasOpen && !a.crit ? 1.5 : 1; this.hp -= dmg; if (this.spare && this.hp < 1) this.hp = 1; this.flash = 1;
     (a.heavy || a.crit ? SFX.big : SFX.hit)();
     FX.sparks.emit(hp, a.crit ? 34 : a.heavy ? 20 : 11, a.crit ? 8 : 5.5, a.crit ? 0xffe890 : 0xfff4d0, 0.32, { vx: dir.x * 3, vz: dir.z * 3, up: 1, boost: 1.6 });
@@ -94,7 +114,7 @@ export class Enemy extends Char {
     const near = ms.filter((m) => !m.minD && !m.follow); return near[(Math.random() * near.length) | 0];
   }
   startMove(m, blend) {
-    this.mv = m; this.set('wind'); this.hitDone = false; this.slam = false; this.play(m.clip, blend || 0.14); SFX.tele();
+    this.mv = m; this.set('wind'); this.hitDone = false; this.thrown = false; this.slam = false; this.play(m.clip, blend || 0.14); SFX.tele();
     if (m.rush) { this.flash = 0.8; FX.sparks.emit(tmpB.copy(this.pos).addScaledVector(this.fwd(tmpA), 0.5).setY(this.pos.y + 1.2 * this.scale), 18, 3, 0xff6a3c, 0.5, { grav: 0, boost: 2 }); G.emit('rush', { enemy: this }); } // a rush is its own warning: red, off the shield
     else FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 8, 2, this.type.tele || this.type.look.eye, 0.4, { grav: 0, boost: 2 });
   }
@@ -112,7 +132,25 @@ export class Enemy extends Char {
       this.cd -= dt; if (this.cd <= 0 && d < 3.3 * this.scale && !P_.dead && attackers() < G.maxAtk) this.startMove(this.pickMove(d));
       this.setLoco(4, dt); return;
     }
-    switch (this.state) {
+    if ((this.state === 'chase' || this.state === 'circle') && G.time > (this.shareT || 0)) { this.shareT = G.time + rnd(1.6, 3); this.share(); }
+    if (t.ranged && !this.dead) this.rig.wTip.parent.visible = !(this.thrown && (this.state === 'strike' || this.state === 'recover')); // the javelin leaves his hand; he draws another from his back
+    switch (t.ranged && (this.state === 'chase' || this.state === 'circle') && G.time > (this.standT || 0) ? 'skirmish' : this.state) {
+      // A thrower (`ranged`) keeps his distance: he closes to throwing range, drifts sideways in it, gives ground when
+      // the target comes in, and throws when his wait runs out (no more than two javelins in the air's wind-up at once).
+      // Given ground too long, or caught close, he stands and fights for a few seconds (`standT`) with the plain moves.
+      case 'skirmish': {
+        const r = t.ranged, nx = dx / d, nz = dz / d; this.thrown = false;
+        if (d > r.max) { const via = route(this.pos, P_.pos); this.turnTo(steer(this.pos, this.radius, via ? Math.atan2(via[0] - this.pos.x, via[1] - this.pos.z) : ang, d, this), 6, dt); this.vel.x = damp(this.vel.x, f.x * speed, 6, dt); this.vel.z = damp(this.vel.z, f.z * speed, 6, dt); }
+        else {
+          this.turnTo(ang, 7, dt); let rad;
+          if (d < r.min) { rad = -speed * 0.75; this.backT = (this.backT || 0) + dt; } else { rad = clamp((d - (r.min + r.max) / 2) * 0.5, -1, 1.5); this.backT = Math.max(0, (this.backT || 0) - dt * 0.6); }
+          const tan = this.dir * 1.5; this.vel.x = damp(this.vel.x, nx * rad + nz * tan, 6, dt); this.vel.z = damp(this.vel.z, nz * rad - nx * tan, 6, dt);
+          if (Math.random() < dt * 0.3) this.dir *= -1;
+        }
+        if (this.backT > 2.2 || d < 2.8) { this.standT = G.time + rnd(3.5, 5); this.backT = 0; this.set('circle'); this.cd = Math.min(this.cd, 0.6); break; }
+        this.cd -= dt;
+        if (this.cd <= 0 && d >= r.min - 1.5 && d <= r.max + 2 && !P_.dead && throwing() < 2) { this.thrown = false; this.startMove(t.moves.find((x) => x.throw)); }
+        break; }
       case 'spawn':
         this.yoff = lerp(-1.9 * this.scale, 0, sstep(Math.min(1, this.st / 0.9)));
         if (Math.random() < 0.5) FX.dust.emit(this.pos, 1, 1.5, 0xb8a37c, 0.4, { flat: 1, spread: 0.4, grav: -1 });
@@ -134,9 +172,10 @@ export class Enemy extends Char {
         this.vel.x = damp(this.vel.x, f.x * sp, 8, dt); this.vel.z = damp(this.vel.z, f.z * sp, 8, dt);
         if (this.st >= m.wind) { this.set('strike'); SFX.swing(t.heavy ? 0.45 : 0.8); } break; }
       case 'strike': {
-        const sp = this.st < 0.15 ? m.lunge : 0; this.vel.x = damp(this.vel.x, f.x * sp, 25, dt); this.vel.z = damp(this.vel.z, f.z * sp, 25, dt); this.trailOn = this.st < 0.2; eye = 2.6;
+        const sp = this.st < 0.15 ? m.lunge : 0; this.vel.x = damp(this.vel.x, f.x * sp, 25, dt); this.vel.z = damp(this.vel.z, f.z * sp, 25, dt); this.trailOn = this.st < 0.2 && !m.throw; eye = 2.6;
         if (m.leap) this.yoff = Math.sin(PI * clamp((0.2 + this.st) / 0.42, 0, 1)) * 1.5;
-        if (!this.hitDone && this.st > 0.04 && this.st < 0.17 && d < m.range && Math.abs(wrap(ang - this.face)) < 0.95) { this.hitDone = true; G.emit('struck', { enemy: this, result: P_.receive(this, m.dmg * (this.dmgK == null ? 1 : this.dmgK), m.rush) }); } // dmgK: a stage script can pull his blows (a lesson)
+        if (m.throw) { if (!this.hitDone && this.st > 0.05) { this.hitDone = true; this.thrown = true; this.trailOn = false; if (!P_.dead) throwJavelin(this, P_, t.ranged.dmg); } }
+        else if (!this.hitDone && this.st > 0.04 && this.st < 0.17 && d < m.range && Math.abs(wrap(ang - this.face)) < 0.95) { this.hitDone = true; G.emit('struck', { enemy: this, result: P_.receive(this, m.dmg * (this.dmgK == null ? 1 : this.dmgK), m.rush) }); } // dmgK: a stage script can pull his blows (a lesson)
         if (m.slam && !this.slam && this.st > 0.1) {
           this.slam = true; const c = tmpB.copy(this.pos).addScaledVector(f, 1.6 * this.scale); shock(c, m.slam, t.boss ? 0xc79bff : 0xffe2a0); SFX.boom(); G.shake = Math.max(G.shake, 0.3);
           if (!this.hitDone && P_.pos.distanceTo(c) < m.slam + 0.3) { this.hitDone = true; P_.receive(this, m.dmg * 0.7); }
@@ -146,7 +185,7 @@ export class Enemy extends Char {
           if (m.chain && Math.random() < m.chain + (this.phase2 ? 0.2 : 0) && !P_.dead) this.startMove(t.moves[m.then], 0.1);
           else this.set('recover');
         } break; }
-      case 'recover': brake(8); if (this.st >= m.rec) { this.set('circle'); this.stop(0.2); this.cd = rnd(0.9, 2.3) * (this.phase2 ? 0.45 : t.boss ? 0.7 : 1) * (t.press || 1); } break; // press: a foe who gives less time between attacks
+      case 'recover': brake(8); if (this.st >= m.rec) { this.set('circle'); this.stop(0.2); this.cd = m.throw ? rnd(2.4, 4.2) : rnd(0.9, 2.3) * (this.phase2 ? 0.45 : t.boss ? 0.7 : 1) * (t.press || 1); } break; // press: a foe who gives less time between attacks
       case 'stagger': brake(6); if (this.st >= this.stagDur) { this.open = false; this.set('circle'); this.stop(0.2); this.cd = rnd(0.5, 1.4); } break;
       case 'parried':
         brake(8); if (Math.random() < 0.3) FX.sparks.emit(tmpB.copy(this.pos).setY(this.pos.y + 2 * this.scale), 1, 0.8, 0xfff0b0, 0.4, { grav: -1 });

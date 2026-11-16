@@ -78,6 +78,12 @@ export const TYPES = {
   runner: { name: 'DUNE RUNNER', hp: 48, speed: 4.9, poise: 1, scale: 0.94,
     look: { ...RAIDER, armor: 0x6f5c44, trim: 0x2f6a70, under: 0xb09a78, wrap: 0x2c5a60, skirt: undefined, blade: 0.78 },
     moves: [{ style: 'slash', wind: 0.44, rec: 0.55, dmg: 9, range: 2.25, lunge: 8.5, chain: 0.6, then: 1 }, { style: 'thrust', wind: 0.3, rec: 0.8, dmg: 11, range: 2.5, lunge: 9.5, follow: true }] },
+  // Throws javelins (actors/missile.js) from range and gives ground when closed on (`ranged`: the distance he keeps, and
+  // a javelin's damage; see Enemy, 'skirmish'). Caught or cornered he stands and fights with the one in his hand.
+  // The throw is `follow`, so he never picks it as a blow: the skirmish starts it.
+  skirmisher: { name: 'JAVELIN THROWER', hp: 44, speed: 3.9, poise: 1, scale: 0.96, ranged: { min: 6.5, max: 14, dmg: 12 }, tele: 0xffc070,
+    look: { ...RAIDER, armor: 0x7a6248, trim: 0x8a3226, under: 0xb8a37c, wrap: 0x6a2a20, skirt: undefined, weapon: 'javelin', blade: 1.05, quiver: 1 },
+    moves: [{ style: 'thrust', wind: 0.5, rec: 0.8, dmg: 10, range: 2.6, lunge: 7 }, { style: 'over', wind: 0.85, rec: 0.75, dmg: 12, range: 0, lunge: 0, throw: true, follow: true }] },
   // Leads the raid on the waystation: a raider's cut that can run on into an overhead with a shockwave.
   chief: { name: 'RAID LEADER', hp: 220, speed: 3.1, poise: 4, scale: 1.16, heavy: true,
     look: { ...HELMED, armor: 0x4a302a, trim: 0xb9853a, eye: 0xffb24a, horns: 1, cape: 0x5a2420, skirt: 0x5a2420, blade: 1.05, lames: 1 },

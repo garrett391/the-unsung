@@ -711,6 +711,8 @@ const file = (at) => [ // the two who go with him: each has his own place behind
 // Raiders getting up out of the sand at these points; `marks` sets some of them on the soldiers instead of on him.
 const ambush = (list, marks = []) => list.map(([kind, x, z], i) => { const e = G.spawn(kind, ...fr(x, z), { rise: true }); if (marks[i]) e.mark = marks[i]; return e; });
 const rallyAll = () => { for (const a of G.allies) a.rally(); };
+// The first javelin on the frontier: one of the line shouts it (once, unless the chapter is picked again). Returns the unsubscribe.
+const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.seenJav = true; ui.say(who, 'Javelins! Get your shield up, or get out from under them!', 3.5); } });
 stage('patrol', {
   checkpoint: true,
   async run(d) {
@@ -740,7 +742,8 @@ stage('patrol', {
     ui.objective('Go north, over the rise'); L.marker(...fr(8, -18));
     // The rise. They are under the sand along its east end, and get up as he comes over the top.
     await d.until(() => P.pos.z > FRONT.z - 21.5); L.marker(null);
-    const w1 = ambush([['raider', 17.5, -17], ['raider', 21, -22.5], ['raider', 24.5, -17.5], ['runner', 28, -21]], [null, hale, brann]);
+    const offJ = javelins('Brann');
+    const w1 = ambush([['raider', 17.5, -17], ['raider', 21, -22.5], ['raider', 24.5, -17.5], ['runner', 28, -21], ['raider', 14, -22], ['skirmisher', 32, -12.5]], [null, hale, brann]); // (owner, Nov 2026: more of them; the rest find their own fights, Enemy.share)
     G.freezeAI = true; actOne(true); SFX.tele(); ui.say('Brann', 'The sand! They are under the sand!', 3.5);
     await glance(d, ...fr(21.5, -19.5), { hold: 1.7 }); G.freezeAI = false; for (const e of w1) e.cd = rnd(0.8, 2);
     ui.objective('Cut them down');
@@ -750,7 +753,7 @@ stage('patrol', {
     ui.objective('Follow the dry riverbed north'); L.marker(...fr(-9, 4));
     // The riverbed. Both ends at once, and out of the pocket on its west bank.
     await d.until(() => P.pos.z > FRONT.z + 5.5 && P.pos.x < FRONT.x - 5); L.marker(null);
-    const w2 = ambush([['raider', -16.5, 19], ['bulwark', -14.5, 23.5], ['runner', -3, -1.5], ['runner', -24.5, 10], ['raider', -27, 8]], [brann, hale]);
+    const w2 = ambush([['raider', -16.5, 19], ['bulwark', -14.5, 23.5], ['runner', -3, -1.5], ['runner', -24.5, 10], ['raider', -27, 8], ['raider', -5, -4], ['skirmisher', -22, 13], ['skirmisher', -12, 26]], [brann, hale]);
     G.freezeAI = true; SFX.tele(); ui.say('Hale', 'Both ends! Backs together!', 3.5);
     await glance(d, ...fr(-15.5, 21), { hold: 1.7 }); G.freezeAI = false; for (const e of w2) e.cd = rnd(0.8, 2.2);
     ui.objective('Cut your way out of the riverbed');
@@ -759,7 +762,7 @@ stage('patrol', {
     ui.say('Brann', 'That is twice he has been where the blade was going. ...I am walking behind him.', 5);
     ui.objective('Go on, to the beacon'); L.marker(...fr(-6, 31));
     await d.until(() => P.pos.z > FRONT.z + 29); L.marker(null);
-    sky(); G.carry = { hale, brann, run: G.runId };
+    sky(); offJ(); G.carry = { hale, brann, run: G.runId };
   },
 });
 
@@ -775,6 +778,7 @@ stage('beacon', {
     const p1 = post('SOLDIER', 15.4, 41.6, -2.2, { hair: 0x6a4a2a }), wren = post('WREN', 19.6, 40.2, 2.8, { skin: 0xc4926c, hair: 0x2a1c14 });
     const corp = new Extra({ ...LINE, weapon: 'none', shield: undefined, hair: 0x8a8680 }, ...fr(18.2, 44.0), -2.6); corp.play(C(0.1, [0, PZ.sit]), 0.01);
     G.spawn('raider', ...fr(11.5, 39.5)).mark = p1; G.spawn('raider', ...fr(14, 36.5)).mark = p1; G.spawn('raider', ...fr(21, 35.5)).mark = wren; G.spawn('bulwark', ...fr(24, 38.5)).mark = wren; G.spawn('runner', ...fr(9, 44));
+    G.spawn('raider', ...fr(4, 38)); G.spawn('runner', ...fr(26, 34)); G.spawn('skirmisher', ...fr(8, 52)); G.spawn('skirmisher', ...fr(31, 37)); const offJ = javelins('Hale');
     await settled(d, 1); ui.say('Hale', 'There, under the rock. They are still on their feet.', 4);
     await glance(d, ...foot, { from: fr3(1.5, 2.6, 34.5), y: 1.6, hold: 2.4 });
     ui.objective('Reach the patrol under the beacon');
@@ -802,23 +806,25 @@ stage('beacon', {
     G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; G.freezeAI = false; hale.post = [...fr(13.6, 43.6), -1.6]; brann.post = [...fr(21.4, 39.4), 2.4];
     // The hold: about seventy seconds of it, as the light goes. They come out of the sand north and east of the basin, more of
     // them as it goes on, and some go for the soldiers. Nothing counts while he is away from the rock.
-    const H = (G.hold = { progress: 0, far: false }); ui.holdBar(true); let spawnT = 1.2, brute = false; const SECS = 70;
+    const H = (G.hold = { progress: 0, far: false }); ui.holdBar(true); let spawnT = 1.2, brutes = 0; const SECS = 70;
     const from = () => (Math.random() < 0.5 ? [rnd(3, 14), rnd(60, 72)] : [rnd(34, 45), rnd(33, 41)]);
     const stop = d.every((dt) => {
       const far = Math.hypot(P.pos.x - foot[0], P.pos.z - foot[1]) > 17;
       if (!far && !P.dead) H.progress = Math.min(1, H.progress + dt / SECS); L.setDawn(H.progress);
       if (far !== H.far) { H.far = far; ui.hint(far ? 'Get back to the rock!' : ''); }
       ui.objective('Hold the rock until the beacon is lit');
-      spawnT -= dt; const cap = 3 + Math.floor(H.progress * 3);
+      // (owner, Nov 2026: with three of the line beside him it was too easy: more at once, sooner, javelin throwers from a
+      // fifth of the way in, and a second Breaker near the end)
+      spawnT -= dt; const cap = 5 + Math.floor(H.progress * 4);
       if (spawnT <= 0 && live() < cap && H.progress < 0.97) {
-        spawnT = lerp(4.2, 2.4, H.progress); const u = H.progress, r = Math.random();
-        const kind = u > 0.55 && !brute ? ((brute = true), 'brute') : u > 0.3 && r < 0.25 ? 'bulwark' : u > 0.12 && r < 0.55 ? 'runner' : 'raider';
+        spawnT = lerp(3.2, 1.7, H.progress); const u = H.progress, r = Math.random(), jav = G.enemies.filter((e) => !e.dead && e.kind === 'skirmisher').length;
+        const kind = (u > 0.5 && brutes < 1) || (u > 0.82 && brutes < 2) ? (brutes++, 'brute') : u > 0.18 && r < 0.22 && jav < 2 ? 'skirmisher' : u > 0.3 && r < 0.42 ? 'bulwark' : u > 0.12 && r < 0.7 ? 'runner' : 'raider';
         const e = G.spawn(kind, ...fr(...from()), { rise: true }), up = G.allies.filter((a) => !a.out);
-        if (kind !== 'brute' && up.length && Math.random() < 0.45) e.mark = up[(Math.random() * up.length) | 0]; // some of them go for the line
+        if (kind !== 'brute' && kind !== 'skirmisher' && up.length && Math.random() < 0.35) e.mark = up[(Math.random() * up.length) | 0]; // some are sent at the line; the rest pick their own fights (Enemy.share)
       }
     });
     await d.until(() => H.progress >= 1);
-    stop(); ui.holdBar(false); G.hold = null; ui.hint(''); ui.objective('');
+    stop(); offJ(); ui.holdBar(false); G.hold = null; ui.hint(''); ui.objective('');
     // It burns. Out in the dunes they see it too, and break off; and from the south, the company's horn.
     await settled(d, 1); P.controlEnabled = false; P.lock = null; P.calm = true; P.inv = 1e6; G.cinematic = true; ui.cinematic(true);
     L.front.light(true); SFX.flame(); SFX.boom(); G.shake = 0.2; for (const e of G.enemies) e.flee(); actOne();

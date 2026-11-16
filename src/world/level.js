@@ -528,17 +528,22 @@ export function buildLevel() {
 
   // sky, stars, moon
   const sg = new T.SphereGeometry(700, 24, 14); sg.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(sg.attributes.position.count * 3), 3));
-  const sky = new T.Mesh(sg, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide, fog: false, depthWrite: false })); scene.add(sky);
+  // The sky, its stars and moon hang in one group that goes wherever the camera is (W.skyAt, every frame), as a sky
+  // should. It used to stand at the world's origin; from the frontier, 300 m off, the camera's far plane (900 m) cut a
+  // hole in the dome on the side away from it, and the hole (the bare clear colour) read as a sun that moved as he walked.
+  const skyG = new T.Group(); scene.add(skyG); W.skyAt = (p) => skyG.position.copy(p);
+  const sky = new T.Mesh(sg, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide, fog: false, depthWrite: false })); sky.frustumCulled = false; skyG.add(sky);
   const sp = new Float32Array(1100 * 3);
   for (let i = 0; i < 1100; i++) { const a = r() * PI * 2, e = Math.asin(r() * 0.96 + 0.03); sp[i * 3] = Math.cos(e) * Math.sin(a) * 650; sp[i * 3 + 1] = Math.sin(e) * 650; sp[i * 3 + 2] = Math.cos(e) * Math.cos(a) * 650; }
   const stg = new T.BufferGeometry(); stg.setAttribute('position', new T.BufferAttribute(sp, 3));
-  const stars = new T.Points(stg, new T.PointsMaterial({ color: 0xdfe6ff, size: 2.2, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false })); scene.add(stars);
+  const stars = new T.Points(stg, new T.PointsMaterial({ color: 0xdfe6ff, size: 2.2, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false })); skyG.add(stars);
   const bp = new Float32Array(70 * 3);
   for (let i = 0; i < 70; i++) { const a = dr() * PI * 2, e = Math.asin(dr() * 0.9 + 0.06); bp[i * 3] = Math.cos(e) * Math.sin(a) * 645; bp[i * 3 + 1] = Math.sin(e) * 645; bp[i * 3 + 2] = Math.cos(e) * Math.cos(a) * 645; }
   const bsg = new T.BufferGeometry(); bsg.setAttribute('position', new T.BufferAttribute(bp, 3));
-  const bright = new T.Points(bsg, new T.PointsMaterial({ color: new T.Color(1.3, 1.35, 1.6), size: 7, map: TEX.glow, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); scene.add(bright);
-  const moon = new T.Mesh(new T.CircleGeometry(26, 40), new T.MeshBasicMaterial({ color: new T.Color(1.5, 1.6, 1.9), map: TEX.moon, fog: false, transparent: true })); scene.add(moon);
-  const halo = new T.Sprite(new T.SpriteMaterial({ map: TEX.glow, color: 0x7f9cff, transparent: true, opacity: 0.3, depthWrite: false, fog: false, blending: T.AdditiveBlending })); halo.scale.setScalar(210); scene.add(halo);
+  const bright = new T.Points(bsg, new T.PointsMaterial({ color: new T.Color(1.3, 1.35, 1.6), size: 7, map: TEX.glow, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); skyG.add(bright);
+  const moon = new T.Mesh(new T.CircleGeometry(26, 40), new T.MeshBasicMaterial({ color: new T.Color(1.5, 1.6, 1.9), map: TEX.moon, fog: false, transparent: true })); skyG.add(moon);
+  moon.position.set(NIGHT.sunP[0], NIGHT.sunP[1], NIGHT.sunP[2]).normalize().multiplyScalar(620); moon.lookAt(0, 0, 0); // (once, while the group is still at the origin: its place in the group never changes)
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: TEX.glow, color: 0x7f9cff, transparent: true, opacity: 0.3, depthWrite: false, fog: false, blending: T.AdditiveBlending })); halo.scale.setScalar(210); skyG.add(halo);
 
   const hemi = new T.HemisphereLight(NIGHT.hemiS, NIGHT.hemiG, NIGHT.hemiI); scene.add(hemi);
   const sun = new T.DirectionalLight(NIGHT.sun, NIGHT.sunI); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
@@ -560,7 +565,7 @@ export function buildLevel() {
     sun.color.copy(mixC(SA.sun, SB.sun, u)); sun.intensity = lerp(SA.sunI, SB.sunI, u);
     sun.position.set(lerp(SA.sunP[0], SB.sunP[0], u), lerp(SA.sunP[1], SB.sunP[1], u), lerp(SA.sunP[2], SB.sunP[2], u)).multiplyScalar(1.6); sunOff.copy(sun.position); sun.position.x += site.at[0]; sun.position.z += site.at[1];
     stars.material.opacity = bright.material.opacity = mx('stars'); moon.material.opacity = mx('moon'); halo.material.opacity = 0.3 * mx('stars'); mHalo.opacity = 0.45 - warm * 0.2;
-    moon.position.set(NIGHT.sunP[0], NIGHT.sunP[1], NIGHT.sunP[2]).normalize().multiplyScalar(620); moon.lookAt(0, 0, 0); halo.position.copy(moon.position).multiplyScalar(1.03);
+    halo.position.copy(moon.position).multiplyScalar(1.03);
     if (G.grade) G.grade.uniforms.uWarm.value = warm;
     for (const l of W.fires) l.userData.base = FIRE * mx('fire');
   };

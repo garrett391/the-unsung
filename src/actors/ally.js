@@ -21,7 +21,8 @@ const LINE = { dmg: 7, knock: 2, poise: 0.5, quiet: true };
 //   slot: [back, side]  where he falls in behind the captain when there is nobody to fight
 //   post = [x, z]       or a place he holds instead, fighting whoever comes within reach of it
 // A soldier can be marked by an enemy (Enemy.mark), which then fights him and not the captain. He stops most
-// blows; enough of them put him on one knee (`out`) until a script calls rally(). Nobody on his side dies here.
+// blows; enough of them put him on one knee (`out`) until a script calls rally(), or until he has been down 14 s with
+// nobody standing over him. Nobody on his side dies here.
 export class Ally extends Char {
   constructor(o = {}) {
     // Corin: polished steel over a navy gambeson, white Third Company tabard, open-faced helm with a
@@ -77,7 +78,8 @@ export class Ally extends Char {
   update(dt) {
     this.st += dt; const P_ = G.player, f = this.fwd(tmpA); const brake = (k) => this.vel.multiplyScalar(Math.exp(-k * dt));
     this.blockW = damp(this.blockW, (this.mode === 'guard' && this.state === 'loco') || this.blockT > G.time ? 1 : 0, 14, dt);
-    if (this.state === 'out') { brake(8); this.trailOn = false; }
+    if (this.state === 'out') { brake(8); this.trailOn = false; // a soldier who has been down a while gets up again on his own once nobody is standing over him (there are more of them on the field than there were)
+      if (this.soldier && this.st > 14 && !G.enemies.some((e) => !e.dead && e.state !== 'spawn' && this.dist(e) < 4)) this.rally(); }
     else if (this.state === 'reel') { brake(7); if (this.st > 0.7) { this.set('loco'); this.stop(0.2); } }
     else if (this.state === 'parried') { brake(8); if (this.st > 2.4) { this.open = false; this.set('loco'); this.stop(0.25); this.cd = 1.2; } }
     else if (this.mode === 'guard' || this.mode === 'idle') { brake(8); this.turnTo(this.angleTo(P_), 6, dt); }
