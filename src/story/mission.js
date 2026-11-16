@@ -451,7 +451,7 @@ stage('waystation', {
   checkpoint: true,
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'way', look: 'labourer', player: [...wy(-2.4, -9.6), 0.75], corin: null });
-    const P = G.player, L = G.level, R = []; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; preloadMusic('hinges', 'granite');
+    const P = G.player, L = G.level, R = []; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 1; preloadMusic('granite');
     const guard = new Extra(LOOKS.wayguard, ...wy(1.7, 9.4), PI), drover = new Extra(LOOKS.drover, ...wy(6.3, 2.4), 1.2);
     guard.play(C(0.1, [0, pose({ neck: [0.5, 0.15, 0], chest: [0.12], spine: [0.1] }, guard.cur)]), 0.01); // the one man on the gate: his back to the road, dozing on his feet
     const loot = [[6.2, 4.3, 1.45], [5.6, -1.2, 1.8], [-6.6, 9.3, -0.9]]; // at the stall, the cart and the carter's load // where the first three stand over the goods, and which way they face
@@ -467,7 +467,7 @@ stage('waystation', {
       cam.shot(wy3(-2.8, 1.5, 4.2), wy3(1.5, 1.4, 10.6)); cam.shot(wy3(-2.3, 1.45, 5.6), wy3(1.6, 1.35, 10.8), 5);
       await d.wait(1.9);
       // On him: he stops in his stride, and his head comes round to the gate.
-      P.walk = null; stopMusic(1.5);
+      P.walk = null; // (owner, Nov 2026: the yard's theme runs on, unbroken, until his hand closes on the sword)
       { const x = P.pos.x, z = P.pos.z; cam.shot([x - 0.5, 1.5, z + 2.3], [x, 1.5, z]); cam.shot([x - 0.4, 1.52, z + 1.9], [x, 1.52, z], 2); }
       turnTo(d, P, P.angleTo(guard), 0.35).catch(() => {}); await d.wait(1.1);
       // The blow, from behind. Nothing announces it.
@@ -483,7 +483,7 @@ stage('waystation', {
         P.state = 'cine'; P.play(C(1.4, [0.12, start, 'o'], [0.6, start], [1.4, pose({ spine: [-0.08, 0, 0], chest: [-0.05, 0, 0], shL: [-0.3, 0, 0.3], elL: [-0.9, 0, 0], shR: [-0.25, 0, -0.3], elR: [-0.8, 0, 0] }, idle)]), 0.06); P.vel.set(-Math.sin(P.face) * 2.4, 0, -Math.cos(P.face) * 2.4); }
       await d.wait(1.4);
       // Then the horn, out in the dunes, and the rest of them come running in off the road.
-      G.shake = 0.1; SFX.horn(); d.wait(3.2).then(() => playMusic('hinges', { cross: 0.5, fade: 4 }), () => {}); // the horn alone, then the held breath until he takes up the sword
+      G.shake = 0.1; SFX.horn();
       for (const [x, z] of [[-1.4, 19], [0.5, 21.5]]) R.push(G.spawn('raider', ...wy(x, z)));
       cam.shot(wy3(-3.2, 1.5, 3.6), wy3(0.9, 1.5, 10.5)); cam.shot(wy3(-2.6, 1.4, 5), wy3(1.2, 1.3, 10.5), 3.5);
       drover.go(...wy(0.4, -11.2), 4.4); R[0].stop(0.25);
@@ -624,7 +624,7 @@ stage('muster', {
     let rt = 5, told = false, pressed = false; const RUSH = TYPES.sergeant.moves[2];
     const offR = G.on((k) => { if (k === 'rush' && !told) { told = true; const tip = 'His shield rush breaks a guard. Roll clear of it: a direction and {d}'; ui.hint(tip); d.wait(5).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); } });
     const tick = d.every((dt) => {
-      if (!pressed && S.hp < S.maxHp * 0.5) { pressed = true; S.phase2 = true; rt = Math.min(rt, 1.5); /* quicker on his feet, chains oftener, less time between attacks */ ui.thought('He was holding back.', 3.5); } // (a thought, not a spoken line: the dialogue box would sit on his health bar)
+      if (!pressed && S.hp < S.maxHp * 0.5) { pressed = true; S.phase2 = true; rt = Math.min(rt, 1.5); /* quicker on his feet, chains oftener, less time between attacks */ }
       if (G.freezeAI || G.talking || S.hp <= 1 || P.dead) return;
       if ((rt -= dt) <= 0 && S.state === 'circle' && P.dist(S) < 5.5) { rt = pressed ? rnd(4, 6) : rnd(7, 10); S.startMove(RUSH); }
     });
