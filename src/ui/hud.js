@@ -33,7 +33,7 @@ export const ui = {
   thought(text, dur = 5) { const el = $('thought'); clearTimeout(ui._th); el.classList.remove('on'); if (!text) return; el.textContent = text; void el.offsetWidth; el.classList.add('on'); ui._th = setTimeout(() => el.classList.remove('on'), Math.min(dur, 1.4 + text.length * 0.045) * 1000); },
   holdBar(on) { $('hold').style.display = on ? 'block' : 'none'; },
   banner(text, dur = 2) { const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 16); b.style.opacity = 1; clearTimeout(ui._bh); ui._bh = setTimeout(() => (b.style.opacity = 0), dur * 1000); },
-  fade(to, sec = 1, col) { const f = $('fade'); if (col || ui._fc) f.style.background = (ui._fc = col) || ''; f.style.transitionDuration = sec + 's'; f.style.opacity = to; }, // col: a wash of some other colour than the dark (it stays until a fade without one)
+  fade(to, sec = 1, col) { const f = $('fade'); if (to < 1 && ui._fade !== 0 && G.warm) G.warm(); ui._fade = to; /* coming up from a covered screen: the frame about to be shown is drawn first (main.js) */ if (col || ui._fc) f.style.background = (ui._fc = col) || ''; f.style.transitionDuration = sec + 's'; f.style.opacity = to; }, // col: a wash of some other colour than the dark (it stays until a fade without one)
   cinematic(on) { $('bars').style.opacity = on ? 0 : 1; if (on) { ui.objectiveHidden = true; $('obj').style.visibility = 'hidden'; } else $('obj').style.visibility = 'visible'; },
   // dialogue
   // showLine(who, text): a line that waits for a tap, with a plain prompt. showLine(who, text, dur): a passing line (say).

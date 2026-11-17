@@ -501,7 +501,7 @@ stage('waystation', {
       // killed the guard does not look round at the horn: he is already walking at the yard hand, at a stride, while the others
       // run in behind him, so he is nearly there when the camera comes back. The yard hand does not back away.
       { const k = R[0], dx = k.pos.x - P.pos.x, dz = k.pos.z - P.pos.z, l = Math.hypot(dx, dz) || 1, kx = P.pos.x + (dx / l) * 2.1, kz = P.pos.z + (dz / l) * 2.1, a = Math.atan2(dx, dz);
-        const near = march(d, k, kx, kz, 3.1); near.catch(() => {});
+        k.stop(0.3); /* out of the cut he killed the guard with: he was held in its last pose and slid across the yard */ const near = march(d, k, kx, kz, 3.1); near.catch(() => {});
         march(d, R[1], ...wy(-1.6, 9.8), 5).then(() => march(d, R[1], kx + (dx / l) * 1.6 - (dz / l) * 1.3, kz + (dz / l) * 1.6 + (dx / l) * 1.3, 5), () => {}).then(() => { R[1].stop(0.3); R[1].face = R[1].angleTo(P); }, () => {}); // the second, a step behind him and to one side
         march(d, R[2], ...wy(0.2, 12.4), 5).catch(() => {});
         await d.wait(1.7); P.stop(0.5); P.state = 'loco'; drover.setVisible(false);
@@ -658,7 +658,7 @@ stage('muster', {
     // then get up and walk back to the line, the sergeant stays on his knees. A lost round is fought again, all three.
     G.slow = 0.8; ui.objective(''); ui.hint(''); G.boss = null; await settled(d);
     P.controlEnabled = false; P.lock = null; P.calm = true; G.freezeAI = true;
-    const kneelDown = (e) => { e.dead = true; e.hold = true; e.stagDur = 1e9; e.open = false; e.set('stagger'); e.vel.set(0, 0, 0); e.trailOn = false; e.yoff = 0; e.play(CL.kneel, 0.3); e.yT = G.time; };
+    const kneelDown = (e) => { e.dead = true; e.solid = e.fixed = true; /* still in the way: he could be walked through */ e.hold = true; e.stagDur = 1e9; e.open = false; e.set('stagger'); e.vel.set(0, 0, 0); e.trailOn = false; e.yoff = 0; e.play(CL.kneel, 0.3); e.yT = G.time; };
     kneelDown(S);
     await d.wait(1.2);
     await d.talk([['Sergeant', 'On my knees is not the same as yielding.'], ['Sergeant', 'Hale. Brann. In the ring.']]);
@@ -669,7 +669,7 @@ stage('muster', {
     await d.talk([['Officer', 'Sergeant.'], ['Sergeant', 'A deserter quits when it goes bad, sir. Let us see it go bad.']]);
     { const t0 = G.time; await d.until(() => pair.every((e) => !e.to) || G.time - t0 > 4); }
     const HP3 = 0.55, TROOP = 72; let out = []; // he gets up with a little over half of himself; the two fresh ones are lighter than the first soldier
-    const rise = (e) => { e.dead = false; e.hold = false; e.stagDur = 0.3; e.st = 0; e.stop(0.5); e.set('circle'); };
+    const rise = (e) => { e.dead = false; e.solid = e.fixed = false; e.hold = false; e.stagDur = 0.3; e.st = 0; e.stop(0.5); e.set('circle'); };
     const ready = () => { // the two soldiers become foes where they stand; the sergeant gets up
       const T = pair.map((x, i) => { x.setVisible(false); x.place(-200, -200 - i * 3, 0); const e = G.spawn('trooper', ...spots[i], { spare: true }); e.yoff = 0; e.set('circle'); e.face = PI; e.hp = e.maxHp = TROOP; e.home = home[i]; return e; });
       rise(S); S.hp = Math.round(S.maxHp * HP3); return [S, ...T];

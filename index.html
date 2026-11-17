@@ -82,6 +82,11 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #title,#pause{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;
   background:radial-gradient(ellipse at center,rgba(7,9,19,.55),rgba(7,9,19,.95))}
 #title{overflow-y:auto;justify-content:safe center}
+/* Until the game has loaded and drawn its first frame (main.js takes .loading off) the title shows its name and a quiet LOADING, no buttons. */
+#title>.btn,#title>details,#title>.sub{transition:opacity .7s}
+#title.loading>.btn,#title.loading>details,#title.loading>.sub{opacity:0;pointer-events:none;transition:none}
+#tload{display:none;margin-top:34px;font-size:13px;letter-spacing:.4em;text-indent:.4em;opacity:.6;animation:pulse 1.6s ease-in-out infinite}
+#title.loading #tload{display:block;position:absolute;top:calc(50% + 30px);left:0;right:0}
 #pause{display:none;background:rgba(5,6,12,.94);overflow-y:auto;justify-content:flex-start}
 #pause h2{font-size:15px;letter-spacing:.4em;text-indent:.4em;font-weight:500;color:#e9c15a;margin:auto 0 22px}#pause>:last-child{margin-bottom:auto}
 .btn{font:700 17px "Cormorant Garamond",Georgia,serif;letter-spacing:.3em;text-indent:.3em;color:#efe6d2;background:rgba(8,8,14,.5);border:1.5px solid rgba(217,178,74,.75);
@@ -143,8 +148,9 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 </div>
 <div id="fade"></div>
 <div id="chron"><div class="page"><h2 id="chead"></h2><div id="clines"></div><div class="tap" id="ctap"></div></div></div>
-<div id="title">
+<div id="title" class="loading">
   <h1>THE UNSUNG</h1>
+  <p id="tload">LOADING</p>
   <button class="btn main" id="tcont" style="display:none"></button>
   <p class="sub" id="tcwhere"></p>
   <button class="btn main" id="tplay">PLAY</button>

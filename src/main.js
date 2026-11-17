@@ -19,6 +19,7 @@ import { ui } from './ui/hud.js';
 import { Director } from './story/director.js';
 import { STAGES } from './story/mission.js';
 
+let last = 0; // the time of the last frame (set again whenever a long pause should not count as one)
 const canvas = $('c');
 initRenderer(canvas); initFx();
 const level = buildLevel();
@@ -97,7 +98,7 @@ function step(rdt, noRender) {
       // bodies push each other apart; a rolling player slips through
       const ghost = player.state === 'roll' || (player.at === ATK.sa && player.state === 'atk');
       for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
-        const a = all[i], b = all[j]; if (a.dead || b.dead || b.state === 'spawn' || a.state === 'spawn' || (a.fixed && b.fixed)) continue; if (i === 0 && ghost) continue;
+        const a = all[i], b = all[j]; if ((a.dead && !a.solid) || (b.dead && !b.solid) || b.state === 'spawn' || a.state === 'spawn' || (a.fixed && b.fixed)) continue; if (i === 0 && ghost) continue;
         const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z, d = Math.hypot(dx, dz) || 0.001, m = a.radius + b.radius + 0.12;
         if (d < m) { const o = m - d, wa = a.fixed ? 0 : b.fixed ? 1 : i === 0 ? 0.65 : 0.5; /* a bystander standing still (an Extra) is not shoved about */ a.pos.x -= (dx / d) * o * wa; a.pos.z -= (dz / d) * o * wa; b.pos.x += (dx / d) * o * (1 - wa); b.pos.z += (dz / d) * o * (1 - wa); }
       }
@@ -112,6 +113,22 @@ function step(rdt, noRender) {
   if (t) { lockSpin += rdt * 2.2; level.lay(lockRing, t.pos.x, t.pos.z, 0.08, lockSpin); level.lay(lockRing2, t.pos.x, t.pos.z, 0.08); const s = t.scale * (1 + Math.sin(G.time * 6) * 0.05); lockRing.scale.setScalar(s); lockRing2.scale.setScalar(s); }
   updateCamera(rdt, false); level.skyAt(G.camera.position); ui.frame(); if (!noRender) G.composer.render();
 }
+
+// Draw the frame that is about to be shown, and wait for the graphics card to finish it, before a fade lifts (ui.fade
+// calls this). The first time a place is seen its shaders are compiled and its textures sent to the card, which can take
+// a second on a fresh browser; the fade is a CSS transition and does not wait, so it used to lift on the last frame
+// drawn (the camera wherever it was before) and then jump (owner, Nov 2026, on the hosted build). After the world has
+// changed (`stale`) everything showing is drawn once whether or not it is in view, so turning round later finds it ready.
+let stale = true;
+for (const f of ['setSite', 'setAfter', 'setGate']) { const fn = level[f]; level[f] = (...a) => { stale = true; return fn(...a); }; }
+G.warm = () => {
+  if (G.auto) return; // the playtest steps without drawing
+  const off = [];
+  if (stale) { stale = false; G.scene.traverseVisible((o) => { if (o.frustumCulled) { o.frustumCulled = false; off.push(o); } }); }
+  try { updateCamera(0, false); level.skyAt(G.camera.position); G.composer.render(); const gl = G.renderer.getContext(); G.renderer.setRenderTarget(null); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); /* reading a pixel back blocks until the frame is really done */ } catch (_) { /* a lost context: carry on */ }
+  for (const o of off) o.frustumCulled = true;
+  last = performance.now();
+};
 
 // title screen
 const rows = coarse
@@ -198,9 +215,11 @@ playMusic('title');
 for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(ev, initAudio, { passive: true, capture: true }); // (capture: a control that stops the event still wakes the sound)
 
 // rdt is clamped at zero: the first frame can carry a timestamp earlier than this one.
-let last = performance.now();
+last = performance.now();
 function frame(now) { const rdt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; if (G.manual) G.composer.render(); else step(rdt); requestAnimationFrame(frame); } // G.manual: the playtest steps the game itself, and this loop only draws
 requestAnimationFrame(frame);
+// The title's buttons come up once the first frame is drawn and the title's typeface is in (or after 1.5 s without it).
+Promise.race([document.fonts ? document.fonts.ready : null, new Promise((r) => setTimeout(r, 1500))]).then(() => $('title').classList.remove('loading'));
 
 // handles for the headless playtest and for poking at things in the console
 Object.assign(G, { step, begin, I, keys, press, cam, CL, PZ, C, director, STAGES, opts, Extra, LOOKS });
