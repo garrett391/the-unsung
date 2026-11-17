@@ -105,7 +105,9 @@ if (at('waystation')) { // real timing through the opening, so the shots catch i
   await play(4); await shot('0e-yard');
   await play(30, { until: "G.enemies.length" }); await play(1.7); await shot('0f-raiders');
   await play(30, { until: "G.extras[0].dead" }); await play(0.5); await shot('0g-guard-falls'); await play(0.7); await shot('0g2-he-starts-back');
-  await play(30, { tap: true, until: "!G.talking&&G.enemies[0].vel.length()>1" }); await play(1.6); await shot('0h-he-sees');
+  await play(30, { until: "G.talking" }); await play(0.3); await shot('0g3-sized-up'); // the one who killed the guard has walked up to him
+  await play(30, { tap: true, until: "G.talking&&document.getElementById('dtxt').textContent.includes('goods')" }); await play(1.5); await shot('0g4-the-sword'); // and the camera goes down to what the guard dropped
+  await play(30, { tap: true, until: "!G.talking&&G.enemies[0].vel.length()>3" }); await play(1.6); await shot('0h-he-sees');
   await play(30, { until: "G.player.walk" }); await play(2.2); await shot('0i-to-the-body');
   await play(30, { until: "G.player.look==='drifter'" }); await play(0.4); await shot('0j-takes-the-sword'); await play(2.2); await shot('0j2-stands');
   log('yard fight', await play(30, { until: "G.player.controlEnabled" })); await play(0.4); await shot('0k-fight');

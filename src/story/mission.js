@@ -499,8 +499,22 @@ stage('waystation', {
       drover.go(...wy(0.4, -11.2), 4.4); R[0].stop(0.25);
       march(d, R[1], ...wy(-1.6, 9.8), 5).catch(() => {}); await march(d, R[2], ...wy(0.2, 12.4), 5);
       await d.wait(0.6); P.stop(0.5); P.state = 'loco'; drover.setVisible(false);
-      // They take the yard hand for nobody, and go for the goods.
-      await d.talk([['Raider', 'Leave that one. He only carries the sacks.']]);
+      // (Owner, Nov 2026: it went straight from the kill to "leave that one".) The one who killed the guard
+      // turns on the yard hand and walks up to him, slowly, blade low; he does not back away. The second
+      // comes up behind. A decision is made about him, and "nobody" is what they decide.
+      { const k = R[0], dx = k.pos.x - P.pos.x, dz = k.pos.z - P.pos.z, l = Math.hypot(dx, dz) || 1, kx = P.pos.x + (dx / l) * 2.1, kz = P.pos.z + (dz / l) * 2.1;
+        const near = march(d, k, kx, kz, 1.3); near.catch(() => {});
+        march(d, R[1], kx + (dx / l) * 1.6 - (dz / l) * 1.3, kz + (dz / l) * 1.6 + (dx / l) * 1.3, 2.4).catch(() => {}); // a step behind him and to one side
+        turnTo(d, P, Math.atan2(dx, dz), 0.5).catch(() => {});
+        const a = Math.atan2(dx, dz); cam.shot([P.pos.x - Math.sin(a) * 1.6 + Math.cos(a) * 0.7, 1.6, P.pos.z - Math.cos(a) * 1.6 - Math.sin(a) * 0.7], [kx, 1.4, kz]); cam.shot([P.pos.x - Math.sin(a) * 1.2 + Math.cos(a) * 0.6, 1.6, P.pos.z - Math.cos(a) * 1.2 - Math.sin(a) * 0.6], [kx, 1.45, kz], 4); // over his shoulder as it comes
+        await near; k.stop(0.3); k.face = k.angleTo(P); await d.wait(0.9); // he stands and looks him over
+        { const mx = (kx + P.pos.x) / 2, mz = (kz + P.pos.z) / 2; cam.shot([mx + Math.cos(a) * 3.4, 1.6, mz - Math.sin(a) * 3.4], [mx, 1.35, mz]); cam.shot([mx + Math.cos(a) * 3.0, 1.6, mz - Math.sin(a) * 3.0], [mx, 1.35, mz], 6); } // the two of them, side on
+        R[1].stop(0.3); R[1].face = R[1].angleTo(P);
+        await d.talk([['Second raider', 'One on the gate. You said one.'], ['Raider', 'There was one. ...And this.'], ['Second raider', 'That? Look at his hands. He carries the sacks.']]);
+        // He turns away from him, and the camera goes down to what the guard dropped.
+        turnTo(d, k, Math.atan2(loot[0][0] - (k.pos.x - WAY.x), loot[0][1] - (k.pos.z - WAY.z)), 0.6).catch(() => {});
+        cam.shot([guard.pos.x + 2.9, 2.2, guard.pos.z - 0.5], [guard.pos.x + 0.8, 0, guard.pos.z - 0.4]); cam.shot([guard.pos.x + 2.6, 2.0, guard.pos.z - 0.5], [guard.pos.x + 0.7, 0, guard.pos.z - 0.4], 4); // from his side and above, aimed short so the body and the sword sit clear of the dialogue box
+        await d.talk([['Raider', 'Then let him carry them for us later. Take the goods.']]); }
       loot.forEach(([x, z, f], i) => march(d, R[i], ...wy(x, z), 3.6).then(() => { R[i].face = f; }, () => {}));
       // On him: he looks at the man on the ground, and at what the man dropped.
       { const x = P.pos.x, z = P.pos.z; cam.shot([x + 1.1, 1.55, z + 2.6], [x, 1.5, z]); cam.shot([x + 0.9, 1.55, z + 2.2], [x, 1.5, z], 2.5); }
