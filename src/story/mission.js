@@ -852,7 +852,7 @@ stage('beacon', {
     stop(); offJ(); ui.holdBar(false); G.hold = null; ui.hint(''); ui.objective('');
     // It burns. Out in the dunes they see it too, and break off; and from the south, the company's horn.
     await settled(d, 1); P.controlEnabled = false; P.lock = null; P.calm = true; P.inv = 1e6; G.cinematic = true; ui.cinematic(true);
-    L.front.light(true); SFX.flame(); SFX.boom(); G.shake = 0.2; for (const e of G.enemies) e.flee(); actOne();
+    L.front.light(true); SFX.flame(); SFX.boom(); G.shake = 0.2; for (const e of G.enemies) e.flee(); actOne(); preloadMusic('wind', 'watch'); // the picket's two tracks, for the night that follows
     cam.shot(fr3(9, 1.6, 37), [L.front.beacon[0], L.front.top + 7, L.front.beacon[1]]); cam.shot(fr3(7, 1.5, 34.5), [L.front.beacon[0], L.front.top + 8, L.front.beacon[1]], 7);
     await d.wait(3.4); SFX.horn(); await d.wait(2.4); rallyAll(); G.freezeAI = true;
     ui.fade(1, 0.6); await d.wait(0.7);
@@ -897,7 +897,8 @@ stage('picket', {
     const give = () => { G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; };
 
     // ---- the night
-    ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'ranker', player: [...fr(2.6, -28.5), PI], corin: null }); G.carry = null; G.freezeAI = true; take(); actOne();
+    ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'ranker', player: [...fr(2.6, -28.5), PI], corin: null }); G.carry = null; G.freezeAI = true; take();
+    playMusic('wind', { cross: 3, fade: 3 }); preloadMusic('watch'); // (owner, Nov 2026) "Only the Wind Remains": the walk in to the corporal and his death; loops
     const corp = new Extra({ ...OFF, hair: 0x8a8680 }, ...fr(...loc(0, 0)), 0.4); corp.unbound = true; corp.play(C(0.1, [0, PZ.sit]), 0.01); // against the trough, facing the fire
     const boy = new Extra(BOY, ...fr(...loc(0.95, 0.25)), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.unbound = true; boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneel]), 0.01);
     const sgt = new Extra(TYPES.sergeant.look, ...fr(...loc(-1.7, 2.5)), 0, { scale: TYPES.sergeant.scale }); sgt.face = sgt.angleTo(corp);
@@ -932,7 +933,7 @@ stage('picket', {
     await d.talk([['Corin', "I don't want him. I don't want anybody. I want you to get up."], ['Corporal', 'I know you do.']]);
     cam.shot(c3(-2.6, 1.0, 0.95), c3(0.5, 0.7, 1.0)); cam.shot(c3(-3.2, 1.3, 1.2), c3(0.5, 0.7, 1.1), 8);
     await d.talk([['Corporal', '...Sergeant. Write it down, while I can still hear you do it.'], ['Sergeant', "It's written, Corporal. Rest now."]]);
-    await d.wait(0.8); ui.fade(1, 2.4); await d.wait(3.0);
+    await d.wait(0.8); ui.fade(1, 2.4); playMusic('watch', { cross: 2.4, fade: 3.5 }); await d.wait(3.0); // the night's music goes out with the light; "A Brother's Final Watch" comes in on the morning and loops while he looks for the boy
 
     // ---- the morning
     G.resetWorld({ site: 'front', sky: 'morning', look: 'ranker', player: [...fr(...loc(0.1, 2.0)), 0.4 + PI], corin: null }); G.freezeAI = true; take();

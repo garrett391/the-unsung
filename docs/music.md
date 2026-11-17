@@ -61,6 +61,24 @@ These made the three tracks above. Same palette and key as the rest. Each leads 
 
 > Instrumental, no vocals. Brisk, wary sparring music for a trial bout between two soldiers, watched by a company. Driving oud ostinato, frame drum and hand drum in a steady 6/8, pizzicato low strings, short cello phrases that push and pull back. 100 BPM, D minor. Focused and dry, a contest of skill, not a war: no brass, no big drums, no triumphant melody. Even energy throughout. Loopable ending.
 
+## The picket: the corporal's death (Nov 2026)
+
+Two tracks the owner made with Gemini from the prompts below. Neither had silence at the start; the 1.7 s and 2.6 s of silence at their ends were cut so they loop (with a 60 ms fade against a click), and both were re-encoded at 128 kbps. Loudness already matched the others (-12.3 and -12.0 LUFS after the cut), so the levels were left alone. Unheard: the owner's ear decides.
+
+- "Only the Wind Remains" (`wind`, 63.3 s, looped): the night. It takes over from "Beneath the Flagstones" as the picket fades up, and runs while he walks in past Hale, Brann and Wren to the corporal and through the corporal's death. It goes out with the light as the night fades to black.
+- "A Brother's Final Watch" (`watch`, 64.0 s, looped): the morning. It comes in as the morning fades up, and runs while he talks to the sergeant, looks for Corin on the rise and finds him; it carries on under the next chapter's cards until `actOne()` crossfades to the camp's theme.
+- Both are preloaded once the beacon is lit, so the night's track is ready when the picket starts.
+
+**The night** ("Only the Wind Remains"):
+
+> For a video game cut scene. Instrumental, no vocals, no choir, no humming. Sincere, simple elegy for a dark fantasy war game: a soldier has died, and his comrades stand over him. Solo duduk playing a slow, plain, legato melody, long breaths and held notes, over warm low strings sustaining soft chords. A cello joins in the second half, doubling the melody an octave below. 50 BPM, D minor. Earnest and grave, like a war film elegy. No plucked strings, no staccato, no waltz, no music box, no celesta, no bells, nothing quirky, whimsical or spooky. No percussion. About 50 seconds. Ends on a held low string chord that fades to silence
+
+**The morning** ("A Brother's Final Watch"):
+
+> Make a song to this spec for a video game scene. Instrumental, no vocals, no choir, no humming. Short, intimate, grieving piece for a dark fantasy game: a soldier dies of his wounds at a desert camp at dawn, and his young brother is left behind. Solo cello playing a slow, plain, broken melody, with a single plucked oud answering in the gaps. One soft, sustained string note underneath, and nothing else. 54 BPM, D minor. No percussion. It stays quiet and close, with one small rise near the middle, as if someone is holding back tears, then falls away. Warm and dusty, not epic, not heroic. About 50 seconds. Ends on one held cello note that fades to silence
+
+Notes from these: the long "no ..." lists (no plucked strings, no music box, nothing whimsical) are what kept earlier drafts from turning quirky; keep them for other quiet cues.
+
 Tracks are named in `TRACKS` in `src/core/audio.js`; one plays at a time. A new one waits for the old one to fade out, then fades in. A decoded track is large (about 60 MB for the three-minute one): `forgetMusic()` drops the ones not playing, and a long track could be cut down to a loop if phones struggle.
 
 For new tracks (in-game music, stingers for the lesson, Corin's fall, dawn), keep the same palette and key so they sit together.
