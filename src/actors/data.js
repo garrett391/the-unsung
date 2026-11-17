@@ -30,7 +30,7 @@ for (const k in ATK) { ATK[k].key = k; ATK[k].dur = CL[ATK[k].clip].dur; }
 // unarmed), who takes up a fallen guard's sword and iron shield (`drifter`).
 const PLAIN = { armor: 0x8a7a5c, trim: 0x5e4a34, under: 0x6b6250, dark: 0x3a2c22, steel: 0xc9ccd2, rim: 0x3a2e22, /* a warm, faint rim: the blue one turns brown cloth purple in daylight */ helm: 'wrap', wrap: 0xcfc2a2, skin: 0xc99872, plain: true, pads: 0.5, legs: 1.1 };
 const SOLDIER = { armor: 0x9aa0aa, trim: 0x6c727c, under: 0x26305a, dark: 0x5a3a24, steel: 0xe6e9ef, shield: 2, rim: 0x23305a, helm: 'open', tabard: true, lames: true, knees: true, legs: 1.12, pads: 1.05, eye: 0x08080c };
-const WAYGUARD = { armor: 0x7a5a3c, trim: 0x8a8a86, under: 0x6b6250, dark: 0x2c2620, steel: 0xc9ccd2, rim: 0x3a2e22, helm: 'open', shield: 1, plain: true, pads: 0.8, skin: 0xb98a66, hair: 0x2c2420 };
+const WAYGUARD = { armor: 0x9a8455, trim: 0x8a8a86, under: 0x6b6250, dark: 0x2c2620, steel: 0xc9ccd2, rim: 0x3a2e22, helm: 'open', kettle: 0x8d9096, coif: 0xb9ad90, jack: 0x6e4a2c, scarf: 0x6e3229, beard: 1, shield: 1, plain: true, pads: 0.8, skin: 0xb98a66, hair: 0x2c2420 }; // ochre tunic under a studded leather jack, bracers and greaves, a madder neckcloth, an iron kettle hat over a padded coif
 const HAND = { ...PLAIN, scarf: 0x4c4136, sash: 0x222a3e, wraps: 0xa39678 }; // the yard hand (the captain, in the years between): a dark scarf bunched at the neck, a faded navy sash, forearms and shins bound
 export const LOOKS = {
   captain: { armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, cape: 0x27355e, shield: 0, rim: 0x2c3f86, legs: 1.22, pads: 0.88 },

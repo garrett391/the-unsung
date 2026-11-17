@@ -179,6 +179,16 @@ export function buildHumanoid(o) {
     mk(folded('mantle', [[0.088, 0.418], [0.14, 0.404], [0.24, 0.372], [0.335, 0.31], [0.378, 0.2], [0.384, 0.12]], (a, v) => v * v * (0.05 * Math.cos(a * 9 + 0.4) + 0.02 * Math.cos(a * 4))), mMn, chest, 0, 0, 0).scale.z = 0.72;
     mk(band(0.092, 0.016), mMn, chest, 0, 0.416, 0).rotation.x = PI / 2; mk(ball(0.016), mT, chest, 0, 0.4, 0.108);
   }
+  const mJ = o.jack ? M(o.jack, { map: plateTex }) : null, mJd = o.jack ? M(new T.Color(o.jack).multiplyScalar(0.6)) : null; // o.jack: a studded leather jack over the tunic, with shoulder caps, bracers and a sword belt across the chest
+  if (mJ) {
+    mk(turned('jack', [[0.206, -0.01], [0.212, 0.07], [0.237, 0.19], [0.252, 0.275], [0.232, 0.335], [0.172, 0.368]], 12), mJ, chest, 0, 0, 0).scale.z = 0.8;
+    mk(new T.CylinderGeometry(0.21, 0.224, 0.215, SEG, 1, true), mJ, spine, 0, 0.1, 0).scale.z = 0.78;
+    const hem = mk(band(0.224, 0.009), mJd, spine, 0, -0.005, 0); hem.rotation.x = PI / 2; hem.scale.y = 0.78;
+    const col = mk(band(0.17, 0.012), mJd, chest, 0, 0.366, 0); col.rotation.x = PI / 2; col.scale.y = 0.8;
+    for (const [y, z] of [[0.3, 0.19], [0.22, 0.197], [0.14, 0.184], [0.06, 0.17]]) { mk(rbox(0.07, 0.016, 0.012, 0.005), mJd, chest, 0, y, z); mk(ball(0.009), mT, chest, 0.03, y, z + 0.006); } // closed down the front with straps
+    mk(rbox(0.05, 0.4, 0.014, 0.005), mJd, chest, 0.01, 0.15, 0.203).rotation.set(-0.19, 0, -0.62); mk(rbox(0.05, 0.4, 0.014, 0.005), mJd, chest, 0.01, 0.15, -0.203).rotation.set(0.19, 0, 0.62); // the sword belt, over the right shoulder to the scabbard
+    mk(rbox(0.04, 0.045, 0.014, 0.006), mT, chest, 0.04, 0.19, 0.214).rotation.set(-0.19, 0, -0.62);
+  }
   // helm
   const neck = (J.neck = joint(chest, 0, 0.4, 0));
   if (PLN) mk(new T.CylinderGeometry(0.075, 0.13, 0.05, SEG, 1, true), mF, neck, 0, -0.01, 0).scale.z = 0.92; // a soft collar
@@ -226,6 +236,18 @@ export function buildHumanoid(o) {
         mk(band(0.121, 0.017), mHt, neck, 0, 0.212, -0.004).rotation.x = PI / 2 - 0.16;
       }
       if (o.bandage) { const bd = mk(new T.CylinderGeometry(0.122, 0.122, 0.05, SEG), M(0xd8d0bc), neck, 0, 0.222, 0.004); bd.rotation.set(0.1, 0, 0.16); }
+    } else if (o.kettle) { // an iron kettle hat over a padded coif: a turned bowl and a wide sloping brim with a rolled edge, rivets round the band, the coif's skirt on the shoulders
+      const mI = M(o.kettle, { map: plateTex, shine: 0.5, side: T.DoubleSide }), mIt = M(new T.Color(o.kettle).multiplyScalar(0.7), { shine: 0.4 }), mCf = M(o.coif || o.under, { map: clothTex, side: T.DoubleSide });
+      const cap = mk(new T.SphereGeometry(0.121, SEG, 8, 0, PI * 2, 0, PI * 0.56), mCf, neck, 0, 0.176, -0.006); cap.scale.set(0.96, 1.04, 1.08); cap.rotation.x = -0.3;
+      mk(new T.CylinderGeometry(0.117, 0.124, 0.2, SEG, 2, true, 0.8, PI * 2 - 1.6), mCf, neck, 0, 0.1, -0.004).scale.z = 1.06; // down over the ears and round the jaw, open at the face
+      mk(turned('coifskirt', [[0.19, -0.04], [0.15, -0.012], [0.118, 0.012], [0.106, 0.04]], 6), mCf, neck, 0, 0, -0.004); // and out onto the shoulders
+      const tie = mk(new T.TorusGeometry(0.1, 0.008, 5, 12, PI), mCf, neck, 0, 0.1, 0.012); tie.rotation.set(0.5, 0, PI); tie.scale.set(1, 0.72, 1); // tied under the chin
+      const hat = joint(neck, 0, 0, -0.008); hat.rotation.set(-0.1, 0, 0.05); // worn pushed back a little, and not quite straight
+      mk(turned('kettle', [[0.25, 0.2], [0.215, 0.214], [0.172, 0.226], [0.15, 0.238], [0.146, 0.27], [0.126, 0.312], [0.076, 0.342], [0.003, 0.352]], 16), mI, hat, 0, 0, 0).scale.z = 1.07;
+      const rim = mk(band(0.25, 0.008), mIt, hat, 0, 0.2, 0); rim.rotation.x = PI / 2; rim.scale.y = 1.07;
+      const bd = mk(new T.CylinderGeometry(0.15, 0.154, 0.026, SEG, 1, true), mIt, hat, 0, 0.243, 0); bd.scale.z = 1.07;
+      for (let i = 0; i < 10; i++) { const a = (i / 10) * PI * 2 + 0.3; mk(ball(0.008), mI, hat, Math.sin(a) * 0.154, 0.243, Math.cos(a) * 0.165); }
+      const cb = mk(new T.TorusGeometry(0.146, 0.007, 4, 12, PI), mIt, hat, 0, 0.212, 0); cb.rotation.y = PI / 2; cb.scale.set(1.07, 0.97, 1); // a low ridge over the crown
     } else {
     const dome = mk(new T.SphereGeometry(0.168, SEG, 8, 0, PI * 2, 0, PI / 2), mA, neck, 0, 0.215, -0.01); dome.scale.y = 0.85;
     const brim = mk(new T.CylinderGeometry(0.2, 0.235, 0.025, SEG), mA, neck, 0, 0.215, 0.015); brim.rotation.x = 0.16;
@@ -276,6 +298,10 @@ export function buildHumanoid(o) {
     if (PLN) mk(folded('sleeve', [[0.004, 0.08], [0.052, 0.07], [0.084, 0.034], [0.091, -0.03], [0.084, -0.12], [0.079, -0.21], [0.084, -0.258], [0.064, -0.274]], (a, v) => (v < 0.93 ? 0.05 * sat((v - 0.25) / 0.35) * (0.45 + 0.55 * Math.cos(a - 0.6)) * Math.sin(v * 22 + 1.8 * Math.sin(a + 1)) : 0), 24, 18), o.robe ? mB : mU, sh, -s * 0.012, 0, 0).scale.z = 1.06; // a loose sleeve set into the shoulder, creasing toward a rolled cuff at the elbow
     else { mk(ball(0.135), mA, sh, s * 0.02, 0.03, 0).scale.set(1.12 * PD, 0.85 * PD, 1.15 * PD);
     mk(ball(0.1), mA, sh, s * 0.05, -0.07, 0).scale.set(PD, 0.7 * PD, 1.15 * PD); }
+    if (mJ) { // a leather cap on the shoulder, close over the sleeve, with a stitched edge
+      mk(new T.SphereGeometry(0.106, SEG, 8, 0, PI * 2, 0, PI * 0.62), mJ, sh, s * 0.004, -0.005, 0).scale.set(1.0, 1.0, 1.12);
+      const e = mk(band(0.099, 0.007), mJd, sh, s * 0.004, -0.044, 0); e.rotation.x = PI / 2; e.scale.y = 1.12;
+    }
     if (o.lames) { // stacked plates stepping down the upper arm
       mk(new T.SphereGeometry(0.15, SEG, 6, 0, PI * 2, 0, PI / 2.4), mA, sh, s * 0.035, 0.0, 0).scale.set(1.15, 0.8, 1.2);
       mk(new T.CylinderGeometry(0.105, 0.125, 0.06, SEG, 1, true), mA, sh, s * 0.03, -0.08, 0).scale.z = 1.15;
@@ -289,6 +315,7 @@ export function buildHumanoid(o) {
     else if (PLN) { mk(limb(0.055, 0.043, 0.25), mSkin, el); mk(new T.CylinderGeometry(0.064, 0.06, 0.04, SEG), mU, el, 0, 0.0, 0); mk(new T.CylinderGeometry(0.049, 0.047, 0.05, SEG), mD, el, 0, -0.215, 0); } // a bare forearm below a rolled sleeve, and a leather wrist wrap
     else { mk(limb(0.062, 0.088, 0.25), mA, el); mk(ball(0.066), mT, el, 0, 0, -0.015);
     mk(new T.CylinderGeometry(0.098, 0.098, 0.03, SEG), mT, el, 0, -0.235, 0); }
+    if (mJ) { mk(limb(0.063, 0.052, 0.19), mJ, el, 0, -0.035, 0); for (const y of [-0.075, -0.175]) mk(band(0.06 - (y < -0.1 ? 0.006 : 0), 0.006), mJd, el, 0, y, 0).rotation.x = PI / 2; } // a bracer, buckled twice
     if (!PLN) { const cw = mk(slab(0.1, 0.12, 0.02, 0.04), mA, el, s * 0.072, 0.0, -0.02); cw.rotation.order = 'XZY'; cw.rotation.set(0, PI / 2, s * 0.22); } // couter wing
     if (!PLN) mk(new T.CylinderGeometry(0.112, 0.092, 0.085, SEG, 1, true), mF, el, 0, -0.175, 0); // flared gauntlet cuff
     const ha = (J[c] = joint(el, 0, -0.25, 0));
@@ -331,6 +358,7 @@ export function buildHumanoid(o) {
     mk(ball(0.07 * LG), mA, kn, 0, -0.13, -0.028 * LG).scale.set(0.95, 1.6, 0.85); // calf
     mk(new T.CylinderGeometry(0.1 * LG, 0.1 * LG, 0.028, SEG), mT, th, 0, -0.05, 0); mk(rbox(0.146 * LG, 0.03, 0.08 * LG, 0.012), mT, th, 0, -0.265, 0.058 * LG); // thigh strap, cuisse edge
     }
+    if (mJ) { mk(limb(0.082 * LG, 0.064 * LG, 0.3), mJ, kn, 0, -0.07, 0); for (const y of [-0.11, -0.3]) mk(band((y < -0.2 ? 0.068 : 0.08) * LG, 0.006), mJd, kn, 0, y, 0).rotation.x = PI / 2; mk(ball(0.074 * LG), mJ, kn, 0, 0.0, 0.03 * LG).scale.set(1, 1.05, 0.7); } // leather greaves strapped over the boots, and a knee cap
     if (o.knees) { // a knee cop with a swept wing on the outside, over a tall greave
       mk(ball(0.085 * LG), mA, kn, 0, 0.01, 0.05).scale.set(1.15, 1.05, 0.8);
       const wg = mk(slab(0.11, 0.17, 0.02, 0.045), mA, kn, s * 0.085 * LG, 0.05, 0.02); wg.rotation.order = 'XZY'; wg.rotation.set(-0.15, PI / 2, -s * 0.45);
