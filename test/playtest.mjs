@@ -157,9 +157,10 @@ if (at('beacon')) {
 if (at('picket')) { // the night at the well and the morning after: no fighting, he walks up to the corporal, then to the boy
   await play(30, { until: "G.player.controlEnabled" }); await play(0.5); await shot('0z-picket-night');
   log('to the corporal', await walk([[2.8, -34], [2.85, -41]], "G.cinematic")); await play(40, { until: "G.talking" }); await play(1.0); await shot('0z2-corporal');
-  await play(8, { tap: true, until: "/fourteen/.test(document.getElementById('dtxt').textContent)" }); await play(0.6); await shot('0z3-the-boy'); await play(8, { tap: true, until: "/never met/.test(document.getElementById('dtxt').textContent)" }); await play(0.6); await shot('0z3b-asked');
+  await play(20, { tap: true, until: "/fourteen/.test(document.getElementById('dtxt').textContent)" }); await play(0.6); await shot('0z3-the-boy'); await play(8, { tap: true, until: "/never met/.test(document.getElementById('dtxt').textContent)" }); await play(0.6); await shot('0z3b-asked');
   await play(60, { tap: true, until: "G.extras.length<6&&G.talking" }); await play(0.8); await shot('0z3c-sergeant'); await play(90, { tap: true, until: "G.level.site==='front'&&G.player.controlEnabled&&!G.cinematic&&G.extras.length<6" }); await play(0.5); await shot('0z4-morning');
-  log('to the boy', await walk([[2.6, -31.4]], "G.cinematic")); await play(40, { until: "G.talking" }); await play(1.0); await shot('0z5-squire');
+  log('to the boy', await walk([[2.6, -33], [3, -28], [6, -20], [9, -12]], "G.cinematic")); await play(40, { until: "G.talking" }); await play(1.0); await shot('0z5-squire'); // he is out on the rise: the bot walks out past the stakes to him
+  await play(30, { tap: true, until: "/one I've got/.test(document.getElementById('dtxt').textContent)" }); await play(0.8); await shot('0z6-a-name');
   log('to the camp', await play(60, { tap: true, until: stageIs('intro') }));
   await page.evaluate(() => { G.auto = true; });
 }

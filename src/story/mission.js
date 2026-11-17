@@ -730,6 +730,8 @@ const rallyAll = () => { for (const a of G.allies) a.rally(); };
 // navy under a leather jack and an iron hat, and a crimson neckcloth (the colour of the crest he wears later), so he is not one more steel figure.
 const BOY = { ...LOOKS.wayguardBare, armor: 0x2a3560, under: 0x26305a, scarf: 0xb0283c, beard: undefined, hair: 0x6a4a2a, skin: 0xc99872 }, BOY_SCALE = 0.8;
 const OFF = { ...LINE, shield: undefined, weapon: 'none' }; // one of the line off duty, arms laid by
+// What he goes by on the frontier (owner, 16 Nov 2026: he answers his own people; asked his name, he gives his old job). His speaker label too, until he is made captain.
+const ME = 'Yard hand';
 // The first javelin on the frontier: one of the line shouts it (once, unless the chapter is picked again). Returns the unsubscribe.
 const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.seenJav = true; ui.say(who, 'Javelins! Shields up, or get out of the way!', 3.5); } });
 stage('patrol', {
@@ -820,8 +822,8 @@ stage('beacon', {
     ]);
     cam.shot(fr3(18.5, 1.0, 44.9), [P.pos.x, P.pos.y + 1.45, P.pos.z]); cam.shot(fr3(18.4, 1.05, 44.6), [P.pos.x, P.pos.y + 1.5, P.pos.z], 5); // from beside her, up at him
     await d.talk([['Corporal', 'You, the quiet one. Can you hold this rock until she gets it lit?']]);
-    await d.wait(0.9);
-    await d.talk([['Corporal', "...I'll take that as a yes. Go, Wren."]]);
+    await d.wait(0.6);
+    await d.talk([[ME, "Climb. I'll keep them off you."], ['Corporal', '...Well. You heard him, Wren. Go.']]);
     // She goes round the rock to climb it (an Extra from here: she is out of the fight).
     { const i = G.allies.indexOf(wren); G.allies.splice(i, 1); wren.dispose(); const w = new Extra({ ...LINE, skin: 0xc4926c, hair: 0x2a1c14, weapon: 'none', shield: undefined }, wren.pos.x, wren.pos.z, wren.face, { scale: 0.98 }); w.go(...fr(20.6, 45.4), 3.4);
       d.until(() => w.fixed).then(() => w.setVisible(false), () => {}); }
@@ -864,7 +866,7 @@ stage('beacon', {
       ['Corporal', 'I saw. What do they call you, soldier?'],
     ]);
     await d.wait(1.0);
-    await d.talk([['Brann', "He doesn't talk, Corporal. The clerk wrote something down, but none of us can read it."], ['Corporal', "Then I'll tell the captain it was the Third Company, and he can work out which one of you."]]);
+    await d.talk([[ME, 'Yard hand.'], ['Corporal', "That's a job, soldier, not a name."], [ME, "It's the one I've got."], ['Brann', "The clerk wrote something else on the roll, Corporal. None of us can read it."], ['Corporal', "Then I'll tell the captain it was the Third Company, and he can work out which one of you."]]);
     cam.shot(fr3(17.6, 1.2, 43.0), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z]); cam.shot(fr3(17.4, 1.25, 42.8), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z], 5);
     await d.talk([['Corin', 'It was him. On the rock, by himself. I counted them, and then I lost count.'], ['Corporal', "Help me up, runner. ...Slowly. It's a long walk to the well."]]);
     await d.wait(0.6); ui.fade(1, 1.8); await d.wait(2.0); P.inv = 0;
@@ -884,8 +886,11 @@ stage('picket', {
     let quiet = 0; // one bystander speaks at a time, and a scene waits for the line to finish
     const company = (lines) => {
       const who = [['HALE', { hair: 0x4a3424 }, 1.0, 4.9, -37.4], ['BRANN', { skin: 0xb98a66, hair: 0x1e1814 }, 0.96, 7.9, -39.5], ['WREN', { skin: 0xc4926c, hair: 0x2a1c14 }, 0.98, 6.3, -41.0]];
-      const folk = who.map(([name, o, scale, x, z], i) => ({ e: new Extra({ ...OFF, ...o }, ...fr(x, z), toFire(x, z), { scale, name }), who: name[0] + name.slice(1).toLowerCase(), line: lines[i][0], dur: lines[i][1] }));
-      const stop = d.every(() => { if (!P.controlEnabled || G.talking) return; for (const f of folk) if (!f.said && P.dist(f.e) < 3.0 && G.time > quiet) { f.said = true; quiet = G.time + f.dur + 0.3; f.e.watch = P; ui.say(f.who, f.line, f.dur); } });
+      // lines[i] = [what they say, how long it stays, what he says back] (owner, 16 Nov 2026: no blank stares; he answers his own people)
+      const folk = who.map(([name, o, scale, x, z], i) => ({ e: new Extra({ ...OFF, ...o }, ...fr(x, z), toFire(x, z), { scale, name }), who: name[0] + name.slice(1).toLowerCase(), line: lines[i][0], dur: lines[i][1], reply: lines[i][2] }));
+      const stop = d.every(() => { if (!P.controlEnabled || G.talking) return; for (const f of folk) if (!f.said && P.dist(f.e) < 3.0 && G.time > quiet) {
+        f.said = true; f.e.watch = P; ui.say(f.who, f.line, f.dur); quiet = G.time + f.dur + 0.3;
+        if (f.reply) { const rd = 1.4 + f.reply.length * 0.05; quiet += rd; d.wait(f.dur).then(() => { if (!G.talking) ui.say(ME, f.reply, rd); }, () => {}); } } });
       return stop;
     };
     const take = () => { P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); ui.objective(''); L.marker(null); ui.hideDialogue(); };
@@ -896,7 +901,7 @@ stage('picket', {
     const corp = new Extra({ ...OFF, hair: 0x8a8680 }, ...fr(...loc(0, 0)), 0.4); corp.unbound = true; corp.play(C(0.1, [0, PZ.sit]), 0.01); // against the trough, facing the fire
     const boy = new Extra(BOY, ...fr(...loc(0.95, 0.25)), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.unbound = true; boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneel]), 0.01);
     const sgt = new Extra(TYPES.sergeant.look, ...fr(...loc(-1.7, 2.5)), 0, { scale: TYPES.sergeant.scale }); sgt.face = sgt.angleTo(corp);
-    let stop = company([["He's been asking for you. ...The sergeant says he won't see the morning.", 5], ["Go on. I'll keep you a place by the fire.", 3.5], ["I got the beacon lit. It didn't do him any good.", 4]]);
+    let stop = company([["He's been asking for you. ...The sergeant says he won't see the morning.", 5, "Then I won't keep him waiting."], ["Go on. I'll keep you a place by the fire.", 3.5, 'Thanks.'], ["I got the beacon lit. It didn't do him any good.", 4, 'It did the rest of us.']]);
     cam.shot(fr3(-1.5, 2.4, -33.5), fr3(4.6, 1.0, -39.6)); cam.shot(fr3(-0.6, 2.0, -34.6), fr3(4.6, 1.0, -39.8), 8); ui.fade(0, 2.6); // the picket by firelight, from the dark
     await d.wait(4.2); give();
     ui.objective('Go to the corporal'); L.marker(...fr(...loc(0.1, 1.6)));
@@ -910,6 +915,8 @@ stage('picket', {
       ['Corin', "You're not to talk. The sergeant said."],
       ['Corporal', 'The sergeant says a lot of things.'],
       ['Corporal', 'I told you everyone under that rock was walking home, soldier. ...I was out by one.'],
+      [ME, "Then I didn't hold it well enough."],
+      ['Corporal', 'You held it fine. A javelin found me the day before you ever got there.'],
     ]);
     cam.shot(c3(1.7, 2.1, 1.0), eye(boy, 0.85)); cam.shot(c3(1.6, 1.9, 0.95), eye(boy, 0.85), 6); // the boy
     await d.talk([
@@ -919,7 +926,8 @@ stage('picket', {
     ]);
     cam.shot(c3(0.3, 0.4, 0.9), eye(P, 1.5)); cam.shot(c3(0.3, 0.6, 0.95), eye(P, 1.55), 6); // from beside the corporal, up at him
     await d.talk([['Corporal', "You held that rock for people you'd never met. Hold it for one more."]]);
-    await d.wait(1.3);
+    await d.wait(1.0);
+    await d.talk([[ME, "...I'll hold it."]]);
     cam.shot(c3(1.6, 1.9, 0.95), eye(boy, 0.85)); cam.shot(c3(1.5, 1.7, 0.9), eye(boy, 0.85), 6);
     await d.talk([['Corin', "I don't want him. I don't want anybody. I want you to get up."], ['Corporal', 'I know you do.']]);
     cam.shot(c3(-2.6, 1.0, 0.95), c3(0.5, 0.7, 1.0)); cam.shot(c3(-3.2, 1.3, 1.2), c3(0.5, 0.7, 1.1), 8);
@@ -929,26 +937,30 @@ stage('picket', {
     // ---- the morning
     G.resetWorld({ site: 'front', sky: 'morning', look: 'ranker', player: [...fr(...loc(0.1, 2.0)), 0.4 + PI], corin: null }); G.freezeAI = true; take();
     const sg = new Extra(TYPES.sergeant.look, ...fr(...loc(-2.0, 1.4)), 0, { scale: TYPES.sergeant.scale }); sg.watch = P;
-    const kid = new Extra(BOY, ...fr(2.6, -31.4), 0, { scale: BOY_SCALE, name: 'CORIN' }); // at the gap in the stakes, his back to the picket
-    stop = company([["He hasn't moved from there since we buried him. Somebody ought to go to him. ...It shouldn't be me.", 6], ['My father had a dog like you. Never made a sound, and nothing ever got near the sheep.', 5.5], ['Three days at the rock he carried water to all of us, and never spilled any. ...Be patient with him.', 6]]);
+    // (owner, 16 Nov 2026: he should be some way off, and found.) Out past the stakes, at the top of the rise, looking north to the beacon.
+    const K = [9.0, -12.0], kid = new Extra(BOY, ...fr(...K), 0.17, { scale: BOY_SCALE, name: 'CORIN' });
+    stop = company([["The boy went out past the stakes as soon as we'd buried him. Somebody ought to go after him. ...It shouldn't be me.", 6, "I'll go."], ['My father had a dog like you. Never made a sound, and nothing ever got near the sheep.', 5.5, 'Was that meant kindly?'], ['Three days at the rock he carried water to all of us, and never spilled any. ...Be patient with him.', 6, "I'll try."]]);
     cam.shot(c3(1.6, 2.2, 1.1), c3(0, 0.3, 0.5)); cam.shot(c3(1.2, 2.6, 1.3), c3(0, 0.3, 0.5), 7); ui.fade(0, 2.4); // where he sat: nobody
     await d.wait(3.0);
-    cam.shot(c3(1.5, 1.5, 1.6), eye(sg, 1.4)); cam.shot(c3(1.3, 1.5, 1.55), eye(sg, 1.4), 6); // past his shoulder, at the sergeant await turnTo(d, P, P.angleTo(sg), 0.5);
+    cam.shot(c3(1.5, 1.5, 1.6), eye(sg, 1.4)); cam.shot(c3(1.3, 1.5, 1.55), eye(sg, 1.4), 6); /* past his shoulder, at the sergeant */ await turnTo(d, P, P.angleTo(sg), 0.5);
     await d.talk([
       ['Sergeant', "He went before the light came. We've put him under the palms."],
       ['Sergeant', "The boy's on your roll now. A squire, to a man the clerk couldn't put a name to."],
-      ['Sergeant', "You don't want him, and he doesn't want you. Out here that's as good a start as anybody gets."],
+      [ME, "I don't need a squire."],
+      ['Sergeant', "No. He needs a soldier, and you're the one his brother picked. You don't want him, and he doesn't want you. Out here that's as good a start as anybody gets."],
+      ['Sergeant', "He went out past the stakes. Up the rise, I'd guess, where he can see the beacon. Go and find him."],
     ]);
-    give(); ui.objective('Go to the boy'); L.marker(kid.pos.x, kid.pos.z);
-    await d.until(() => P.dist(kid) < 2.4 && G.time > quiet);
+    give(); ui.objective('Find Corin');
+    { const t0 = G.time; let shown = false; const late = d.every(() => { if (!shown && G.time - t0 > 40) { shown = true; L.marker(...K.map((v, i) => v + (i ? FRONT.z : FRONT.x))); } }); // no marker at first: the sergeant has said where; it comes if he is still looking after a while
+      await d.until(() => P.dist(kid) < 2.6 && G.time > quiet); late(); }
     stop(); await settled(d, 1); take(); await turnTo(d, P, P.angleTo(kid), 0.3);
-    { const k = [2.6, -31.4]; cam.shot(fr3(k[0] + 1.5, 1.3, k[1] + 2.6), eye(kid, 1.0)); cam.shot(fr3(k[0] + 1.2, 1.25, k[1] + 2.4), eye(kid, 1.0), 9); } // from out in front of him: the boy, and the soldier behind his shoulder
+    { const f = kid.face, sx = Math.sin(f), cz = Math.cos(f); cam.shot(fr3(K[0] + sx * 2.6 + cz * 1.5, 1.3, K[1] + cz * 2.6 - sx * 1.5), eye(kid, 1.0)); cam.shot(fr3(K[0] + sx * 2.4 + cz * 1.2, 1.25, K[1] + cz * 2.4 - sx * 1.2), eye(kid, 1.0), 9); } // from out in front of him: the boy, and the soldier behind his shoulder
     await d.wait(1.2);
-    await d.talk([['Corin', "He said you'd keep me alive. He didn't say I had to like it."]]);
+    await d.talk([['Corin', "He said you'd keep me alive. He didn't say I had to like it."], [ME, "You don't have to."]]);
     await d.wait(0.9);
-    await d.talk([['Corin', "...What do I call you? They say you haven't got a name."]]);
-    await d.wait(1.6); kid.watch = P; // he turns round, at last
-    await d.talk([['Corin', "Fine. Then I'll keep asking until you have."]]);
+    await d.talk([['Corin', "...What do I call you? 'Yard hand'? That's what you told him."], [ME, "It's what I was."], ['Corin', "That's not a name."]]);
+    await d.wait(1.4); kid.watch = P; // he turns round, at last
+    await d.talk([[ME, "It's the one I've got."], ['Corin', "Fine. Then I'll keep asking until you've got a better one."]]);
     await d.wait(0.8); ui.fade(1, 1.8); await d.wait(2.0);
   },
 });

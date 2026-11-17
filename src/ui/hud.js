@@ -15,8 +15,8 @@ const arrive = (el) => { el.classList.remove('new'); void el.offsetWidth; el.cla
 G.on((k) => { if (k !== 'tired') return; const b = $('st').parentNode; b.classList.remove('tired'); void b.offsetWidth; b.classList.add('tired'); });
 
 // Nameplates (owner, 16 Nov 2026: the soldiers who grow with him and die need their names over their health in a fight).
-// Every soldier on his side has his name and health above his head; Corin in battle and any named bystander (an Extra made
-// with `name`) within a few metres have the name alone. Hidden in cutscenes. A small pool of elements, moved by transform.
+// In a fight every soldier on his side has his name and health above his head, and Corin in battle his name. Out of one,
+// anyone named (a soldier, or an Extra made with `name`) has the name alone when he is near. Hidden in cutscenes. A small pool of elements, moved by transform.
 const pv = new Vector3(), pool = [];
 function plates() {
   const box = $('plates'); if (!box) return; let n = 0; const P = G.player, cam = G.camera, W = innerWidth, H = innerHeight;
@@ -29,10 +29,14 @@ function plates() {
     const o = (dim ? 0.45 : 1) * Math.max(0.35, Math.min(1, (30 - d) / 12)); if (el._o !== o) el.style.opacity = el._o = o;
     el.style.display = ''; el.style.transform = `translate(${((pv.x + 1) / 2 * W).toFixed(1)}px,${((1 - pv.y) / 2 * H).toFixed(1)}px) translate(-50%,-100%)`;
   };
+  // Owner, 16 Nov 2026: good in a fight, distracting while walking about. So names and bars over his side only while a fight is on;
+  // otherwise a name alone, and only over someone he is standing near.
   if (G.running && !G.cinematic && P.root.visible) {
-    for (const a of G.allies) if (a.root.visible) show(a, a.type.name, a.soldier ? a.hp / a.maxHp : null, a.out);
-    const c = G.corin; if (c && c.root.visible && c.mode === 'battle') show(c, c.type.name, null);
-    if (!G.enemies.some((e) => !e.dead)) for (const e of G.extras) if (e.type.name && e.root.visible && !e.dead && P.dist(e) < 9) show(e, e.type.name, null); // (not in a fight: a bystander's name over the melee reads as somebody else's)
+    const fight = G.enemies.some((e) => !e.dead && !e.hold);
+    if (fight) {
+      for (const a of G.allies) if (a.root.visible) show(a, a.type.name, a.soldier ? a.hp / a.maxHp : null, a.out);
+      const c = G.corin; if (c && c.root.visible && c.mode === 'battle') show(c, c.type.name, null);
+    } else for (const e of [...G.allies, ...G.extras]) if (e.type.name && e.root.visible && !e.dead && P.dist(e) < 4.5) show(e, e.type.name, null);
   }
   for (let i = n; i < pool.length; i++) if (pool[i].style.display !== 'none') pool[i].style.display = 'none';
 }
