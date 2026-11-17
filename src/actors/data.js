@@ -98,7 +98,10 @@ export const TYPES = {
   // Owner, Nov 2026: still too easy. Now aggressive: he stands closer (`close`), leaves less time between attacks
   // (`press`), answers a blow on his shield with one of his own more often than not (`counter`), runs his cut into
   // the thrust more often and the thrust sometimes on into the rush. The stage turns `phase2` on below half health.
-  sergeant: { name: 'THE SERGEANT', hp: 230, speed: 3.3, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0, close: 0.4, press: 0.6, counter: 0.6,
+  // Owner, 16 Nov 2026: mashing the strike button broke his guard before he ever got his rush off. His guard now takes
+  // five light blows and mends when left alone (`guard`), blows on his shield while he winds up don't count (`steady`),
+  // and the third in a row is answered with the rush (`shove`). A heavy blow or a parry still opens him at once.
+  sergeant: { name: 'THE SERGEANT', hp: 230, speed: 3.3, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0, close: 0.4, press: 0.6, counter: 0.6, guard: 5, steady: true, shove: 2,
     look: { ...SOLDIER, hair: 0x9a9690, skin: 0xb98a66 },
     moves: [{ style: 'slash', wind: 0.52, rec: 0.7, dmg: 14, range: 2.4, lunge: 6.5, chain: 0.55, then: 1 }, { style: 'thrust', wind: 0.58, rec: 0.85, dmg: 14, range: 2.8, lunge: 8, chain: 0.3, then: 2 },
       { style: 'bash', wind: 0.9, rec: 1.25, dmg: 16, range: 2.5, lunge: 13, rush: true, follow: true }] },

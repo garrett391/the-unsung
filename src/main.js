@@ -57,7 +57,7 @@ const loadReached = () => { const r = new Set([STAGES[0].name]); try { for (cons
 const reached = loadReached();
 const writeSave = (k) => { reached.add(STAGES[k].name); try { localStorage.setItem(SAVE, STAGES[k].name); localStorage.setItem(REACHED, JSON.stringify([...reached])); } catch (_) { /* storage blocked: play on without saving */ } if (G.drawChapters) G.drawChapters(); };
 const LESSONS = { taughtStrike: 'forecourt', taughtDoor: 'halls', taughtWay: 'waystation' }; // which chapter teaches what
-const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', patrol: 'the patrol', beacon: 'the beacon', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', patrol: 'the patrol', beacon: 'the beacon', picket: 'the well picket', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
@@ -102,7 +102,7 @@ function step(rdt, noRender) {
         const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z, d = Math.hypot(dx, dz) || 0.001, m = a.radius + b.radius + 0.12;
         if (d < m) { const o = m - d, wa = a.fixed ? 0 : b.fixed ? 1 : i === 0 ? 0.65 : 0.5; /* a bystander standing still (an Extra) is not shoved about */ a.pos.x -= (dx / d) * o * wa; a.pos.z -= (dz / d) * o * wa; b.pos.x += (dx / d) * o * (1 - wa); b.pos.z += (dz / d) * o * (1 - wa); }
       }
-      for (let i = 0; i < all.length; i++) confine(all[i].pos, all[i].radius, i === 0 || all[i] === corin || all[i].ally);
+      for (let i = 0; i < all.length; i++) if (!all[i].unbound) confine(all[i].pos, all[i].radius, i === 0 || all[i] === corin || all[i].ally);
       for (const c of all) c.animate(dt, G.time);
       for (let i = G.enemies.length - 1; i >= 0; i--) if (G.enemies[i].gone) { G.enemies[i].dispose(); G.enemies.splice(i, 1); }
     } else { player.animate(dt, G.time); if (corin.root.visible) corin.animate(dt, G.time); }
@@ -158,7 +158,7 @@ $('tplay').addEventListener('click', () => leave(0));
 const fresh = () => { G.seenHalls = G.seenWay = G.seenFront = G.seenJav = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
 // The list is grouped by act, numbered, and quiet: rows of text, not a column of boxed buttons. A chapter not yet reached
 // shows no name (some are spoilers); the one being played is marked.
-const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The Western Watch', ['patrol', 'beacon']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
+const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The Western Watch', ['patrol', 'beacon', 'picket']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 const CHAPTERS = STAGES.map((s, k) => [s, k]).filter(([s]) => s.checkpoint);
 const chapName = (s) => { const l = LABEL[s.name] || s.name; return l[0].toUpperCase() + l.slice(1); };
 // (A chapter that opens on cards keeps whatever is playing under them: STAGES[k].cards.)

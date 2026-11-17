@@ -645,7 +645,7 @@ stage('muster', {
     // His rush: called for here, every so often while he circles, and oftener once he is half beaten. The first
     // one comes with the one thing the player has not met before: a blow the shield will not stop.
     let rt = 5, told = false, pressed = false; const RUSH = TYPES.sergeant.moves[2];
-    const offR = G.on((k) => { if (k === 'rush' && !told) { told = true; const tip = 'His shield rush breaks a guard. Roll clear of it: a direction and {d}'; ui.hint(tip); d.wait(5).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); } });
+    const offR = G.on((k) => { if (k === 'rush') rt = Math.max(rt, pressed ? 3 : 5); /* one he threw in answer to blows on his shield counts too */ if (k === 'rush' && !told) { told = true; const tip = 'His shield rush breaks a guard. Roll clear of it: a direction and {d}'; ui.hint(tip); d.wait(5).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); } });
     const tick = d.every((dt) => {
       if (!pressed && S.hp < S.maxHp * 0.5) { pressed = true; S.phase2 = true; rt = Math.min(rt, 1.5); /* quicker on his feet, chains oftener, less time between attacks */ }
       if (G.freezeAI || G.talking || S.hp <= 1 || P.dead) return;
@@ -671,7 +671,7 @@ stage('muster', {
     const HP3 = 0.55, TROOP = 72; let out = []; // he gets up with a little over half of himself; the two fresh ones are lighter than the first soldier
     const rise = (e) => { e.dead = false; e.solid = e.fixed = false; e.hold = false; e.stagDur = 0.3; e.st = 0; e.stop(0.5); e.set('circle'); };
     const ready = () => { // the two soldiers become foes where they stand; the sergeant gets up
-      const T = pair.map((x, i) => { x.setVisible(false); x.place(-200, -200 - i * 3, 0); const e = G.spawn('trooper', ...spots[i], { spare: true }); e.yoff = 0; e.set('circle'); e.face = PI; e.hp = e.maxHp = TROOP; e.home = home[i]; return e; });
+      const T = pair.map((x, i) => { x.setVisible(false); x.place(-200, -200 - i * 3, 0); const e = G.spawn('trooper', ...spots[i], { spare: true }); e.yoff = 0; e.set('circle'); e.face = PI; e.hp = e.maxHp = TROOP; e.home = home[i]; e.title = i ? 'BRANN' : 'HALE'; /* the two he will go on patrol with: the bar says who */ return e; });
       rise(S); S.hp = Math.round(S.maxHp * HP3); return [S, ...T];
     };
     let foes = ready(); await d.wait(0.6);
@@ -726,6 +726,10 @@ const file = (at) => [ // the two who go with him: each has his own place behind
 // Raiders getting up out of the sand at these points; `marks` sets some of them on the soldiers instead of on him.
 const ambush = (list, marks = []) => list.map(([kind, x, z], i) => { const e = G.spawn(kind, ...fr(x, z), { rise: true }); if (marks[i]) e.mark = marks[i]; return e; });
 const rallyAll = () => { for (const a of G.allies) a.rally(); };
+// Corin at the beacon: a runner too young for the line, years before he is the squire of the first night. No plate: the company's
+// navy under a leather jack and an iron hat, and a crimson neckcloth (the colour of the crest he wears later), so he is not one more steel figure.
+const BOY = { ...LOOKS.wayguardBare, armor: 0x2a3560, under: 0x26305a, scarf: 0xb0283c, beard: undefined, hair: 0x6a4a2a, skin: 0xc99872 }, BOY_SCALE = 0.8;
+const OFF = { ...LINE, shield: undefined, weapon: 'none' }; // one of the line off duty, arms laid by
 // The first javelin on the frontier: one of the line shouts it (once, unless the chapter is picked again). Returns the unsubscribe.
 const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.seenJav = true; ui.say(who, 'Javelins! Shields up, or get out of the way!', 3.5); } });
 stage('patrol', {
@@ -792,6 +796,8 @@ stage('beacon', {
     const foot = fr(18.4, 42.8), post = (name, x, z, f, o) => { const a = G.enlist({ soldier: true, name, look: { ...LINE, ...o }, scale: 0.98, at: [...fr(x, z), f] }); a.post = [...fr(x, z), f]; a.hp = a.maxHp = 150; return a; };
     const p1 = post('SOLDIER', 15.4, 41.6, -2.2, { hair: 0x6a4a2a }), wren = post('WREN', 19.6, 40.2, 2.8, { skin: 0xc4926c, hair: 0x2a1c14 });
     const corp = new Extra({ ...LINE, weapon: 'none', shield: undefined, hair: 0x8a8680 }, ...fr(18.2, 44.0), -2.6); corp.play(C(0.1, [0, PZ.sit]), 0.01);
+    // Corin (story, 16 Nov 2026): the corporal's kid brother and his runner, a boy, on his knees beside him. Nobody's target.
+    const boy = new Extra(BOY, ...fr(19.5, 44.7), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneel]), 0.01);
     G.spawn('raider', ...fr(11.5, 39.5)).mark = p1; G.spawn('raider', ...fr(14, 36.5)).mark = p1; G.spawn('raider', ...fr(21, 35.5)).mark = wren; G.spawn('bulwark', ...fr(24, 38.5)).mark = wren; G.spawn('runner', ...fr(9, 44));
     G.spawn('raider', ...fr(4, 38)); G.spawn('runner', ...fr(26, 34)); G.spawn('skirmisher', ...fr(8, 52)); G.spawn('skirmisher', ...fr(31, 37)); const offJ = javelins('Hale');
     await settled(d, 1); ui.say('Hale', "There, under the rock! They're still standing.", 4);
@@ -806,6 +812,8 @@ stage('beacon', {
     cam.shot(fr3(12.6, 1.7, 44.4), fr3(18.0, 0.9, 43.4)); cam.shot(fr3(13.2, 1.5, 44.2), fr3(18.0, 0.9, 43.4), 9); ui.fade(0, 0.7); await d.wait(0.9);
     await d.talk([
       ['Corporal', 'Three of you? I asked the sergeant for thirty.'],
+      ['Corin', "Stop talking. You're bleeding through it again."],
+      ['Corporal', "'Stop talking, Corporal.' You're my runner out here, not my brother."],
       ['Corporal', "They broke the stair the first night. We can't get up to light it, and they won't let us leave."],
       ['Wren', 'I can climb it, Corporal. I told you yesterday.'],
       ['Corporal', 'And yesterday there was no one to keep them off you while you did.'],
@@ -857,7 +865,91 @@ stage('beacon', {
     ]);
     await d.wait(1.0);
     await d.talk([['Brann', "He doesn't talk, Corporal. The clerk wrote something down, but none of us can read it."], ['Corporal', "Then I'll tell the captain it was the Third Company, and he can work out which one of you."]]);
+    cam.shot(fr3(17.6, 1.2, 43.0), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z]); cam.shot(fr3(17.4, 1.25, 42.8), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z], 5);
+    await d.talk([['Corin', 'It was him. On the rock, by himself. I counted them, and then I lost count.'], ['Corporal', "Help me up, runner. ...Slowly. It's a long walk to the well."]]);
     await d.wait(0.6); ui.fade(1, 1.8); await d.wait(2.0); P.inv = 0;
+  },
+});
+
+// 'picket' (story, 16 Nov 2026; docs/story.md, "After the beacon"): the night after, back at the well. The corporal is dying
+// of the beacon wound, propped against the trough in the fire's light; he gives his kid brother to the man who held the rock.
+// Then the morning: the boy at the stakes, looking north, and neither of them wanting the other. No fighting. He can walk up
+// to Hale, Brann and Wren, who each say a line (this is where they start to be people to him). All lines are drafts.
+stage('picket', {
+  checkpoint: true,
+  async run(d) {
+    const P = G.player, L = G.level, FIRE = [6.4, -38.2];
+    const loc = (a, n) => [2.85 + 0.92 * a + 0.39 * n, -41.0 - 0.39 * a + 0.92 * n]; // from where the corporal sits: a along the trough, n out from it toward the fire
+    const toFire = (x, z) => Math.atan2(FIRE[0] - x, FIRE[1] - z);
+    let quiet = 0; // one bystander speaks at a time, and a scene waits for the line to finish
+    const company = (lines) => {
+      const who = [['HALE', { hair: 0x4a3424 }, 1.0, 4.9, -37.4], ['BRANN', { skin: 0xb98a66, hair: 0x1e1814 }, 0.96, 7.9, -39.5], ['WREN', { skin: 0xc4926c, hair: 0x2a1c14 }, 0.98, 6.3, -41.0]];
+      const folk = who.map(([name, o, scale, x, z], i) => ({ e: new Extra({ ...OFF, ...o }, ...fr(x, z), toFire(x, z), { scale, name }), who: name[0] + name.slice(1).toLowerCase(), line: lines[i][0], dur: lines[i][1] }));
+      const stop = d.every(() => { if (!P.controlEnabled || G.talking) return; for (const f of folk) if (!f.said && P.dist(f.e) < 3.0 && G.time > quiet) { f.said = true; quiet = G.time + f.dur + 0.3; f.e.watch = P; ui.say(f.who, f.line, f.dur); } });
+      return stop;
+    };
+    const take = () => { P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); ui.objective(''); L.marker(null); ui.hideDialogue(); };
+    const give = () => { G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; };
+
+    // ---- the night
+    ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'ranker', player: [...fr(2.6, -28.5), PI], corin: null }); G.carry = null; G.freezeAI = true; take(); actOne();
+    const corp = new Extra({ ...OFF, hair: 0x8a8680 }, ...fr(...loc(0, 0)), 0.4); corp.unbound = true; corp.play(C(0.1, [0, PZ.sit]), 0.01); // against the trough, facing the fire
+    const boy = new Extra(BOY, ...fr(...loc(0.95, 0.25)), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.unbound = true; boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneel]), 0.01);
+    const sgt = new Extra(TYPES.sergeant.look, ...fr(...loc(-1.7, 2.5)), 0, { scale: TYPES.sergeant.scale }); sgt.face = sgt.angleTo(corp);
+    let stop = company([["He's been asking for you. ...The sergeant says he won't see the morning.", 5], ["Go on. I'll keep you a place by the fire.", 3.5], ["I got the beacon lit. It didn't do him any good.", 4]]);
+    cam.shot(fr3(-1.5, 2.4, -33.5), fr3(4.6, 1.0, -39.6)); cam.shot(fr3(-0.6, 2.0, -34.6), fr3(4.6, 1.0, -39.8), 8); ui.fade(0, 2.6); // the picket by firelight, from the dark
+    await d.wait(4.2); give();
+    ui.objective('Go to the corporal'); L.marker(...fr(...loc(0.1, 1.6)));
+    await d.until(() => P.dist(corp) < 2.5 && G.time > quiet);
+    stop(); await settled(d, 1); take();
+    await stroll(d, ...fr(...loc(0.3, 2.0)), 1.8, 5); await turnTo(d, P, P.angleTo(corp), 0.4);
+    const eye = (c, h = 1.45) => [c.pos.x, c.pos.y + h, c.pos.z], c3 = (a, n, y) => { const [x, z] = loc(a, n); return fr3(x, y, z); };
+    cam.shot(c3(-2.9, 1.1, 1.0), c3(0.5, 0.7, 1.0)); cam.shot(c3(-2.6, 1.0, 0.95), c3(0.5, 0.7, 1.0), 9);
+    await d.talk([
+      ['Corporal', "There he is. ...Closer. I can't raise my voice any more."],
+      ['Corin', "You're not to talk. The sergeant said."],
+      ['Corporal', 'The sergeant says a lot of things.'],
+      ['Corporal', 'I told you everyone under that rock was walking home, soldier. ...I was out by one.'],
+    ]);
+    cam.shot(c3(1.7, 2.1, 1.0), eye(boy, 0.85)); cam.shot(c3(1.6, 1.9, 0.95), eye(boy, 0.85), 6); // the boy
+    await d.talk([
+      ['Corin', "Don't. Don't say it like it's done."],
+      ['Corporal', "He's fourteen. He told the clerk sixteen and followed me out here, so I made him my runner. It kept him behind me."],
+      ['Corporal', "After tonight there's nobody for him to stand behind."],
+    ]);
+    cam.shot(c3(0.3, 0.4, 0.9), eye(P, 1.5)); cam.shot(c3(0.3, 0.6, 0.95), eye(P, 1.55), 6); // from beside the corporal, up at him
+    await d.talk([['Corporal', "You held that rock for people you'd never met. Hold it for one more."]]);
+    await d.wait(1.3);
+    cam.shot(c3(1.6, 1.9, 0.95), eye(boy, 0.85)); cam.shot(c3(1.5, 1.7, 0.9), eye(boy, 0.85), 6);
+    await d.talk([['Corin', "I don't want him. I don't want anybody. I want you to get up."], ['Corporal', 'I know you do.']]);
+    cam.shot(c3(-2.6, 1.0, 0.95), c3(0.5, 0.7, 1.0)); cam.shot(c3(-3.2, 1.3, 1.2), c3(0.5, 0.7, 1.1), 8);
+    await d.talk([['Corporal', '...Sergeant. Write it down, while I can still hear you do it.'], ['Sergeant', "It's written, Corporal. Rest now."]]);
+    await d.wait(0.8); ui.fade(1, 2.4); await d.wait(3.0);
+
+    // ---- the morning
+    G.resetWorld({ site: 'front', sky: 'morning', look: 'ranker', player: [...fr(...loc(0.1, 2.0)), 0.4 + PI], corin: null }); G.freezeAI = true; take();
+    const sg = new Extra(TYPES.sergeant.look, ...fr(...loc(-2.0, 1.4)), 0, { scale: TYPES.sergeant.scale }); sg.watch = P;
+    const kid = new Extra(BOY, ...fr(2.6, -31.4), 0, { scale: BOY_SCALE, name: 'CORIN' }); // at the gap in the stakes, his back to the picket
+    stop = company([["He hasn't moved from there since we buried him. Somebody ought to go to him. ...It shouldn't be me.", 6], ['My father had a dog like you. Never made a sound, and nothing ever got near the sheep.', 5.5], ['Three days at the rock he carried water to all of us, and never spilled any. ...Be patient with him.', 6]]);
+    cam.shot(c3(1.6, 2.2, 1.1), c3(0, 0.3, 0.5)); cam.shot(c3(1.2, 2.6, 1.3), c3(0, 0.3, 0.5), 7); ui.fade(0, 2.4); // where he sat: nobody
+    await d.wait(3.0);
+    cam.shot(c3(1.5, 1.5, 1.6), eye(sg, 1.4)); cam.shot(c3(1.3, 1.5, 1.55), eye(sg, 1.4), 6); // past his shoulder, at the sergeant await turnTo(d, P, P.angleTo(sg), 0.5);
+    await d.talk([
+      ['Sergeant', "He went before the light came. We've put him under the palms."],
+      ['Sergeant', "The boy's on your roll now. A squire, to a man the clerk couldn't put a name to."],
+      ['Sergeant', "You don't want him, and he doesn't want you. Out here that's as good a start as anybody gets."],
+    ]);
+    give(); ui.objective('Go to the boy'); L.marker(kid.pos.x, kid.pos.z);
+    await d.until(() => P.dist(kid) < 2.4 && G.time > quiet);
+    stop(); await settled(d, 1); take(); await turnTo(d, P, P.angleTo(kid), 0.3);
+    { const k = [2.6, -31.4]; cam.shot(fr3(k[0] + 1.5, 1.3, k[1] + 2.6), eye(kid, 1.0)); cam.shot(fr3(k[0] + 1.2, 1.25, k[1] + 2.4), eye(kid, 1.0), 9); } // from out in front of him: the boy, and the soldier behind his shoulder
+    await d.wait(1.2);
+    await d.talk([['Corin', "He said you'd keep me alive. He didn't say I had to like it."]]);
+    await d.wait(0.9);
+    await d.talk([['Corin', "...What do I call you? They say you haven't got a name."]]);
+    await d.wait(1.6); kid.watch = P; // he turns round, at last
+    await d.talk([['Corin', "Fine. Then I'll keep asking until you have."]]);
+    await d.wait(0.8); ui.fade(1, 1.8); await d.wait(2.0);
   },
 });
 
@@ -868,7 +960,7 @@ stage('intro', {
     G.player.controlEnabled = false; // nothing moves until the cards are read and Corin has spoken
     await d.chronicle('The Western Watch', [
       'He stayed with the Third Company through that season and the ones after it. In time they gave him the captain\'s red, because he was the one who kept people alive.',
-      'They gave him a squire, too: Corin, who would not leave him alone.',
+      'The boy from the beacon grew into his squire, and into the one soldier in the company who would not leave him alone.',
       'The raids out of the dunes had been scattered and easily driven off. Lately they came organised.',
       '<em>The first night at the ruins.</em>',
     ], TAP);

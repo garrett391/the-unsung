@@ -24,6 +24,11 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #tgt span{font-size:13px;letter-spacing:.24em;text-shadow:0 1px 3px #000}
 #tgt .bar{margin-top:4px;height:6px}#tgt .bar i{background:#e8dcc0}
 #tgt.boss{top:auto;bottom:74px;width:min(80vw,560px)}#tgt.boss .bar i{background:#a66cf0}#tgt.boss span{font-size:16px}
+/* Nameplates over the soldiers on his side (hud.js, plates): a name, and for those who can be hurt a thin bar under it. */
+#plates{position:absolute;inset:0;overflow:hidden}
+.plate{position:absolute;left:0;top:0;text-align:center;white-space:nowrap;will-change:transform}
+.plate span{font-size:12px;font-weight:700;letter-spacing:.2em;text-indent:.2em;color:#dfe8f4;text-shadow:0 0 2px #000,0 1px 3px #000,0 0 8px rgba(0,0,0,.7)}
+.plate .bar{width:46px;height:4px;margin:2px auto 0;border-color:rgba(223,232,244,.55)}.plate .bar i{background:#8fb4e0}.plate.low .bar i{background:#d8743c}
 #banner{position:absolute;left:0;right:0;top:26%;text-align:center;font-size:clamp(24px,6vw,46px);font-weight:700;letter-spacing:.28em;text-indent:.28em;opacity:0;transition:opacity .6s;text-shadow:0 2px 8px #000}
 #banner.long{font-size:clamp(17px,4vw,26px);font-weight:500;font-style:italic;letter-spacing:.08em;text-indent:0;top:30%}
 #hint{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;max-width:min(92vw,620px);text-align:center;font-size:16px;line-height:1.35;
@@ -128,6 +133,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 <body>
 <canvas id="c"></canvas>
 <div id="hud" style="visibility:hidden">
+  <div id="plates"></div>
   <div id="bars"><div class="bar hp"><i id="hp"></i></div><div class="bar st"><i id="st"></i></div></div>
   <div id="obj"></div>
   <div id="hold"><div class="bar"><i id="holdp"></i></div></div>

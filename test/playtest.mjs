@@ -8,7 +8,7 @@ import { extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..'), dist = join(root, 'dist'), shots = join(root, 'test/shots');
-const phone = process.argv[2] === 'phone', ORDER = ['forecourt', 'halls', 'door', 'ascent', 'road', 'waystation', 'muster', 'patrol', 'beacon', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
+const phone = process.argv[2] === 'phone', ORDER = ['forecourt', 'halls', 'door', 'ascent', 'road', 'waystation', 'muster', 'patrol', 'beacon', 'picket', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
 const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg' };
 const server = http.createServer(async (q, s) => {
   try { const f = join(dist, q.url === '/' ? 'index.html' : q.url.split('?')[0]), d = await readFile(f); s.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); s.end(d); }
@@ -53,7 +53,7 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
 const stageIs = (n) => `G.STAGES[G.stage].name==='${n}'`;
 const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
-await page.evaluate(([from, real]) => { G.manual = true; /* the game's own frame loop stops stepping: only play() advances it, so nothing happens during a screenshot */ G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['halls', 'waystation', 'muster', 'patrol', 'beacon'].includes(ORDER[only])]);
+await page.evaluate(([from, real]) => { G.manual = true; /* the game's own frame loop stops stepping: only play() advances it, so nothing happens during a screenshot */ G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['halls', 'waystation', 'muster', 'patrol', 'beacon', 'picket'].includes(ORDER[only])]);
 if (!only) {
   await play(0.3); await page.evaluate(() => { G.auto = false; }); // past the opening cards, then real timing through the prologue so the shots catch it
   await play(3.4); await page.waitForTimeout(2500); await shot('0000a-forecourt'); /* the fade is a CSS transition, on the real clock */ await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('0000b-forecourt');
@@ -152,6 +152,14 @@ if (at('beacon')) {
   log('hold 25s', await play(25, { bot: true, god: true, heavy: true, home: [278.4, -117.2] })); await shot('0x3-hold');
   log('hold', await play(240, { bot: true, god: true, heavy: true, home: [278.4, -117.2], until: "!G.hold" })); await shot('0x4-dusk');
   await play(30, { until: "G.cinematic" }); await play(3.0); await shot('0y-lit'); await play(30, { until: "G.talking" }); await play(1.0); await shot('0y2-after');
+  log('to the picket', await play(60, { tap: true, until: stageIs('picket') }));
+}
+if (at('picket')) { // the night at the well and the morning after: no fighting, he walks up to the corporal, then to the boy
+  await play(30, { until: "G.player.controlEnabled" }); await play(0.5); await shot('0z-picket-night');
+  log('to the corporal', await walk([[2.8, -34], [2.85, -41]], "G.cinematic")); await play(40, { until: "G.talking" }); await play(1.0); await shot('0z2-corporal');
+  await play(8, { tap: true, until: "/fourteen/.test(document.getElementById('dtxt').textContent)" }); await play(0.6); await shot('0z3-the-boy'); await play(8, { tap: true, until: "/never met/.test(document.getElementById('dtxt').textContent)" }); await play(0.6); await shot('0z3b-asked');
+  await play(60, { tap: true, until: "G.extras.length<6&&G.talking" }); await play(0.8); await shot('0z3c-sergeant'); await play(90, { tap: true, until: "G.level.site==='front'&&G.player.controlEnabled&&!G.cinematic&&G.extras.length<6" }); await play(0.5); await shot('0z4-morning');
+  log('to the boy', await walk([[2.6, -31.4]], "G.cinematic")); await play(40, { until: "G.talking" }); await play(1.0); await shot('0z5-squire');
   log('to the camp', await play(60, { tap: true, until: stageIs('intro') }));
   await page.evaluate(() => { G.auto = true; });
 }

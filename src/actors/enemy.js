@@ -23,7 +23,7 @@ export class Enemy extends Char {
     const t = TYPES[kind]; super(t.look, t.scale);
     this.kind = kind; this.type = t; this.hp = this.maxHp = t.hp * (o.hpMul || 1); this.pos.set(x, 0, z); this.guard = 1;
     this.state = o.rise ? 'spawn' : 'chase'; this.yoff = o.rise ? -2 : 0; this.st = 0;
-    this.cd = rnd(0.8, 2.2); this.dir = Math.random() < 0.5 ? 1 : -1; this.poise = t.poise; this.gp = 3; this.yv = 0;
+    this.cd = rnd(0.8, 2.2); this.dir = Math.random() < 0.5 ? 1 : -1; this.poise = t.poise; this.gp = t.guard || 3; this.blk = 0; this.blkT = -9; this.yv = 0;
     this.hitDone = false; this.stagDur = 0.45; this.mv = t.moves[0]; this.phase2 = false;
     this.spare = !!o.spare; // a spared foe can't be killed: the stage script ends the fight when hp reaches 1
     this.trail = new Trail(t.trail ? t.trail : t.boss ? 0xb48cff : t.heavy ? 0xff6a40 : 0xffb070); this.trail.life = 0.12;
@@ -78,13 +78,19 @@ export class Enemy extends Char {
     const facing = Math.abs(wrap(Math.atan2(-dir.x, -dir.z) - this.face)) < 1.25;
     if (this.type.shield && facing && !this.open && (this.state === 'chase' || this.state === 'circle' || this.state === 'wind') && !a.crit) {
       if (a.poise < 3) {
-        this.gp--; SFX.clang(); FX.sparks.emit(hp, 9, 4, 0xffe0a0, 0.25, { boost: 1.5 }); if (!a.quiet) { G.hitstop = Math.max(G.hitstop, 0.05); G.shake = Math.max(G.shake, 0.1); }
+        // A type with `guard` has a guard that takes that many light blows (3 otherwise) and is whole again once it has been left
+        // alone for 2.5 s; with `steady`, blows on the shield while he winds up do not count against it, so mashing can't stop
+        // his attack; with `shove` (a move's index), the third light blow in a row on his shield is answered with that move.
+        const full = this.type.guard || 3;
+        if (this.type.guard && G.time - this.blkT > 2.5) { this.gp = full; this.blk = 0; } this.blkT = G.time;
+        if (!(this.type.steady && this.state === 'wind')) this.gp--; SFX.clang(); FX.sparks.emit(hp, 9, 4, 0xffe0a0, 0.25, { boost: 1.5 }); if (!a.quiet) { G.hitstop = Math.max(G.hitstop, 0.05); G.shake = Math.max(G.shake, 0.1); }
         this.vel.addScaledVector(dir, 3); this.recoil = 1;
         if (t_counter(this)) this.cd = Math.min(this.cd, 0.15); // counter: a foe who answers a blow on his shield at once
-        if (this.gp <= 0) { this.gp = 3; this.stagDur = 1.3; this.open = true; this.set('stagger'); this.play(CL.stun, 0.08); }
+        if (this.gp <= 0) { this.gp = full; this.blk = 0; this.stagDur = 1.3; this.open = true; this.set('stagger'); this.play(CL.stun, 0.08); }
+        else if (this.type.shove != null && this.state !== 'wind' && from === G.player && ++this.blk >= 3 && !G.freezeAI) { this.blk = 0; this.startMove(this.type.moves[this.type.shove], 0.1); }
         return 'block';
       }
-      this.gp = 3; this.stagDur = 1.4; this.open = true; SFX.clang(); // guard broken: this hit lands
+      this.gp = this.type.guard || 3; this.blk = 0; this.stagDur = 1.4; this.open = true; SFX.clang(); // guard broken: this hit lands
     }
     if (from === G.player) { this.mark = null; this.mineT = G.time + 6; }
     const wasOpen = this.open; dmg *= wasOpen && !a.crit ? 1.5 : 1; this.hp -= dmg; if (this.spare && this.hp < 1) this.hp = 1; this.flash = 1;

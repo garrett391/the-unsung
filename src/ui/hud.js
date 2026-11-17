@@ -1,3 +1,4 @@
+import { Vector3 } from 'three';
 import { G } from '../core/game.js';
 import { $ } from '../core/util.js';
 import { label } from '../core/input.js';
@@ -13,15 +14,39 @@ const arrive = (el) => { el.classList.remove('new'); void el.offsetWidth; el.cla
 // A refused dodge or heavy (not enough stamina) flashes the stamina bar.
 G.on((k) => { if (k !== 'tired') return; const b = $('st').parentNode; b.classList.remove('tired'); void b.offsetWidth; b.classList.add('tired'); });
 
+// Nameplates (owner, 16 Nov 2026: the soldiers who grow with him and die need their names over their health in a fight).
+// Every soldier on his side has his name and health above his head; Corin in battle and any named bystander (an Extra made
+// with `name`) within a few metres have the name alone. Hidden in cutscenes. A small pool of elements, moved by transform.
+const pv = new Vector3(), pool = [];
+function plates() {
+  const box = $('plates'); if (!box) return; let n = 0; const P = G.player, cam = G.camera, W = innerWidth, H = innerHeight;
+  const show = (c, name, hp, dim) => {
+    pv.set(c.pos.x, c.pos.y + 2.12 * (c.scale || 1), c.pos.z); const d = pv.distanceTo(cam.position); if (d > 30) return;
+    pv.project(cam); if (pv.z > 1 || Math.abs(pv.x) > 1.05 || Math.abs(pv.y) > 1.05) return;
+    let el = pool[n]; if (!el) { el = pool[n] = document.createElement('div'); el.className = 'plate'; el.innerHTML = '<span></span><div class="bar"><i></i></div>'; box.appendChild(el); el._n = el._h = el._o = null; }
+    n++; if (el._n !== name) el.firstChild.textContent = el._n = name;
+    const h = hp == null ? -1 : Math.max(0, Math.min(1, hp)); if (el._h !== h) { el._h = h; el.lastChild.style.display = h < 0 ? 'none' : ''; el.lastChild.firstChild.style.transform = `scaleX(${Math.max(h, 0)})`; el.classList.toggle('low', h >= 0 && h < 0.35); }
+    const o = (dim ? 0.45 : 1) * Math.max(0.35, Math.min(1, (30 - d) / 12)); if (el._o !== o) el.style.opacity = el._o = o;
+    el.style.display = ''; el.style.transform = `translate(${((pv.x + 1) / 2 * W).toFixed(1)}px,${((1 - pv.y) / 2 * H).toFixed(1)}px) translate(-50%,-100%)`;
+  };
+  if (G.running && !G.cinematic && P.root.visible) {
+    for (const a of G.allies) if (a.root.visible) show(a, a.type.name, a.soldier ? a.hp / a.maxHp : null, a.out);
+    const c = G.corin; if (c && c.root.visible && c.mode === 'battle') show(c, c.type.name, null);
+    if (!G.enemies.some((e) => !e.dead)) for (const e of G.extras) if (e.type.name && e.root.visible && !e.dead && P.dist(e) < 9) show(e, e.type.name, null); // (not in a fight: a bystander's name over the melee reads as somebody else's)
+  }
+  for (let i = n; i < pool.length; i++) if (pool[i].style.display !== 'none') pool[i].style.display = 'none';
+}
+
 export const ui = {
   frame() {
     const p = G.player;
     if (p.hp !== lastHp) { lastHp = p.hp; bar('hp', p.hp / 100); }
     const s = Math.round(p.st); if (s !== lastSt) { lastSt = s; bar('st', s / 100); }
     const t = G.talking || G.cinematic ? null : G.boss && !G.boss.dead ? G.boss : p.lock; // no target bar under dialogue or a cutscene
-    if (t !== lastT) { lastT = t; const el = $('tgt'); el.style.opacity = t ? 1 : 0; el.classList.toggle('boss', !!(t && t === G.boss)); if (t) $('tname').textContent = t.type.name; lastThp = -1; }
+    if (t !== lastT) { lastT = t; const el = $('tgt'); el.style.opacity = t ? 1 : 0; el.classList.toggle('boss', !!(t && t === G.boss)); if (t) $('tname').textContent = t.title || t.type.name; lastThp = -1; }
     if (t) { const h = t.hp / t.maxHp; if (h !== lastThp) { lastThp = h; bar('thp', h); } }
     if (G.hold) bar('holdp', G.hold.progress);
+    plates();
   },
   // A new objective or hint arrives with a short gold flash and a soft cue, so it is seen (a count ticking up inside one is not new).
   objective(text) { const el = $('obj'), key = (text || '').replace(/\d+/g, ''); el.textContent = text || ''; el.style.opacity = text ? 1 : 0; if (key && key !== ui._obj) arrive(el); ui._obj = key; },
