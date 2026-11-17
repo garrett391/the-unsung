@@ -405,25 +405,33 @@ stage('ascent', {
     P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4); motes();
     G.resetWorld({ site: 'fore', after: true, sky: 'clear', player: [...fx(0, -15.4), 0], corin: null });
     G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true;
-    // (Owner, Nov 2026.) He can walk up to them. Nobody looks at him until he does; then they turn to him, say what
-    // anyone would to a knight they don't know, and go back to their day. Each line once; he says nothing. Drafts.
-    const folk = [], person = (e, who, line) => { folk.push({ e, who, line, home: e.face }); return e; };
-    for (const sd of [-1, 1]) person(new Extra(LOOKS.line, ...fx(sd * 1.95, 12.7), -sd * PI / 2), 'Gate watch', sd < 0 ? 'Sir. ...Strange. I have had this gate since sunrise, and I never saw you go in.' : 'You have the look of a man come from a battle, sir. There has not been one in my lifetime.'); // the gate's watch, facing each other across the way out
+    // (Owner, Nov 2026.) He can walk up to them. Nobody looks at him until he does; then they turn to him and go back to
+    // their day. Second pass (owner, 17 Nov 2026): not "sir". Nobody knows his badge (the order was born in the taken
+    // years), so he is a stranger in odd armour, and they are puzzled by him, casually, the way anyone would be. He asks
+    // a few short, stunned things and gets blank looks back. His lines carry no name: nobody here knows it. Drafts.
+    const HIM = '', lineT = (text) => Math.max(2.4, 1.2 + text.length * 0.05);
+    const folk = [], person = (e, lines) => { folk.push({ e, lines, home: e.face }); return e; };
+    let left = false; const speak = async (lines) => { for (const [who, text] of lines) { if (left) return; ui.say(who, text, lineT(text)); await d.wait(lineT(text) + 0.25); } };
+    for (const sd of [-1, 1]) person(new Extra(LOOKS.line, ...fx(sd * 1.95, 12.7), -sd * PI / 2), sd < 0 // the gate's watch, facing each other across the way out
+      ? [['Gate watch', "Hang on. Where'd you come from? I've had this gate since sunrise."], [HIM, 'From below.'], ['Gate watch', "...Huh. Could've sworn nobody went in."]]
+      : [['Gate watch', "That's a lot of steel for a day this warm."], [HIM, "Where's the glass army?"], ['Gate watch', "The what? Glass army? ...You feeling all right?"]]);
     const walk = async (e, pts, sp) => { for (;;) for (const [x, z, rest] of pts) { e.go(...fx(x, z), sp); await d.until(() => e.fixed && !e.stopped); await d.wait(rest); } }; // someone going to and fro on an errand
-    walk(person(new Extra(LOOKS.line, ...fx(-9.4, 8.6), 2.2), 'Sentry', 'All quiet, sir. It is always quiet.'), [[-9.2, -8.5, 3.5], [-9.4, 8.6, 3.5]], 1.3).catch(() => {}); // a sentry pacing the west wall
-    walk(person(new Extra(LOOKS.clerk, ...fx(7.4, -10.8), 0, { scale: 0.96 }), 'Clerk', 'Below? Cellars, sir, and an old door of glass that nobody has the key to. Nobody has ever asked.'), [[7.0, 11.2, 5], [7.4, -10.8, 6]], 1.5).catch(() => {}); // a clerk between the east wing and the gate
-    person(new Extra(LOOKS.drover, ...fx(8.2, -5.4), 0.6), 'Carter', 'Mind the sacks, sir. ...Fine day for it.'); // unloading the cart under the east wall
-    { const off = { ...LOOKS.line, shield: undefined, weapon: 'none' }; person(new Extra(off, ...fx(-7.4, -1.3), 0), 'Soldier', '...and the wells are good right out to the dunes this year, she says. Oh. Sir.'); person(new Extra(off, ...fx(-7.4, -0.1), PI, { scale: 1.03 }), 'Soldier', ''); } // two of the watch off duty, talking
-    let quiet = 0; const chat = d.every(() => { if (!P.controlEnabled) return; for (const f of folk) { const e = f.e, dist = P.dist(e); // (one speaks at a time: the next waits until the line before has had its time)
+    walk(person(new Extra(LOOKS.line, ...fx(-9.4, 8.6), 2.2), [['Sentry', "Don't know that badge. Whose are you?"], [HIM, '...Mine.'], ['Sentry', 'Right. Well. Mind how you go.']]), [[-9.2, -8.5, 3.5], [-9.4, 8.6, 3.5]], 1.3).catch(() => {}); // a sentry pacing the west wall
+    walk(person(new Extra(LOOKS.clerk, ...fx(7.4, -10.8), 0, { scale: 0.96 }), [['Clerk', 'You look a bit lost, friend.'], [HIM, 'The door down there. The glass one.'], ['Clerk', "That old thing? It's been shut as long as anyone remembers. Nobody even knows what it's for."]]), [[7.0, 11.2, 5], [7.4, -10.8, 6]], 1.5).catch(() => {}); // a clerk between the east wing and the gate
+    person(new Extra(LOOKS.drover, ...fx(8.2, -5.4), 0.6), [['Carter', "Mind the sacks. ...Rough night? Looks like you slept in all that."]]); // unloading the cart under the east wall
+    { const off = { ...LOOKS.line, shield: undefined, weapon: 'none' }; // two of the watch off duty, talking
+      person(new Extra(off, ...fx(-7.4, -1.3), 0), [['Soldier', "...and she says the wells are good right out to the dunes this year. Oh. Can we help you?"], [HIM, 'There was a barricade. Right here.'], ['Soldier', "Here? There's never been anything here but carts."]]);
+      person(new Extra(off, ...fx(-7.4, -0.1), PI, { scale: 1.03 }), null); }
+    let quiet = 0; const chat = d.every(() => { if (!P.controlEnabled) return; for (const f of folk) { const e = f.e, dist = P.dist(e); // (one speaks at a time: the next waits until the one before has finished)
       if (dist < 2.7 && !e.stopped) { e.stopped = true; e.faceTo = null; e.watch = P; }
-      if (e.stopped && !f.said && f.line && G.time > quiet) { f.said = true; quiet = G.time + 5; ui.say(f.who, f.line); }
+      if (e.stopped && !f.said && f.lines && G.time > quiet) { f.said = true; quiet = G.time + f.lines.reduce((s, [, t]) => s + lineT(t) + 0.25, 0.4); speak(f.lines).catch(() => {}); }
       if (e.stopped && e.to) { e.resume = e.to; e.to = null; } // whatever errand it was on waits
       if (e.stopped && dist > 3.8) { e.stopped = false; e.watch = null; if (e.resume) e.to = e.resume; else e.faceTo = f.home; e.resume = null; } } });
     cam.shot(fx3(3.4, 1.3, -6.6), fx3(0, 2.4, -13.4)); cam.shot(fx3(4.4, 1.5, -4.4), fx3(0, 2.2, -12.4), 7); ui.fade(0, 3); // on the doors: he comes out of the dark into the sun
     await d.wait(1.4); await stroll(d, ...fx(0, -10.6), 1.4, 7); await d.wait(1.2);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true;
     await d.until(() => P.pos.z > FORE.z + 16.2); // out under the gate, onto the road
-    chat(); ui.hideDialogue(); P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4);
+    left = true; chat(); ui.hideDialogue(); P.controlEnabled = false; ui.fade(1, 2.2); await d.wait(2.4);
   },
 });
 
