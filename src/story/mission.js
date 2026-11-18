@@ -751,7 +751,7 @@ stage('patrol', {
     if (!G.seenFront) { G.seenFront = true; await d.chronicle('Act I: The Western Watch', [
       'The Third Company held the last wells before the open dunes. Nobody had ever asked to be sent there.',
       "They gave him a soldier's steel and a place in the line. He kept his helm on, and did what he was told.",
-      'It was a season of small things. A cut rope at a well. A herd run off in the night. A picket that came back one short.',
+      'The company was short of men, and the men it had were tired. Nobody asked the new one many questions.',
       '<em>The well at the edge of the dunes.</em>',
     ], TAP); ui.chronClose(); }
     actOne(); forgetMusic();
