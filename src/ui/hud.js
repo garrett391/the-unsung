@@ -5,7 +5,9 @@ import { label } from '../core/input.js';
 import { SFX } from '../core/audio.js';
 
 // DOM overlay: bars, objective, hints, dialogue, the chronicle screens, fades.
-let lastHp = -1, lastSt = -1, lastT = null, lastThp = -1, typing = null;
+let lastHp = -1, lastSt = -1, lastT = null, lastThp = -1, lastL = null, lastLhp = -1, typing = null;
+// A spared foe's health stops at 1 (the stage ends the fight there), so his bar is measured down to 1: it empties instead of leaving a sliver.
+const frac = (t) => (t.spare ? (t.hp - 1) / (t.maxHp - 1) : t.hp / t.maxHp);
 const bar = (id, v) => { $(id).style.transform = `scaleX(${Math.max(0, Math.min(1, v))})`; };
 // "{l}" in a hint becomes the right button name for this device.
 const fill = (s) => s.replace(/\{(\w+)\}/g, (_, a) => `<b>${label(a)}</b>`);
@@ -31,7 +33,7 @@ function plates() {
   };
   // Owner, 16 Nov 2026: good in a fight, distracting while walking about. So names and bars over his side only while a fight is on;
   // otherwise a name alone, and only over someone he is standing near.
-  if (G.running && !G.cinematic && P.root.visible) {
+  if (G.running && !G.cinematic && !G.talking && P.root.visible) { // not under dialogue either, like the target bar
     const fight = G.enemies.some((e) => !e.dead && !e.hold);
     if (fight) {
       for (const a of G.allies) if (a.root.visible) show(a, a.type.name, a.soldier ? a.hp / a.maxHp : null, a.out);
@@ -48,7 +50,11 @@ export const ui = {
     const s = Math.round(p.st); if (s !== lastSt) { lastSt = s; bar('st', s / 100); }
     const t = G.talking || G.cinematic ? null : G.boss && !G.boss.dead ? G.boss : p.lock; // no target bar under dialogue or a cutscene
     if (t !== lastT) { lastT = t; const el = $('tgt'); el.style.opacity = t ? 1 : 0; el.classList.toggle('boss', !!(t && t === G.boss)); if (t) $('tname').textContent = t.title || t.type.name; lastThp = -1; }
-    if (t) { const h = t.hp / t.maxHp; if (h !== lastThp) { lastThp = h; bar('thp', h); } }
+    if (t) { const h = frac(t); if (h !== lastThp) { lastThp = h; bar('thp', h); } }
+    // With a boss on the field the main bar is his. Locked on to someone else (his guards, the two called into the ring), that foe gets the small bar at the top.
+    const l = t && t === G.boss && p.lock && p.lock !== t && !p.lock.dead ? p.lock : null;
+    if (l !== lastL) { lastL = l; $('lk').style.opacity = l ? 1 : 0; if (l) $('lname').textContent = l.title || l.type.name; lastLhp = -1; }
+    if (l) { const h = frac(l); if (h !== lastLhp) { lastLhp = h; bar('lhp', h); } }
     if (G.hold) bar('holdp', G.hold.progress);
     plates();
   },

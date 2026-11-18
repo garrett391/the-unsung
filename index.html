@@ -23,7 +23,9 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #tgt{position:absolute;left:50%;top:16px;transform:translateX(-50%);width:min(52vw,340px);text-align:center;opacity:0;transition:opacity .2s}
 #tgt span{font-size:13px;letter-spacing:.24em;text-shadow:0 1px 3px #000}
 #tgt .bar{margin-top:4px;height:6px}#tgt .bar i{background:#e8dcc0}
-#tgt.boss{top:auto;bottom:74px;width:min(80vw,560px)}#tgt.boss .bar i{background:#a66cf0}#tgt.boss span{font-size:16px}
+#tgt.boss{top:auto;bottom:74px;width:min(80vw,560px)}#tgt.boss .bar{height:8px}#tgt.boss .bar i{background:#a66cf0}#tgt.boss span{font-size:16px}
+#lk{position:absolute;left:50%;top:16px;transform:translateX(-50%);width:min(52vw,340px);text-align:center;opacity:0;transition:opacity .2s} /* the foe he is locked on to, while a boss has the main bar */
+#lk span{font-size:13px;letter-spacing:.24em;text-shadow:0 1px 3px #000}#lk .bar{margin-top:4px;height:6px}#lk .bar i{background:#e8dcc0}
 /* Nameplates over the soldiers on his side (hud.js, plates): a name, and for those who can be hurt a thin bar under it. */
 #plates{position:absolute;inset:0;overflow:hidden}
 .plate{position:absolute;left:0;top:0;text-align:center;white-space:nowrap;will-change:transform}
@@ -126,7 +128,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 
 @keyframes pulse{50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){#dlg .more,#dlg .time,#chron .tap,#obj.new,#hint.new{animation:none}}
-@media (max-width:600px){#bars{width:40vw}#tgt{left:auto;right:62px;transform:none;width:36vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}}
+@media (max-width:600px){#bars{width:40vw}#tgt,#lk{left:auto;right:62px;transform:none;width:36vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}}
 @media (pointer:coarse){#hint{bottom:auto;top:108px}#tgt.boss~#hint{top:176px}#dlg{bottom:auto;top:96px}#thought,#tgt.boss~#thought{bottom:auto;top:170px;font-size:15px}}
 @media (pointer:coarse) and (max-width:600px){#tgt.boss~#thought{top:238px}}
 </style>
@@ -139,6 +141,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
   <div id="obj"></div>
   <div id="hold"><div class="bar"><i id="holdp"></i></div></div>
   <div id="tgt"><span id="tname"></span><div class="bar"><i id="thp"></i></div></div>
+  <div id="lk"><span id="lname"></span><div class="bar"><i id="lhp"></i></div></div>
   <div id="banner"></div>
   <div id="hint"></div>
   <div id="thought"></div>
