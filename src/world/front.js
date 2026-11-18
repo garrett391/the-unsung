@@ -167,8 +167,8 @@ export function buildFront(scene, kit) {
   const stick = (a, b, rad, mat) => { const geo = new T.CylinderGeometry(rad, rad, a.distanceTo(b), 6); geo.applyQuaternion(qt.setFromUnitVectors(UP, b.clone().sub(a).normalize())); const m = a.clone().lerp(b, 0.5); put(geo, mat, m.x, m.y, m.z); };
 
   // the well picket: the well, a trough, the stores, a fire with somewhere to sit, a line of stakes to the north, the company's colours
-  { const wx = -1.5, wz = -45.5, y = on(wx, wz);
-    put(new T.CylinderGeometry(1.25, 1.35, 0.85, 20, 1, true), mStone, wx, y + 0.4, wz); put(new T.TorusGeometry(1.25, 0.16, 8, 20), mStoneD, wx, y + 0.84, wz, 0, PI / 2); put(new T.CylinderGeometry(1.75, 1.9, 0.14, 20), mStoneD, wx, y + 0.05, wz);
+  { const wx = -1.5, wz = -45.5, y = on(wx, wz); // (the well's wall is turned with an inside as well as an outside: it was one open cylinder, and from above its far side was missing)
+    put(new T.LatheGeometry([[1.12, 0.2], [1.12, 0.82], [1.25, 0.85], [1.35, -0.03]].map(([a, b]) => new T.Vector2(a, b)), 20), mStone, wx, y - 0.03, wz); put(new T.TorusGeometry(1.25, 0.16, 8, 20), mStoneD, wx, y + 0.84, wz, 0, PI / 2); put(new T.CylinderGeometry(1.75, 1.9, 0.14, 20), mStoneD, wx, y + 0.05, wz);
     { const w = new T.Mesh(new T.CircleGeometry(1.12, 18), mWater); w.rotation.x = -PI / 2; w.position.set(wx, y + 0.3, wz); g.add(w); }
     for (const s of [-1, 1]) put(new T.CylinderGeometry(0.07, 0.08, 2.3, 8), mWood, wx + s * 1.3, y + 1.15, wz); put(new T.CylinderGeometry(0.06, 0.06, 2.9, 8), mWood, wx, y + 2.2, wz, 0, 0, PI / 2); put(new T.CylinderGeometry(0.13, 0.13, 0.8, 10), mWoodD, wx, y + 2.2, wz, 0, 0, PI / 2);
     stick(V(wx, y + 2.1, wz), V(wx, y + 1.0, wz), 0.014, mRope); put(new T.CylinderGeometry(0.17, 0.13, 0.3, 10), mWood, wx, y + 0.9, wz); block(wx, wz, 1.75);
