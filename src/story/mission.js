@@ -408,10 +408,11 @@ stage('ascent', {
     // (Owner, Nov 2026.) He can walk up to them. Nobody looks at him until he does; then they turn to him and go back to
     // their day. Second pass (owner, 17 Nov 2026): not "sir". Nobody knows his badge (the order was born in the taken
     // years), so he is a stranger in odd armour, and they are puzzled by him, casually, the way anyone would be. He asks
-    // a few short, stunned things and gets blank looks back. His lines carry no name: nobody here knows it. Drafts.
-    const HIM = '', lineT = (text) => Math.max(2.4, 1.2 + text.length * 0.05);
+    // a few short, stunned things and gets blank looks back. Drafts. His lines are labelled with what he is to them,
+    // a stranger (owner, 17 Nov 2026: an empty label read as the last speaker going on); later he is the yard hand.
+    const HIM = 'Stranger', lineT = (text) => Math.max(2.4, 1.2 + text.length * 0.05);
     const folk = [], person = (e, lines) => { folk.push({ e, lines, home: e.face }); return e; };
-    let left = false; const speak = async (lines) => { for (const [who, text] of lines) { if (left) return; ui.say(who, text, lineT(text)); await d.wait(lineT(text) + 0.25); } };
+    let left = false; const speak = async (lines) => { for (const [who, text] of lines) { if (left) return; ui.say(who, text, lineT(text)); await d.wait(lineT(text) + 0.5); } }; // a clear beat between speakers, so a new line reads as a new card
     for (const sd of [-1, 1]) person(new Extra(LOOKS.line, ...fx(sd * 1.95, 12.7), -sd * PI / 2), sd < 0 // the gate's watch, facing each other across the way out
       ? [['Gate watch', "Hang on. Where'd you come from? I've had this gate since sunrise."], [HIM, 'From below.'], ['Gate watch', "...Huh. Could've sworn nobody went in."]]
       : [['Gate watch', "That's a lot of steel for a day this warm."], [HIM, "Where's the glass army?"], ['Gate watch', "The what? Glass army? ...You feeling all right?"]]);
@@ -424,7 +425,7 @@ stage('ascent', {
       person(new Extra(off, ...fx(-7.4, -0.1), PI, { scale: 1.03 }), null); }
     let quiet = 0; const chat = d.every(() => { if (!P.controlEnabled) return; for (const f of folk) { const e = f.e, dist = P.dist(e); // (one speaks at a time: the next waits until the one before has finished)
       if (dist < 2.7 && !e.stopped) { e.stopped = true; e.faceTo = null; e.watch = P; }
-      if (e.stopped && !f.said && f.lines && G.time > quiet) { f.said = true; quiet = G.time + f.lines.reduce((s, [, t]) => s + lineT(t) + 0.25, 0.4); speak(f.lines).catch(() => {}); }
+      if (e.stopped && !f.said && f.lines && G.time > quiet) { f.said = true; quiet = G.time + f.lines.reduce((s, [, t]) => s + lineT(t) + 0.5, 0.4); speak(f.lines).catch(() => {}); }
       if (e.stopped && e.to) { e.resume = e.to; e.to = null; } // whatever errand it was on waits
       if (e.stopped && dist > 3.8) { e.stopped = false; e.watch = null; if (e.resume) e.to = e.resume; else e.faceTo = f.home; e.resume = null; } } });
     cam.shot(fx3(3.4, 1.3, -6.6), fx3(0, 2.4, -13.4)); cam.shot(fx3(4.4, 1.5, -4.4), fx3(0, 2.2, -12.4), 7); ui.fade(0, 3); // on the doors: he comes out of the dark into the sun
