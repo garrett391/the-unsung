@@ -737,7 +737,7 @@ const ambush = (list, marks = []) => list.map(([kind, x, z], i) => { const e = G
 const rallyAll = () => { for (const a of G.allies) a.rally(); };
 // Corin at the beacon: a runner too young for the line, years before he is the squire of the first night. No plate: the company's
 // navy under a leather jack and an iron hat, and a crimson neckcloth (the colour of the crest he wears later), so he is not one more steel figure.
-const BOY = { ...LOOKS.wayguardBare, armor: 0x2a3560, under: 0x26305a, scarf: 0xb0283c, beard: undefined, hair: 0x6a4a2a, skin: 0xc99872 }, BOY_SCALE = 0.8;
+const BOY = LOOKS.boy, BOY_SCALE = 0.8;
 const OFF = { ...LINE, shield: undefined, weapon: 'none' }; // one of the line off duty, arms laid by
 // What he goes by on the frontier (owner, 16 Nov 2026: he answers his own people; asked his name, he gives his old job). His speaker label too, until he is made captain.
 const ME = 'Yard hand';
@@ -755,7 +755,8 @@ stage('patrol', {
       '<em>The well at the edge of the dunes.</em>',
     ], TAP); ui.chronClose(); }
     actOne(); forgetMusic();
-    let skyTo = 0, skyV = 0; const sky = d.every((dt) => { if (skyV < skyTo) L.setDawn((skyV = Math.min(skyTo, skyV + dt / 20))); }); // the morning wears on as they go (stopped at the end: a tween would run on into the next chapter and its sky)
+    // (owner, Nov 2026: the morning used to wear on as they went, in two ten-second runs of the sun after each fight, and every shadow
+    // on the field swung round while he watched. The hour now only changes behind a black screen: at the beacon, before the corporal's scene.)
     const sgt = new Extra(TYPES.sergeant.look, ...fr(3.6, -39.4), 0, { scale: TYPES.sergeant.scale }); sgt.watch = P;
     { const e = new Extra({ ...LINE, shield: undefined, weapon: 'none' }, ...fr(7.6, -39.6), 0, { scale: 0.98 }); e.face = Math.atan2(6.4 - 7.6, -38.2 + 39.6); } // one of the picket, at the fire
     const [hale, brann] = file([[...fr(-0.6, -40.6), 1.9], [...fr(0.4, -38.6), 2.3]]);
@@ -775,7 +776,7 @@ stage('patrol', {
       ['Sergeant', "This season it's raids. Small ones, all along the line, and every one a little bolder than the last. And yards like yours, opened from the inside."],
       [ME, 'Who are they?'],
       ['Sergeant', "The same desert people we've traded with for a hundred years. Only now they don't trade, and they don't run."],
-      ['Sergeant', "Something's put steel in them, and nobody in the Watch can tell me what. Why do you think we're putting yard hands on the roll?"],
+      ['Sergeant', "Something's put steel in them, and nobody in the Watch can tell me what."],
       ['Sergeant', 'Hale, Brann, go and find out why that beacon is dark. Take the yard hand with you.'],
     ]);
     cam.shot(fr3(2.4, 1.6, -41.6), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z]); cam.shot(fr3(2.2, 1.6, -41.9), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z], 5);
@@ -790,7 +791,6 @@ stage('patrol', {
     await glance(d, ...fr(21.5, -19.5), { hold: 1.7 }); G.freezeAI = false; for (const e of w1) e.cd = rnd(0.8, 2);
     ui.objective('Cut them down');
     await d.until(() => live() === 0); await d.wait(0.9); rallyAll();
-    skyTo = 0.5;
     ui.say('Hale', 'They were lying in wait. For us, or for whoever came along?', 4.5);
     ui.objective('Follow the dry riverbed north'); L.marker(...fr(-9, 4));
     // The riverbed. Both ends at once, and out of the pocket on its west bank.
@@ -800,11 +800,10 @@ stage('patrol', {
     await glance(d, ...fr(-15.5, 21), { hold: 1.7 }); G.freezeAI = false; for (const e of w2) e.cd = rnd(0.8, 2.2);
     ui.objective('Cut your way out of the riverbed');
     await d.until(() => live() === 0); await d.wait(0.9); rallyAll();
-    skyTo = 1;
-    ui.say('Brann', "Twice now he's seen it coming before any of us. ...I'm sticking close to him.", 5);
+    ui.say('Brann', "Both ends of it. They knew someone would come about that beacon. ...I'm sticking close to him.", 5.5);
     ui.objective('Go on, to the beacon'); L.marker(...fr(-6, 31));
     await d.until(() => P.pos.z > FRONT.z + 29); L.marker(null);
-    sky(); offJ(); G.carry = { hale, brann, run: G.runId };
+    offJ(); G.carry = { hale, brann, run: G.runId };
   },
 });
 
@@ -812,7 +811,7 @@ stage('beacon', {
   checkpoint: true,
   async run(d) {
     const P = G.player, L = G.level; let hale, brann;
-    if (G.carry && G.carry.run === G.runId && L.site === 'front') { ({ hale, brann } = G.carry); L.setSite('front', { sky: ['day', 'dusk'] }); L.setDawn(0); } // straight on from the riverbed
+    if (G.carry && G.carry.run === G.runId && L.site === 'front') { ({ hale, brann } = G.carry); } // straight on from the riverbed, still under the morning's sky
     else { ui.fade(1, 0); G.resetWorld({ site: 'front', sky: ['day', 'dusk'], look: 'ranker', player: [...fr(-8.5, 29.5), 0.7], corin: null }); [hale, brann] = file([[...fr(-10.5, 28), 0.7], [...fr(-9, 27), 0.7]]); cam.behind(); ui.fade(0, 0.8); }
     G.carry = null; G.maxAtk = 2; actOne(true); ui.objective(''); ui.hint('');
     // Under the rock: what is left of the patrol. Two on their feet with their backs to it, the corporal down, one more who can climb.
@@ -820,7 +819,7 @@ stage('beacon', {
     const p1 = post('SOLDIER', 15.4, 41.6, -2.2, { hair: 0x6a4a2a }), wren = post('WREN', 19.6, 40.2, 2.8, { skin: 0xc4926c, hair: 0x2a1c14 });
     const corp = new Extra({ ...LINE, weapon: 'none', shield: undefined, hair: 0x8a8680 }, ...fr(18.2, 44.0), -2.6); corp.play(C(0.1, [0, PZ.sit]), 0.01);
     // Corin (story, 16 Nov 2026): the corporal's kid brother and his runner, a boy, on his knees beside him. Nobody's target.
-    const boy = new Extra(BOY, ...fr(19.5, 44.7), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneel]), 0.01);
+    const boy = new Extra(BOY, ...fr(19.5, 44.7), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneelBy]), 0.01);
     G.spawn('raider', ...fr(11.5, 39.5)).mark = p1; G.spawn('raider', ...fr(14, 36.5)).mark = p1; G.spawn('raider', ...fr(21, 35.5)).mark = wren; G.spawn('bulwark', ...fr(24, 38.5)).mark = wren; G.spawn('runner', ...fr(9, 44));
     G.spawn('raider', ...fr(4, 38)); G.spawn('runner', ...fr(26, 34)); G.spawn('skirmisher', ...fr(8, 52)); G.spawn('skirmisher', ...fr(31, 37)); const offJ = javelins('Hale');
     await settled(d, 1); ui.say('Hale', "There, under the rock! They're still standing.", 4);
@@ -830,13 +829,14 @@ stage('beacon', {
     // The corporal. They cut the stair; she could not get anyone up to light it.
     P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); G.freezeAI = true; ui.objective('');
     ui.fade(1, 0.5); await d.wait(0.6); // (wherever the fight ended, they would be standing in the shot)
+    L.setSky('day', 'dusk'); L.setDawn(0); // the day has gone on (unseen: the sun is never moved in view, except slowly through the hold)
     P.place(...fr(16.4, 42.0), 0); P.face = P.angleTo(corp); P.state = 'loco'; P.stop(0.1);
     for (const [a, x, z] of [[hale, 12.4, 40.0], [brann, 15.0, 38.6], [p1, 16.8, 46.6], [wren, 20.4, 42.4]]) { a.rally(); a.place(...fr(x, z), 0); a.face = a.angleTo(corp); a.post = [...fr(x, z), a.face]; a.set('loco'); a.stop(0.1); }
     cam.shot(fr3(12.6, 1.7, 44.4), fr3(18.0, 0.9, 43.4)); cam.shot(fr3(13.2, 1.5, 44.2), fr3(18.0, 0.9, 43.4), 9); ui.fade(0, 0.7); await d.wait(0.9);
     await d.talk([
       ['Corporal', 'Three of you? I asked the sergeant for thirty.'],
       ['Corin', "Stop talking. You're bleeding through it again."],
-      ['Corporal', "'Stop talking, Corporal.' You're my runner out here, not my brother."],
+      ['Corporal', 'My runner. He thinks he outranks me, because he is also my brother.'],
       ['Corporal', "They broke the stair the first night. We can't get up to light it, and they won't let us leave."],
       ['Wren', 'I can climb it, Corporal. I told you yesterday.'],
       ['Corporal', 'And yesterday there was no one to keep them off you while you did.'],
@@ -889,7 +889,7 @@ stage('beacon', {
     await d.wait(1.0);
     await d.talk([[ME, 'Yard hand.'], ['Corporal', "That's a job, soldier, not a name."], [ME, "It's the one I've got."], ['Brann', "The clerk wrote something else on the roll, Corporal. None of us can read it."], ['Corporal', "Then I'll tell the captain it was the Third Company, and he can work out which one of you."]]);
     cam.shot(fr3(17.6, 1.2, 43.0), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z]); cam.shot(fr3(17.4, 1.25, 42.8), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z], 5);
-    await d.talk([['Corin', 'It was him. On the rock, by himself. I counted them, and then I lost count.'], ['Corporal', "Help me up, runner. ...Slowly. It's a long walk to the well."]]);
+    await d.talk([['Corin', "You can tell the captain from a bed. You've bled through it again."], ['Corporal', "Help me up, runner. ...Slowly. It's a long walk to the well."]]);
     await d.wait(0.6); ui.fade(1, 1.8); await d.wait(2.0); P.inv = 0;
   },
 });
@@ -921,7 +921,7 @@ stage('picket', {
     ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'ranker', player: [...fr(2.6, -28.5), PI], corin: null }); G.carry = null; G.freezeAI = true; take();
     playMusic('wind', { cross: 3, fade: 3 }); preloadMusic('watch'); // (owner, Nov 2026) "Only the Wind Remains": the walk in to the corporal and his death; loops
     const corp = new Extra({ ...OFF, hair: 0x8a8680 }, ...fr(...loc(0, 0)), 0.4); corp.unbound = true; corp.play(C(0.1, [0, PZ.sit]), 0.01); // against the trough, facing the fire
-    const boy = new Extra(BOY, ...fr(...loc(0.95, 0.25)), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.unbound = true; boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneel]), 0.01);
+    const boy = new Extra(BOY, ...fr(...loc(0.95, 0.25)), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.unbound = true; boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneelBy]), 0.01);
     const sgt = new Extra(TYPES.sergeant.look, ...fr(...loc(-1.7, 2.5)), 0, { scale: TYPES.sergeant.scale }); sgt.face = sgt.angleTo(corp);
     let stop = company([["He's been asking for you. ...The sergeant says he won't see the morning.", 5, "Then I won't keep him waiting."], ["Go on. I'll keep you a place by the fire.", 3.5, 'Thanks.'], ["I got the beacon lit. It didn't do him any good.", 4, 'It did the rest of us.']]);
     cam.shot(fr3(-1.5, 2.4, -33.5), fr3(4.6, 1.0, -39.6)); cam.shot(fr3(-0.6, 2.0, -34.6), fr3(4.6, 1.0, -39.8), 8); ui.fade(0, 2.6); // the picket by firelight, from the dark
@@ -960,7 +960,7 @@ stage('picket', {
     G.resetWorld({ site: 'front', sky: 'morning', look: 'ranker', player: [...fr(...loc(0.1, 2.0)), 0.4 + PI], corin: null }); G.freezeAI = true; take();
     const sg = new Extra(TYPES.sergeant.look, ...fr(...loc(-2.0, 1.4)), 0, { scale: TYPES.sergeant.scale }); sg.watch = P;
     // (owner, 16 Nov 2026: he should be some way off, and found.) Out past the stakes, at the top of the rise, looking north to the beacon.
-    const K = [9.0, -12.0], kid = new Extra(BOY, ...fr(...K), 0.17, { scale: BOY_SCALE, name: 'CORIN' });
+    const K = [9.0, -12.0], kid = new Extra(BOY, ...fr(...K), 0.17, { scale: BOY_SCALE, name: 'CORIN' }); kid.lookP = -0.2; // chin up: he is looking at the beacon on its rock
     stop = company([["The boy went out past the stakes as soon as we'd buried him. Somebody ought to go after him. ...It shouldn't be me.", 6, "I'll go."], ['My father had a dog like you. Never made a sound, and nothing ever got near the sheep.', 5.5, 'Was that meant kindly?'], ['Three days at the rock he carried water to all of us, and never spilled any. ...Be patient with him.', 6, "I'll try."]]);
     cam.shot(c3(1.6, 2.2, 1.1), c3(0, 0.3, 0.5)); cam.shot(c3(1.2, 2.6, 1.3), c3(0, 0.3, 0.5), 7); ui.fade(0, 2.4); // where he sat: nobody
     await d.wait(3.0);
@@ -981,7 +981,7 @@ stage('picket', {
     await d.talk([['Corin', "He said you'd keep me alive. He didn't say I had to like it."], [ME, "You don't have to."]]);
     await d.wait(0.9);
     await d.talk([['Corin', "...What do I call you? 'Yard hand'? That's what you told him."], [ME, "It's what I was."], ['Corin', "That's not a name."]]);
-    await d.wait(1.4); kid.watch = P; // he turns round, at last
+    await d.wait(1.4); kid.watch = P; kid.lookP = -0.12; // he turns round, at last (and has to look up at him)
     await d.talk([[ME, "It's the one I've got."], ['Corin', "Fine. Then I'll keep asking until you've got a better one."]]);
     await d.wait(0.8); ui.fade(1, 1.8); await d.wait(2.0);
   },

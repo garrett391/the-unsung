@@ -601,6 +601,7 @@ export function buildLevel() {
     OBSTACLES.length = 0; OBSTACLES.push(...(name === 'fore' && W.after ? fore.obsWhole : site.obs), ...(o.muster ? way.obsMuster : [])); // (the forecourt afterwards has no barricade or rubble to walk round)
     const sk = Array.isArray(o.sky) ? o.sky : [o.sky || site.sky[0], o.sky || site.sky[1]]; SA = SKIES[sk[0]]; SB = SKIES[sk[1]]; // (o.sky may be a pair, for setDawn to run between)
   };
+  W.setSky = (a, b = a) => { SA = SKIES[a]; SB = SKIES[b]; }; // another pair of skies for the place he is in (then setDawn): for a change of hour behind a black screen
   // The forecourt changes from the war's to the whole one in front of the camera (the seal running the years back: the `door` stage).
   W.setAfter = (v) => { W.after = !!v; warG.visible = fore.war.visible = !W.after; fore.whole.visible = W.after; if (W.site === 'fore') { OBSTACLES.length = 0; OBSTACLES.push(...(W.after ? fore.obsWhole : site.obs)); } W.applyGate(); };
   W.applyGate();

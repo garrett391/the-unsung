@@ -65,6 +65,7 @@ PZ.down=P({hips:[-1.5,0,0],pos:[0,-.72,-.15],spine:[-.05],neck:[-.1],thL:[-.25,0
 // The false ending at the Glass Door (story/mission.js): beaten to his knees, cut down, and hauled back up by the glass in him.
 PZ.prone=P({hips:[1.5,0,0],pos:[0,-.56,.2],spine:[.02],neck:[-.3,.7,0]},PZ.d2); // face down on the floor, head turned: d2 raised so a big armoured body lies on the stone, not in it
 PZ.kneel=P({spine:[.42],chest:[.16],neck:[.6],shR:[.22,0,-.22],elR:[-.12],haR:[1.45],shL:[.15,0,.3],elL:[-.35]},PZ.d1);
+PZ.kneelBy=P({spine:[.1],chest:[.04],neck:[.16],shR:[.3,0,-.1],elR:[-.75],haR:[.3],shL:[.3,0,.1],elL:[-.75]},PZ.kneel); // on his knees beside someone, back straight, looking at them, hands on his thighs (the boy by the corporal: PZ.kneel is a beaten man's)
 PZ.kneelHit=P({spine:[.1,.25,0],chest:[0,.2,0],neck:[-.25,.3,.2],shR:[.3,0,-.6],shL:[.2,0,.6]},PZ.kneel);
 PZ.exw=P({shR:[-2.8,0,-.12],elR:[-.75],haR:[.25],spine:[-.26,-.1,0],neck:[.3,.4,0]},PZ.hw); // sword high, both eyes on the man at his feet
 PZ.ex=P({hips:[.16,.05,0],pos:[0,-.2,.04],spine:[.24,.2,0],chest:[.06,.1,0],neck:[-.3,-.2,0]},PZ.hs);PZ.ex2=P({pos:[0,-.24,.04],shR:[-.55,0,.12]},PZ.ex); // the captain's last blow: the heavy cut, more upright

@@ -45,7 +45,9 @@ export const LOOKS = {
   // (So that the player can find him among them, he has kept the yard hand's dark scarf, and wears a short brown mantle over his shoulders.)
   ranker: { ...SOLDIER, helm: undefined, eye: 0x08080c, legs: 1.18, pads: 0.95, scarf: 0x3c3028, mantle: 0x4a3a2e },
   sergeant: SERGEANT,
-  wayguard: WAYGUARD, wayguardBare: { ...WAYGUARD, weapon: 'none', shield: undefined }, // the waystation's own gate guard, in boiled leather and an iron hat; and after his sword is taken
+  wayguard: WAYGUARD, wayguardBare: { ...WAYGUARD, weapon: 'none', shield: undefined },
+  boy: { ...WAYGUARD, weapon: 'none', shield: undefined, armor: 0x2a3560, under: 0x26305a, scarf: 0xb0283c, beard: undefined, hair: 0x6a4a2a, skin: 0xc99872 }, // Corin as he is first met (drawn at 0.8): the company's navy under a leather jack, an iron hat, a crimson neckcloth
+ // the waystation's own gate guard, in boiled leather and an iron hat; and after his sword is taken
   drover: { ...PLAIN, armor: 0x8f5f40, under: 0xb7a888, helm: 'none', cloth: 0xd9cfb6, beard: 1, hair: 0x2e2620, skin: 0xc4926c, sash: 0x2c3f60, wraps: 0xb3a686, strap: 1, weapon: 'none', pads: 0.45 }, // a caravan man: head-cloth and cord, beard, indigo sash, satchel
   // The halls above the vault: one of the realm's knights, in his colours with her face bare; and the Usurper's guard, pale plate with glass grown into it.
   knight: { armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, rim: 0x2c3f86, legs: 1.1, pads: 0.9, weapon: 'none' }, // helmed, like him (owner: the bare faces are too plain to carry a scene yet)
