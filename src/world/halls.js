@@ -161,7 +161,7 @@ export function buildHalls(scene, kit) {
 
   // ---- age: damp and dirt on the stone, cracks in it, and dust hanging in the air. Painted patches, merged into one mesh per kind.
   const dq = rng(91), DQ = (a, b) => a + dq() * (b - a); // its own numbers, so the layout below stays where it was
-  const dtex = (draw) => { const t = canvasTex(128, (g, n) => { g.clearRect(0, 0, n, n); draw(g, n); }); t.wrapS = t.wrapT = T.ClampToEdgeWrapping; return t; };
+  const dtex = (draw) => { const t = canvasTex(128, (g, n) => { g.clearRect(0, 0, n, n); draw(g, n); }, 0, 0, 255); t.wrapS = t.wrapT = T.ClampToEdgeWrapping; return t; };
   const grimeT = dtex((g) => { for (let i = 0; i < 18; i++) { const x = DQ(36, 92), y = DQ(36, 92), r = DQ(14, 34), gr = g.createRadialGradient(x, y, 0, x, y, r), a = DQ(0.4, 0.75); gr.addColorStop(0, `rgba(255,255,255,${a.toFixed(2)})`); gr.addColorStop(0.55, `rgba(255,255,255,${(a * 0.7).toFixed(2)})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
     g.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 60; i++) { g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(DQ(10, 118), DQ(10, 118), DQ(1, 5), 0, 7); g.fill(); } }); // worn through in spots
   const crackT = dtex((g) => { g.lineCap = g.lineJoin = 'round'; g.strokeStyle = 'rgba(255,255,255,.9)';

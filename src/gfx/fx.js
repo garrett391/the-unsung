@@ -93,14 +93,14 @@ function splatTex() {
       g.beginPath(); g.moveTo(c + px * 2.4, c + py * 2.4); g.lineTo(x + px * 0.3, y + py * 0.3); g.lineTo(x - px * 0.3, y - py * 0.3); g.lineTo(c - px * 2.4, c - py * 2.4); g.fill(); dot(x, y, w * (0.5 + BR() * 0.5));
     }
     for (let i = 0; i < 7; i++) { const a = BR() * 7, d = 38 + BR() * 22; dot(c + Math.cos(a) * d, c + Math.sin(a) * d, 0.7 + BR() * 1.8); }
-  });
+  }, 0, 0, 255);
 }
 function streakTex() {
   return canvasTex(128, (g, n) => {
     g.clearRect(0, 0, n, n); g.fillStyle = '#fff'; const c = n / 2, dot = (x, y, r) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
     g.beginPath(); g.moveTo(c - 1, 6); g.quadraticCurveTo(c - 22, 84, c - 15, 104); g.quadraticCurveTo(c, 124, c + 15, 104); g.quadraticCurveTo(c + 22, 84, c + 1, 6); g.fill();
     for (let i = 0; i < 9; i++) dot(c + (BR() - 0.5) * 60, 30 + BR() * 92, 1.5 + BR() * 4.5);
-  });
+  }, 0, 0, 255);
 }
 const FRESH = new T.Color(0x54080b), DRIED = new T.Color(0x1e0607);
 // Blood on the ground: pooled flat decals. Each lands fresh and bright, darkens as it dries,
@@ -152,7 +152,7 @@ export function initFx() {
   FX.sparks = new Parts(500, 0.22, true); FX.dust = new Parts(320, 0.5, false);
   FX.puff = new Parts(200, 2.5, false, 0.9, TEX.glow, true); // big soft billows that thin out (a raider bursting up out of the sand)
   // drops are small hard-edged beads, not soft glows, so they read as paint with the cel look
-  const drop = canvasTex(32, (g, n) => { g.clearRect(0, 0, n, n); g.fillStyle = '#fff'; g.beginPath(); g.arc(16, 16, 13, 0, 7); g.fill(); });
+  const drop = canvasTex(32, (g, n) => { g.clearRect(0, 0, n, n); g.fillStyle = '#fff'; g.beginPath(); g.arc(16, 16, 13, 0, 7); g.fill(); }, 0, 0, 255);
   FX.blood = new Parts(360, 0.065, false, 1, drop); FX.blood.pts.material.alphaTest = 0.5;
   FX.gouts = new Parts(90, 0.11, false, 1, drop); FX.gouts.pts.material.alphaTest = 0.5;
   FX.grit = new Parts(260, 0.09, false, 1, drop); FX.grit.pts.material.alphaTest = 0.5; FX.grit.onLand = () => {}; // thrown sand: hard grains that fall and are gone

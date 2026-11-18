@@ -42,9 +42,14 @@ export function toon(color, o = {}) {
   return m;
 }
 
-export function canvasTex(n, draw, rx, ry) {
+// `ink` (0 to 255) is for a one-colour painting on clear (white decals and sprites, the black shadow): every pixel's colour is
+// set to it and only its alpha is kept. Browsers dither canvas gradients in each channel, and WebGL divides a nearly clear
+// pixel's colour by its alpha on upload, which turns that dither into bright red, green and blue specks (seen on phones as
+// rainbow dots over the waystation's sand and in its sky).
+export function canvasTex(n, draw, rx, ry, ink) {
   const c = document.createElement('canvas'); c.width = c.height = n;
   const g = c.getContext('2d'); draw(g, n);
+  if (ink != null) { const id = g.getImageData(0, 0, n, n), d = id.data; for (let i = 0; i < d.length; i += 4) d[i] = d[i + 1] = d[i + 2] = ink; g.putImageData(id, 0, 0); }
   const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
   if (rx) t.repeat.set(rx, ry || rx);
   return t;
@@ -179,11 +184,11 @@ export const TEX = {
     const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
     gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.3, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = gr; g.fillRect(0, 0, n, n);
-  }),
+  }, 0, 0, 255),
   shadow: canvasTex(32, (g, n) => {
     const gr = g.createRadialGradient(16, 16, 2, 16, 16, 16);
     gr.addColorStop(0, 'rgba(0,0,0,.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, n, n);
-  }),
+  }, 0, 0, 0),
 };
 // Character surfaces. Near-white, so they tint with the material color.
 // plate: brushed metal with a rolled, riveted edge and a few scratches.

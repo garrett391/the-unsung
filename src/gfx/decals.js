@@ -8,7 +8,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // painting serves any colour; a set of patches is merged into a single lit, shadow-receiving mesh.
 // (The halls have their own unlit version, for walls as well as floors: world/halls.js.)
 const q = rng(203), Q = (a, b) => a + q() * (b - a);
-const dtex = (draw) => { const t = canvasTex(128, (g, n) => { g.clearRect(0, 0, n, n); draw(g, n); }); t.wrapS = t.wrapT = T.ClampToEdgeWrapping; return t; };
+const dtex = (draw) => { const t = canvasTex(128, (g, n) => { g.clearRect(0, 0, n, n); draw(g, n); }, 0, 0, 255); t.wrapS = t.wrapT = T.ClampToEdgeWrapping; return t; };
 export const DECAL = {
   // an uneven soft-edged patch, worn through in spots
   soft: dtex((g) => { for (let i = 0; i < 20; i++) { const x = Q(36, 92), y = Q(36, 92), r = Q(14, 34), gr = g.createRadialGradient(x, y, 0, x, y, r), a = Q(0.45, 0.8); gr.addColorStop(0, `rgba(255,255,255,${a.toFixed(2)})`); gr.addColorStop(0.6, `rgba(255,255,255,${(a * 0.85).toFixed(2)})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
