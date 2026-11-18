@@ -136,6 +136,7 @@ const walk = async (pts, until) => { let r; for (const [x, z] of pts) { r = awai
 const clear = "!G.enemies.some(e=>!e.dead)", foes = "G.enemies.some(e=>!e.dead)";
 if (at('patrol')) {
   log('picket', await play(60, { tap: true, until: "G.talking" })); await play(1.2); await page.waitForTimeout(2500); await shot('0t-picket');
+  await play(30, { tap: true, until: "G.talking&&document.getElementById('dtxt').textContent.includes('grow old')" }); await play(1.5); await page.waitForTimeout(2500); await shot('0t1-asks'); // he asks what has been going on out here
   await play(60, { tap: true, until: "G.player.controlEnabled" }); await play(0.5); await shot('0t2-sets-out');
   log('the rise', await walk([[3, -30], [8, -17]], foes)); await play(1.5); await shot('0u-out-of-the-sand');
   await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('0u2-on-the-rise');

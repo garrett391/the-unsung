@@ -32,6 +32,10 @@ const PLAIN = { armor: 0x8a7a5c, trim: 0x5e4a34, under: 0x6b6250, dark: 0x3a2c22
 const SOLDIER = { armor: 0x9aa0aa, trim: 0x6c727c, under: 0x26305a, dark: 0x5a3a24, steel: 0xe6e9ef, shield: 2, rim: 0x23305a, helm: 'open', tabard: true, lames: true, knees: true, legs: 1.12, pads: 1.05, eye: 0x08080c };
 const WAYGUARD = { armor: 0x9a8455, trim: 0x8a8a86, under: 0x6b6250, dark: 0x2c2620, steel: 0xc9ccd2, rim: 0x3a2e22, helm: 'open', kettle: 0x8d9096, coif: 0xb9ad90, jack: 0x6e4a2c, scarf: 0x6e3229, beard: 1, shield: 1, plain: true, pads: 0.8, skin: 0xb98a66, hair: 0x2c2420 }; // ochre tunic under a studded leather jack, bracers and greaves, a madder neckcloth, an iron kettle hat over a padded coif
 const HAND = { ...PLAIN, scarf: 0x4c4136, sash: 0x222a3e, wraps: 0xa39678 }; // the yard hand (the captain, in the years between): a dark scarf bunched at the neck, a faded navy sash, forearms and shins bound
+// The sergeant (the muster, and the well picket): the line's steel, but he is picked out from it by his rank. A crimson
+// crest set across his helm (the line's crests, where they have them, run front to back), a crimson sash over the tabard,
+// brass where the others have steel, and a grey beard.
+const SERGEANT = { ...SOLDIER, trim: 0xb08d45, rank: 0x8e1f2a, beard: 1, hair: 0x9a9690, skin: 0xb98a66 };
 export const LOOKS = {
   captain: { armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, cape: 0x27355e, shield: 0, rim: 0x2c3f86, legs: 1.22, pads: 0.88 },
   labourer: { ...HAND, weapon: 'none' }, drifter: { ...HAND, shield: 1 },
@@ -40,6 +44,7 @@ export const LOOKS = {
   // The captain before he is one (owner, Nov 2026): a soldier of the Third Company's line, in the same steel and tabard as the rest. His helm is the closed one: nobody has seen his face yet.
   // (So that the player can find him among them, he has kept the yard hand's dark scarf, and wears a short brown mantle over his shoulders.)
   ranker: { ...SOLDIER, helm: undefined, eye: 0x08080c, legs: 1.18, pads: 0.95, scarf: 0x3c3028, mantle: 0x4a3a2e },
+  sergeant: SERGEANT,
   wayguard: WAYGUARD, wayguardBare: { ...WAYGUARD, weapon: 'none', shield: undefined }, // the waystation's own gate guard, in boiled leather and an iron hat; and after his sword is taken
   drover: { ...PLAIN, armor: 0x8f5f40, under: 0xb7a888, helm: 'none', cloth: 0xd9cfb6, beard: 1, hair: 0x2e2620, skin: 0xc4926c, sash: 0x2c3f60, wraps: 0xb3a686, strap: 1, weapon: 'none', pads: 0.45 }, // a caravan man: head-cloth and cord, beard, indigo sash, satchel
   // The halls above the vault: one of the realm's knights, in his colours with her face bare; and the Usurper's guard, pale plate with glass grown into it.
@@ -102,7 +107,7 @@ export const TYPES = {
   // five light blows and mends when left alone (`guard`), blows on his shield while he winds up don't count (`steady`),
   // and the third in a row is answered with the rush (`shove`). A heavy blow or a parry still opens him at once.
   sergeant: { name: 'THE SERGEANT', hp: 230, speed: 3.3, poise: 3, scale: 1.05, shield: true, tele: 0xfff0c0, close: 0.4, press: 0.6, counter: 0.6, guard: 5, steady: true, shove: 2,
-    look: { ...SOLDIER, hair: 0x9a9690, skin: 0xb98a66 },
+    look: SERGEANT,
     moves: [{ style: 'slash', wind: 0.52, rec: 0.7, dmg: 14, range: 2.4, lunge: 6.5, chain: 0.55, then: 1 }, { style: 'thrust', wind: 0.58, rec: 0.85, dmg: 14, range: 2.8, lunge: 8, chain: 0.3, then: 2 },
       { style: 'bash', wind: 0.9, rec: 1.25, dmg: 16, range: 2.5, lunge: 13, rush: true, follow: true }] },
   // The prologue's fight at the Glass Door. The game opens on the last moments of it: he is

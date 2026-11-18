@@ -763,8 +763,20 @@ stage('patrol', {
     await d.wait(2.2); await turnTo(d, P, P.angleTo(sgt), 0.5);
     await d.talk([
       ['Sergeant', "The beacon on the north rock should've been lit at dawn. It wasn't."],
-      ['Sergeant', "We sent three up there yesterday, and we haven't heard a thing since. Hale, Brann, go and find out why."],
-      ['Sergeant', 'Take the yard hand with you.'],
+      ['Sergeant', "We sent three up there yesterday, and we haven't heard a thing since."],
+    ]);
+    // Why he is out here at all (owner, Nov 2026: it went from calm to trouble with nothing said between). He asks, in few words; the
+    // sergeant tells it as a soldier sees it: the caravans first, then the small things, then stations opened from inside. Nobody knows why.
+    cam.shot(fr3(0.9, 1.75, -44.9), [sgt.pos.x, sgt.pos.y + 1.55, sgt.pos.z]); cam.shot(fr3(1.0, 1.7, -44.5), [sgt.pos.x, sgt.pos.y + 1.55, sgt.pos.z], 9); // over his shoulder, at the sergeant
+    await d.talk([
+      [ME, 'Has it always been like this out here?'],
+      ['Sergeant', "Out here? Two years ago this was where they sent a man to grow old. Count the herds, walk the wells, sleep."],
+      ['Sergeant', "Then the caravans started coming in late. Then short. Then not at all, and nobody could say what happened to them."],
+      ['Sergeant', "This season it's raids. Small ones, all along the line, and every one a little bolder than the last. And yards like yours, opened from the inside."],
+      [ME, 'Who are they?'],
+      ['Sergeant', "The same desert people we've traded with for a hundred years. Only now they don't trade, and they don't run."],
+      ['Sergeant', "Something's put steel in them, and nobody in the Watch can tell me what. Why do you think we're putting yard hands on the roll?"],
+      ['Sergeant', 'Hale, Brann, go and find out why that beacon is dark. Take the yard hand with you.'],
     ]);
     cam.shot(fr3(2.4, 1.6, -41.6), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z]); cam.shot(fr3(2.2, 1.6, -41.9), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z], 5);
     await d.talk([['Hale', "Him, Sergeant? He's been with us nine days."], ['Sergeant', 'And he put the both of you on your knees on the first one. Go.']]);

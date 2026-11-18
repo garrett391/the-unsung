@@ -157,6 +157,13 @@ export function buildHumanoid(o) {
     const strap = mk(new T.BoxGeometry(0.045, 0.56, 0.02), mLeather, chest, 0.01, 0.17, 0.226); strap.rotation.set(-0.19, 0, 0.62);
     const back = mk(new T.BoxGeometry(0.045, 0.56, 0.02), mLeather, chest, 0.01, 0.17, -0.226); back.rotation.set(0.19, 0, -0.62);
   }
+  if (o.rank) { // a sergeant's sash: a broad cloth band over the left shoulder, crossing the strap, knotted on the right hip with its ends hanging
+    const mR = M(o.rank, { map: clothTex, side: T.DoubleSide });
+    const fr = mk(rbox(0.085, 0.62, 0.018, 0.008), mR, chest, -0.005, 0.16, 0.236); fr.rotation.set(-0.19, 0, -0.66);
+    const bk = mk(rbox(0.085, 0.62, 0.018, 0.008), mR, chest, -0.005, 0.16, -0.236); bk.rotation.set(0.19, 0, 0.66);
+    mk(ball(0.045), mR, hips, 0.2, 0.06, 0.13).scale.set(1.1, 0.9, 0.75);
+    mk(drape(0.07, 0.09, 0.3, 0.012), mR, hips, 0.215, 0.03, 0.14).rotation.set(-0.1, 0.55, 0.08); mk(drape(0.06, 0.08, 0.24, 0.012), mR, hips, 0.235, 0.03, 0.11).rotation.set(-0.06, 0.95, -0.04);
+  }
   if (o.scarf) { // a long scarf bunched round the neck and shoulders, one end down the chest and one thrown back over the shoulder
     const mSc = M(o.scarf, { map: clothTex, side: T.DoubleSide });
     const roll = mk(turned('scarf', [[0.08, 0.475], [0.135, 0.462], [0.182, 0.42], [0.192, 0.372], [0.17, 0.336], [0.12, 0.326]]), mSc, chest, 0, 0, 0.012); roll.scale.z = 0.92; roll.rotation.x = 0.1;
@@ -282,6 +289,14 @@ export function buildHumanoid(o) {
       sp.quadraticCurveTo(-0.27, 0.14, -0.21, 0.22); sp.quadraticCurveTo(-0.15, 0.3, -0.06, 0.34); sp.quadraticCurveTo(0.04, 0.36, 0.13, 0.3);
       const g = new T.ExtrudeGeometry(sp, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.022, bevelSize: 0.014, bevelSegments: 3, curveSegments: 10 }); g.translate(0, 0, -0.015); g.rotateY(-PI / 2); return g;
     }), mP, neck, 0, 0, 0);
+  }
+  if (o.rank && o.helm === 'open') { // and his crest: horsehair set across the helm from ear to ear, so he can be found in a line of crests that run front to back
+    const mR = M(o.rank, { map: clothTex });
+    mk(rbox(0.26, 0.03, 0.045, 0.012), mT, neck, 0, 0.345, -0.012);
+    mk(memo('xcrest', () => {
+      const sp = new T.Shape(); sp.moveTo(-0.12, 0.335); sp.quadraticCurveTo(-0.195, 0.36, -0.185, 0.425); sp.quadraticCurveTo(-0.12, 0.5, 0, 0.505); sp.quadraticCurveTo(0.12, 0.5, 0.185, 0.425); sp.quadraticCurveTo(0.195, 0.36, 0.12, 0.335); sp.quadraticCurveTo(0, 0.35, -0.12, 0.335);
+      const g = new T.ExtrudeGeometry(sp, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.012, bevelSegments: 3, curveSegments: 10 }); g.translate(0, 0, -0.0175); return g;
+    }), mR, neck, 0, 0, -0.012);
   }
   if (o.horns) for (const s of [-1, 1]) mk(new T.ConeGeometry(0.045, 0.26, 8), mT, neck, s * 0.2, 0.3, 0).rotation.z = -s * 1.0;
   if (o.crown === 'glass') { // a ring of glass shards on an iron band, some broken short
