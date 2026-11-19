@@ -567,9 +567,18 @@ stage('waystation', {
     await d.until(() => live() === 0); await d.wait(0.9);
     // The one who leads them.
     d.tween(8, (u) => L.setDawn(0.45 + u * 0.55)).catch(() => {});
+    // (Owner, Nov 2026: the yard was a little easy.) Three may swing at once now, not two, and the leader is a fight
+    // of his own: beaten to half he roars (`phase2`: quicker, chains oftener, less wait between blows) and calls two
+    // more over the wall. No rush: that is the sergeant's, and the muster teaches it.
     const chief = G.spawn('chief', ...wy(-8.5, 17.5)); G.spawn('raider', ...flank(-1)); G.spawn('raider', ...flank(-1)); G.spawn('runner', ...flank(-1)); G.spawn('runner', ...flank(-1));
-    await d.wait(1.6); await glance(d, ...wy(0, 14), { from: wy3(5.5, 3.4, 2.5) }); G.boss = chief;
-    await d.until(() => live() === 0);
+    await d.wait(1.6); await glance(d, ...wy(0, 14), { from: wy3(5.5, 3.4, 2.5) }); G.boss = chief; G.maxAtk = 3;
+    const rage = d.every(() => {
+      if (chief.phase2 || chief.dead || chief.hp > chief.maxHp * 0.5 || G.freezeAI) return;
+      chief.phase2 = true; chief.flash = 0.8; chief.cd = Math.min(chief.cd, 0.6); SFX.tele();
+      ui.say('Raid leader', 'To me! Over the wall, all of you!', 3.2);
+      G.spawn('raider', ...flank(1)); G.spawn('raider', ...flank(-1));
+    });
+    await d.until(() => live() === 0); rage(); G.maxAtk = 2;
 
     // The yard is quiet. A guard column comes in at the gate: an officer and two soldiers, who stop at what they see.
     ui.objective(''); ui.hint(''); G.boss = null; playMusic('well', { cross: 5, fade: 4 }); G.slow = 0.9; // the fighting's music goes out, and the yard's comes back under the officer

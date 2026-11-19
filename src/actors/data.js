@@ -70,8 +70,10 @@ export const LOOKS = {
 const RAIDER = { armor: 0x5a4636, trim: 0x9a6a36, under: 0x9a8662, dark: 0x2a2420, steel: 0xa8a8a2, eye: 0xff9a3c, rim: 0x40281a, plain: true, helm: 'wrap', wrap: 0x2b2624, skin: 0x8a5a3c, hair: 0x1a1614, skirt: 0x6a2c22 };
 const PLATED = { ...RAIDER, plain: false }, HELMED = { ...PLATED, helm: undefined, skirt: undefined };
 export const TYPES = {
+  // Owner, Nov 2026 (the waystation was a little easy): the cut now sometimes runs on into an overhead (`follow`: only
+  // ever after the cut), so a raised shield after the first blow is not the end of it. Slower than the cut, and it can be read.
   raider: { name: 'RAIDER', hp: 58, speed: 3.6, poise: 1, scale: 1, look: RAIDER,
-    moves: [{ style: 'slash', wind: 0.58, rec: 0.7, dmg: 16, range: 2.35, lunge: 6.5 }] },
+    moves: [{ style: 'slash', wind: 0.58, rec: 0.7, dmg: 16, range: 2.35, lunge: 6.5, chain: 0.3, then: 1 }, { style: 'over', wind: 0.62, rec: 0.9, dmg: 17, range: 2.5, lunge: 6, follow: true }] },
   bulwark: { name: 'BRONZE SHIELD', hp: 84, speed: 2.8, poise: 2, scale: 1.06, shield: true,
     look: { ...PLATED, armor: 0x7a5a2c, trim: 0xc08a3a, shield: 1 },
     moves: [{ style: 'thrust', wind: 0.7, rec: 0.85, dmg: 15, range: 2.75, lunge: 8.5 }] },
