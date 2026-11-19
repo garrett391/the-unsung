@@ -9,6 +9,7 @@ import { buildWaystation, roadOff, lineOff } from './waystation.js';
 import { buildHalls, HALLS, GALLERY, ROTUNDA, DESCENT, PASS_E, PASS_W } from './halls.js';
 import { buildFore, FORE, FCOURT, FGATE, FDOOR, FROAD } from './forecourt.js';
 import { buildFront, FRONT, FAREA, frontRoute } from './front.js';
+import { buildWash, WASH, WAREA, washRoute } from './wash.js';
 import { coarse } from '../core/input.js';
 
 // Layout (north = +z). A walled camp in front of a cliff. Raiders come through the
@@ -36,7 +37,9 @@ const SITES = { ruins: { at: [0, 0], player: [COURT, NARROWS], all: [COURT, NARR
   fore: { at: [FORE.x, FORE.z], player: [FCOURT, FGATE, FDOOR], all: [FCOURT, FGATE, FDOOR], obs: [], sky: ['ember', 'ember'], shadow: 26, fogNear: 12 },
   // the frontier beyond the last wells (world/front.js): open country. Its walkable ground is a run of overlapping circles, not
   // rectangles; it has real height (`ground`, set when it is built), and the shadows and the camera follow him instead of sitting on a yard.
-  front: { at: [FRONT.x, FRONT.z], player: FAREA, all: FAREA, obs: [], sky: ['morning', 'day'], shadow: 56, open: true, fogNear: 38, fogFar: 210 } }; // (and it is seen a long way off: the haze is thinner than a yard's dust) // the forecourt before them (world/forecourt.js), where the game opens
+  front: { at: [FRONT.x, FRONT.z], player: FAREA, all: FAREA, obs: [], sky: ['morning', 'day'], shadow: 56, open: true, fogNear: 38, fogFar: 210 },
+  // the dry wash on the road in from the deep desert (world/wash.js): open country like the frontier, further out
+  wash: { at: [WASH.x, WASH.z], player: WAREA, all: WAREA, obs: [], sky: ['day', 'day'], shadow: 56, open: true, fogNear: 40, fogFar: 200 } }; // (and it is seen a long way off: the haze is thinner than a yard's dust) // the forecourt before them (world/forecourt.js), where the game opens
 let PLAYER_AREA = SITES.ruins.player, ALL_AREA = SITES.ruins.all;
 export const OBSTACLES = []; // the current site's
 
@@ -92,6 +95,7 @@ export function route(p, t) {
     return null;
   }
   if (s === 'front') return frontRoute(p, t);
+  if (s === 'wash') return washRoute(p, t);
   if (s === 'fore') return p.z < FORE.z - 12.9 && (t.z > FORE.z - 12.9 || Math.abs(t.x - FORE.x) > 1) ? [FORE.x, FORE.z - 11.9] : null; // out of the doorway by its middle before turning for him
   if (s !== 'halls') return null;
   // the halls: out of a side passage by its middle, and through the arches to the gallery and the descent by theirs, not along the wall beside them
@@ -521,11 +525,14 @@ export function buildLevel() {
   // the frontier, at its own site, gathered into one group like the halls
   const tn0 = scene.children.length, front = buildFront(scene, { ...W.kit, ...way.kit }), frontG = new T.Group(); SITES.front.obs = front.obs; SITES.front.ground = front.height;
   for (const m of scene.children.slice(tn0)) frontG.add(m); scene.add(frontG); W.front = front; W.banners.push(...front.banners);
+  // the wash, further out, the same way
+  const sn0 = scene.children.length, wash = buildWash(scene, { ...W.kit, ...way.kit }), washG = new T.Group(); SITES.wash.obs = wash.obs; SITES.wash.ground = wash.height;
+  for (const m of scene.children.slice(sn0)) washG.add(m); scene.add(washG); W.wash = wash;
 
   // far silhouettes
-  const mFar = toon(0x2a2a40), farW = [], farF = []; // (farF: those that would stand in or over the frontier)
+  const mFar = toon(0x2a2a40), farW = [], farF = [], farS = []; // (farF, farS: those that would stand in or over the frontier, or the wash)
   for (let i = 0; i < 16; i++) { const a = (i / 16) * PI * 2 + R(0, 0.3), d = R(170, 250), h = R(18, 46), rt = R(14, 30), rb = R(26, 44), ry = R(0, 3), x = Math.sin(a) * d, z = Math.cos(a) * d;
-    if (Math.hypot(x - WAY.x, z - WAY.z) > rb + 64) { const m = add(new T.CylinderGeometry(rt, rb, h, 7), mFar, x, h / 2 - 3, z, ry); m.castShadow = false; if (Math.hypot(x - FORE.x, z - FORE.z) < rb + 110) farW.push(m); if (Math.hypot(x - FRONT.x, z - FRONT.z) < rb + 190) farF.push(m); } } // none on top of the waystation; those that would loom over the forecourt are hidden while the game is there
+    if (Math.hypot(x - WAY.x, z - WAY.z) > rb + 64) { const m = add(new T.CylinderGeometry(rt, rb, h, 7), mFar, x, h / 2 - 3, z, ry); m.castShadow = false; if (Math.hypot(x - FORE.x, z - FORE.z) < rb + 110) farW.push(m); if (Math.hypot(x - FRONT.x, z - FRONT.z) < rb + 190) farF.push(m); if (Math.hypot(x - WASH.x, z - WASH.z) < rb + 190) farS.push(m); } } // none on top of the waystation; those that would loom over the forecourt are hidden while the game is there
 
   // sky, stars, moon
   const sg = new T.SphereGeometry(700, 24, 14); sg.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(sg.attributes.position.count * 3), 3));
@@ -595,7 +602,7 @@ export function buildLevel() {
   // Which place the game is in: 'ruins' (the camp, the Narrows and the vault) or 'way' (the
   // waystation). o.sky overrides the site's pair of skies with one; o.muster adds the muster's dressing.
   W.setSite = (name, o = {}) => {
-    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls'; foreG.visible = name === 'fore'; frontG.visible = name === 'front'; for (const m of farW) m.visible = name !== 'fore'; for (const m of farF) m.visible = name !== 'front'; W.ground = site.ground || null; setGround(W.ground); front.reset(); W.after = !!o.after; warG.visible = fore.war.visible = !W.after; fore.whole.visible = W.after; // after: the halls as they are once the Usurper is sealed and his years never happened
+    site = SITES[name]; W.site = name; PLAYER_AREA = site.player; ALL_AREA = site.all; way.group.visible = name === 'way'; way.muster.visible = !!o.muster; hallsG.visible = name === 'halls'; foreG.visible = name === 'fore'; frontG.visible = name === 'front'; washG.visible = name === 'wash'; for (const m of [...farW, ...farF, ...farS]) m.visible = !((name === 'fore' && farW.includes(m)) || (name === 'front' && farF.includes(m)) || (name === 'wash' && farS.includes(m))); W.ground = site.ground || null; setGround(W.ground); front.reset(); W.after = !!o.after; warG.visible = fore.war.visible = !W.after; fore.whole.visible = W.after; // after: the halls as they are once the Usurper is sealed and his years never happened
     halls.day.material.color.setRGB(...(W.after ? [2.2, 1.8, 1.3] : [0.62, 0.2, 0.09])); halls.stairL.color.setHex(W.after ? 0xffe2b8 : 0xff7a40); halls.stairL.intensity = W.after ? 12 : 16; // the head of the stair he came down: firelight from the forecourt, or daylight
     halls.glow.material.color.setRGB(...(W.after ? [0.07, 0.065, 0.06] : [0.2, 0.62, 0.56]));
     OBSTACLES.length = 0; OBSTACLES.push(...(name === 'fore' && W.after ? fore.obsWhole : site.obs), ...(o.muster ? way.obsMuster : [])); // (the forecourt afterwards has no barricade or rubble to walk round)
@@ -631,7 +638,7 @@ export function buildLevel() {
       // (owner, Nov 2026: shadows and the shade under small rocks came on a few metres ahead of him, which looked glitchy. The box
       // is now nearly twice as wide and sits well ahead of the camera, its far edge fades (materials.js), and it moves a texel
       // at a time in the light's own frame instead of 3 m jumps, so its edge slides instead of popping.)
-      front.update(t, dt); G.camera.getWorldDirection(aim); aim.y = 0; if (aim.lengthSq() < 1e-6) aim.set(0, 0, 1); aim.normalize();
+      (site === SITES.wash ? wash : front).update(t, dt); G.camera.getWorldDirection(aim); aim.y = 0; if (aim.lengthSq() < 1e-6) aim.set(0, 0, 1); aim.normalize();
       const k = sc.right, cx = G.camera.position.x + aim.x * k * 0.45, cz = G.camera.position.z + aim.z * k * 0.45;
       lF.copy(sunOff).negate().normalize(); lR.crossVectors(lF, UPY).normalize(); lU.crossVectors(lR, lF); lC.set(cx, W.ground(cx, cz), cz);
       const tx = (2 * k) / sun.shadow.mapSize.x, la = Math.round(lC.dot(lR) / tx) * tx, lb = Math.round(lC.dot(lU) / tx) * tx, ld = lC.dot(lF);

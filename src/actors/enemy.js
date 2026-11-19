@@ -66,11 +66,11 @@ export class Enemy extends Char {
   }
   parried() { this.set('parried'); this.open = true; this.play(CL.stun, 0.06); this.vel.set(0, 0, 0); this.trailOn = false; this.yoff = 0; }
   die() {
-    this.dead = true; this.open = false; this.set('dead'); this.play(CL.death, 0.08); this.trailOn = false; G.kills++; SFX.die();
+    this.dead = true; this.open = false; this.set('dead'); this.play(CL.death, 0.08); this.trailOn = false; G.kills++; if (!this.type.silent) SFX.die(); // (silent: the Veiled make no sound, falling or striking; only their steel is heard)
     if (G.player.lock === this) G.player.lock = pickLock(true);
     G.emit('kill', { enemy: this });
   }
-  flee() { if (!this.dead) this.set('flee'); }
+  flee() { if (!this.dead && !this.type.fearless) this.set('flee'); } // fearless: never breaks and runs (the Veiled)
   // Returns 'block' | 'hit' | 'kill'.
   takeHit(a, from, dmg) {
     const t_counter = (e) => e.type.counter && Math.random() < e.type.counter;
@@ -103,6 +103,7 @@ export class Enemy extends Char {
     if (a.launch && !this.type.heavy) { this.set('air'); this.yv = a.launch; this.yoff = 0.02; this.play(CL.air, 0.08); this.open = false; this.trailOn = false; return 'hit'; }
     if (this.state === 'air') { this.yv = Math.max(this.yv, 3.5); return 'hit'; }
     if (this.state === 'down') return 'hit';
+    if (this.state === 'flee') return 'hit'; // one who has broken keeps running, cut or not
     this.poise -= a.poise || 1;
     // A boss that was just staggered can't be chained into another one.
     if (this.type.boss && G.time < (this.armorT || 0) && this.state !== 'parried') { this.poise = Math.max(this.poise, 1); return 'hit'; }
@@ -120,7 +121,7 @@ export class Enemy extends Char {
     const near = ms.filter((m) => !m.minD && !m.follow); return near[(Math.random() * near.length) | 0];
   }
   startMove(m, blend) {
-    this.mv = m; this.set('wind'); this.hitDone = false; this.thrown = false; this.slam = false; this.play(m.clip, blend || 0.14); SFX.tele();
+    this.mv = m; this.set('wind'); this.hitDone = false; this.thrown = false; this.slam = false; this.play(m.clip, blend || 0.14); if (!this.type.silent) SFX.tele();
     if (m.rush) { this.flash = 0.8; FX.sparks.emit(tmpB.copy(this.pos).addScaledVector(this.fwd(tmpA), 0.5).setY(this.pos.y + 1.2 * this.scale), 18, 3, 0xff6a3c, 0.5, { grav: 0, boost: 2 }); G.emit('rush', { enemy: this }); } // a rush is its own warning: red, off the shield
     else FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 8, 2, this.type.tele || this.type.look.eye, 0.4, { grav: 0, boost: 2 });
   }

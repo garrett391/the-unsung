@@ -18,7 +18,7 @@ const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null; // ONLY=labo
 const names = await page.evaluate(async () => {
   for (const id of ['title', 'hud', 'chron']) document.getElementById(id).style.display = 'none'; document.getElementById('fade').style.opacity = 0;
   G.director.abort(); G.running = true; G.resetWorld({ site: 'way', sky: 'morning', player: [0, 130, 0], corin: null }); G.player.setVisible(false); G.player.controlEnabled = false; G.freezeAI = true;
-  return [...Object.keys(G.LOOKS), 'raider', 'runner', 'bulwark', 'skirmisher', 'chief', 'sergeant'];
+  return [...Object.keys(G.LOOKS).filter((k) => k !== 'veiled'), 'raider', 'runner', 'bulwark', 'skirmisher', 'chief', 'sergeant', 'veiled'];
 });
 // one at a time, in the open middle of the yard (the yard was rebuilt, and a row of them stood behind its dressing)
 for (const name of names) { if (ONLY && !ONLY.includes(name)) continue;

@@ -28,7 +28,7 @@ const run = (name, world, at, spawns, secs = 30) => page.evaluate(async ([name, 
 }, [name, world, at, spawns, secs]);
 const KINDS = ['raider', 'runner', 'bulwark', 'chief', 'brute'], each = (pts) => KINDS.map((k) => [k, pts]);
 const BREACH = [[-2.6, 29], [2.6, 36], [0, 32]], EAST = [[22, -4], [26, -2], [24, -3], [26, -4], [22, -2]];
-let bad = []; const ONLY = process.env.ONLY; // ONLY=front: just the frontier
+let bad = []; const ONLY = process.env.ONLY; // ONLY=front: just the frontier (ONLY=wash: just the wash)
 if (!ONLY) for (const at of [[0, 6], [0, -7.1], [-12, 16], [12, -6], [-1.8, -6.8], [9, 9], [-13, -6], [6, -8.5], [0, -20]]) bad = bad.concat(await run(`camp, captain at ${at}`, { player: [0, 8, 0], corin: null }, at, each([...BREACH, ...EAST])));
 const WAY = [[8, 135.6], [13, 139.6], [-8, 135.6], [-13, 139.6], [-8.5, 137.5], [10, 137]];
 if (!ONLY) for (const at of [[0, 120], [-9, 112], [10, 128], [0, 110.5]]) bad = bad.concat(await run(`yard, captain at ${at}`, { site: 'way', sky: 'day', player: [0, 120, 0], corin: null }, at, each(WAY)));
@@ -36,4 +36,7 @@ if (!ONLY) for (const at of [[-150, 71], [-158, 66], [-141, 50], [-150, 62], [-1
 // The frontier: open ground made of circles, with a riverbed that bends. From every place raiders get up out of the sand, to him anywhere on it.
 const FR = [[17.5, -17], [28, -21], [-16.5, 19], [-27, 8], [-3, -1.5], [9, 70], [42, 38], [11.5, 39.5]].map(([x, z]) => [260 + x, -160 + z]);
 if (!ONLY || ONLY === 'front') for (const at of [[0, -40], [8, -17], [-15, 12], [18, 43], [-25, 10], [47, -10]]) bad = bad.concat(await run(`frontier, captain at ${at}`, { site: 'front', player: [260, -200, 0], corin: null }, [260 + at[0], -160 + at[1]], [['raider', FR], ['brute', FR], ['skirmisher', FR]], 75)); // (75 s: a Breaker walks, and it is a long way)
+// The wash (the lost caravan): a winding bed between banks, the plain at its south end and the caravan's bend at its north. From where they get up in the narrows and by the caravan.
+const WS = [[-1.2, -23], [-2.2, -31], [6.4, 4.5], [8.4, 7.5], [-4.6, -9], [-2.4, -17.6], [3.0, 27]].map(([x, z]) => [-330 + x, -120 + z]);
+if (!ONLY || ONLY === 'wash') for (const at of [[0, -50], [-6.5, -14], [12, 17], [3, 27], [5, -2]]) bad = bad.concat(await run(`wash, captain at ${at}`, { site: 'wash', player: [-330, -170, 0], corin: null }, [-330 + at[0], -120 + at[1]], [['raider', WS], ['veiled', WS], ['skirmisher', WS], ['brute', WS]], 60));
 console.log(bad.length ? bad.join('\n') : 'every spawn reaches the captain'); await browser.close(); server.close(); process.exit(bad.length ? 1 : 0);

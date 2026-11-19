@@ -45,6 +45,7 @@ export const LOOKS = {
   // (So that the player can find him among them, he has kept the yard hand's dark scarf, and wears a short brown mantle over his shoulders.)
   ranker: { ...SOLDIER, helm: undefined, eye: 0x08080c, legs: 1.18, pads: 0.95, scarf: 0x3c3028, mantle: 0x4a3a2e },
   sergeant: SERGEANT,
+  corporal: { ...SOLDIER, helm: undefined, eye: 0x08080c, legs: 1.18, pads: 0.95, scarf: 0x3c3028, mantle: 0x4a3a2e, stripe: 0x8e1f2a }, // the ranker, with the dead corporal's stripe on his arm (the excursions)
   wayguard: WAYGUARD, wayguardBare: { ...WAYGUARD, weapon: 'none', shield: undefined },
   boy: { ...WAYGUARD, weapon: 'none', shield: undefined, armor: 0x2a3560, under: 0x26305a, scarf: 0xb0283c, beard: undefined, hair: 0x6a4a2a, skin: 0xc99872 }, // Corin as he is first met (drawn at 0.8): the company's navy under a leather jack, an iron hat, a crimson neckcloth
  // the waystation's own gate guard, in boiled leather and an iron hat; and after his sword is taken
@@ -53,6 +54,13 @@ export const LOOKS = {
   knight: { armor: 0xb3242a, trim: 0xdcae45, under: 0x40434f, dark: 0x25262e, steel: 0xe6e9ef, plume: 0xf1e7cf, rim: 0x2c3f86, legs: 1.1, pads: 0.9, weapon: 'none' }, // helmed, like him (owner: the bare faces are too plain to carry a scene yet)
   line: { armor: 0x8f96a2, trim: 0x4a5a8a, under: 0x2a3050, dark: 0x25262e, steel: 0xdfe3ea, rim: 0x23305a, shield: 2 }, // the realm's line soldiers, in plain steel
   glass: { armor: 0xb4ad9c, trim: 0x7a6636, under: 0x25272c, dark: 0x101114, steel: 0xbfeee6, eye: 0x3fd0bc, rim: 0x3c8f84, glass: 1, pads: 0.92 },
+  // The Veiled (Act I, the excursions): desert fighters who are not the desert people. Pale where raiders are dark: a long veil
+  // over the face from under the eyes, a long robe and a short mantle, and the eyes painted round with a dark band. (The faint
+  // violet in the eyes is a hint for later, nothing more.)
+  veiled: { ...PLAIN, armor: 0xcbc1ac, trim: 0x6a6050, under: 0xbdb39c, dark: 0x3a3230, steel: 0xb8bcc4, rim: 0x40382c, wrap: 0xd9d1bf, veil: 0xe4ddcd, paint: 0x1a1628, eye: 0xc9b6ff,
+    skin: 0x8a5a3c, hair: 0x1a1614, robe: 1, mantle: 0xc4baa4, sash: 0x2c2640, blade: 1.12, pads: 0.5 },
+  // Corin a season after the beacon (the excursions): the same jack, hat and neckcloth, and now a short sword and a buckler
+  lad: { ...WAYGUARD, armor: 0x2a3560, under: 0x26305a, scarf: 0xb0283c, beard: undefined, hair: 0x6a4a2a, skin: 0xc99872, shield: 1, blade: 0.8 },
   clerk: { ...PLAIN, armor: 0x3a4466, trim: 0x8a7a5c, under: 0x2a3050, helm: 'none', hair: 0x9a9690, skin: 0xd9a77e, weapon: 'none', pads: 0.4, robe: 1, mantle: 0x7a6a50, hat: 0x5a2630, beard: 1, strap: 1 }, // the guard's clerk: a long robe and sleeves, a short shoulder cape, a felt cap, a grey beard, his papers in a satchel
 };
 
@@ -91,6 +99,11 @@ export const TYPES = {
   skirmisher: { name: 'JAVELIN THROWER', hp: 44, speed: 3.9, poise: 1, scale: 0.96, ranged: { min: 6.5, max: 14, dmg: 12 }, tele: 0xffc070,
     look: { ...RAIDER, armor: 0x7a6248, trim: 0x8a3226, under: 0xb8a37c, wrap: 0x6a2a20, skirt: undefined, weapon: 'javelin', blade: 1.05, quiver: 1 },
     moves: [{ style: 'thrust', wind: 0.5, rec: 0.8, dmg: 10, range: 2.6, lunge: 7 }, { style: 'over', wind: 0.85, rec: 0.75, dmg: 12, range: 0, lunge: 0, throw: true, follow: true }] },
+  // The Veiled (data above, LOOKS.veiled). Quick, a cut that can run on into a thrust, modest numbers (they are the first sign
+  // of them). `silent`: no breath as they wind up, no cry as they fall; `fearless`: flee() does nothing, so where raiders break
+  // and run, these fight until they drop.
+  veiled: { name: 'VEILED', hp: 74, speed: 3.8, poise: 2, scale: 1.04, silent: true, fearless: true, tele: 0xd8ccff, look: LOOKS.veiled,
+    moves: [{ style: 'slash', wind: 0.6, rec: 0.7, dmg: 14, range: 2.45, lunge: 6.5, chain: 0.45, then: 1 }, { style: 'thrust', wind: 0.36, rec: 0.85, dmg: 12, range: 2.75, lunge: 9, follow: true }] },
   // Leads the raid on the waystation: a raider's cut that can run on into an overhead with a shockwave.
   chief: { name: 'RAID LEADER', hp: 220, speed: 3.1, poise: 4, scale: 1.16, heavy: true,
     look: { ...HELMED, armor: 0x4a302a, trim: 0xb9853a, eye: 0xffb24a, horns: 1, cape: 0x5a2420, skirt: 0x5a2420, blade: 1.05, lames: 1 },

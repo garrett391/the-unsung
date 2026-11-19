@@ -211,13 +211,17 @@ export function buildHumanoid(o) {
     const mLip = M(new T.Color(o.skin || 0xd9a77e).multiplyScalar(0.62));
     mk(rbox(0.042, 0.009, 0.012, 0.004), mLip, neck, 0, 0.09, 0.105);
     for (const sd of [-1, 1]) {
-      mk(ball(0.014), mEye, neck, sd * 0.04, 0.168, 0.1).scale.set(1.3, 0.72, 0.6);
+      mk(ball(0.014), mEye, neck, sd * 0.04, 0.168, o.paint ? 0.1036 : 0.1).scale.set(o.paint ? 1.45 : 1.3, 0.72, 0.6); // (painted: a little proud of the paint)
       mk(rbox(0.05, 0.012, 0.02, 0.005), mHair, neck, sd * 0.041, 0.189, 0.102).rotation.z = -sd * 0.1;
       mk(ball(0.022), mSkin, neck, sd * 0.1, 0.153, -0.006).scale.set(0.45, 1, 0.7);
     }
     if (o.beard) { // a short full beard and moustache
       mk(ball(0.08), mHair, neck, 0, 0.055, 0.034).scale.set(0.98, 0.95, 0.98); mk(ball(0.05), mHair, neck, 0, 0.018, 0.07).scale.set(1.1, 0.9, 0.8);
       for (const sd of [-1, 1]) { mk(rbox(0.045, 0.02, 0.022, 0.008), mHair, neck, sd * 0.021, 0.104, 0.109).rotation.z = -sd * 0.28; }
+    }
+    if (o.paint) { // painted eyes (the Veiled): a dark band across them, skin-close, and wings of the same paint out over the cloth at the temples
+      const mP = M(o.paint); mk(new T.CylinderGeometry(0.1145, 0.1145, 0.03, 24, 1, true, -1.15, 2.3), mP, neck, 0, 0.169, 0).scale.set(0.9, 1, 1.04);
+      for (const sd of [-1, 1]) { const w = mk(new T.CylinderGeometry(0.134, 0.13, 0.026, 12, 1, true, sd > 0 ? 0.42 : -1.62, 1.2), mP, neck, 0, 0.176, -0.004); w.scale.set(0.98, 1, 1.12); w.rotation.z = sd * 0.1; }
     }
     if (o.helm === 'wrap') { // cloth wound over the crown with a roll at the brow, a veil over nose and mouth, a turn round the neck and a tail down the back
       const mW = M(o.wrap || 0xcfc2a2, { map: clothTex, side: T.DoubleSide });
@@ -227,6 +231,11 @@ export function buildHumanoid(o) {
       // the veil follows the face: over the nose, in under the chin, and out onto the collar (it was a straight tube)
       mk(turned('veil', [[0.106, 0.16], [0.116, 0.125], [0.113, 0.08], [0.098, 0.04], [0.096, 0.012], [0.124, -0.02], [0.168, -0.046]], 12), mW, neck, 0, 0, 0.012).scale.z = 1.27;
       mk(drape(0.18, 0.25, 0.34, 0.05), mW, neck, 0, 0.12, -0.132).rotation.set(0.12, PI, 0);
+      if (o.veil) { // (the Veiled) a long veil of its own over that one, hung from under the eyes to the middle of the chest, and a longer tail behind
+        const mV = M(o.veil, { map: clothTex, side: T.DoubleSide });
+        const v = mk(drape(0.17, 0.28, 0.5, 0.1), mV, neck, 0, 0.158, 0.126); v.rotation.x = -0.28; v.scale.z = -1;
+        mk(drape(0.22, 0.32, 0.62, 0.06), mV, neck, 0, 0.2, -0.14).rotation.set(0.16, PI, 0);
+      }
     } else if (o.helm === 'none' && o.cloth) { // a head-cloth held by a cord: over the crown and down round the neck to the shoulders
       const mW = M(o.cloth, { map: clothTex, side: T.DoubleSide });
       const top = mk(new T.SphereGeometry(0.127, SEG, 8, 0, PI * 2, 0, PI / 2), mW, neck, 0, 0.19, -0.006); top.scale.set(1, 0.95, 1.08); top.rotation.x = -0.14;
@@ -324,6 +333,7 @@ export function buildHumanoid(o) {
     }
     if (!PLN) mk(limb(0.07, 0.06, 0.27), mU, sh);
     if (!PLN) mk(new T.CylinderGeometry(0.078, 0.078, 0.03, SEG), mT, sh, 0, -0.15, 0);
+    if (o.stripe && s === -1) mk(new T.CylinderGeometry(0.088, 0.08, 0.09, SEG, 1, true), M(o.stripe, { map: clothTex, side: T.DoubleSide }), sh, 0, -0.215, 0); // a corporal's stripe: a band of cloth round the sword arm (the shield hides the other)
     const el = (J[b] = joint(sh, 0, -0.27, 0));
     if (PLN && o.robe) mk(folded('cuff', [[0.064, 0.012], [0.066, -0.08], [0.072, -0.2], [0.088, -0.264], [0.07, -0.27]], (a, v) => 0.045 * sat(1 - Math.abs(v - 0.45) / 0.4) * (0.45 + 0.55 * Math.cos(a + 0.8)) * Math.sin(v * 19 + 1.8 * Math.sin(a + 2)), 24, 14), mB, el); // a long sleeve, widening to the wrist
     else if (PLN && mWr) { mk(limb(0.056, 0.044, 0.25), mWr, el); mk(band(0.058, 0.02), mU, el, 0, 0.005, 0).rotation.x = PI / 2; mk(band(0.047, 0.007), mWd, el, 0, -0.236, 0).rotation.set(PI / 2 + 0.3, 0, 0); } // a rolled sleeve, and the forearm bound in cloth strips

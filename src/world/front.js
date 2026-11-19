@@ -30,26 +30,30 @@ const DISCS = [[0, -44, 12], [3, -30, 10], [8, -17, 10], [22, -20, 9], [35, -14,
 for (let s = 0; s <= WLEN + 0.1; s += 5.5) DISCS.push([...along(WADI, Math.min(s, WLEN)), 6.3]); // the riverbed
 DISCS.push([-25, 10, 7]); // a pocket off its west bank
 DISCS.push([-3, 35, 10], [10, 39, 13], [8, 55, 10], [9, 68, 9], [27, 35, 9], [40, 37, 9]); // the basin, and the two ways into it off the dunes: north and east
-export const FAREA = DISCS.map(([x, z, r]) => ({ x: FRONT.x + x, z: FRONT.z + z, r }));
-// metres outside the walkable ground (negative inside it)
-const outside = (x, z) => { let e = 1e9; for (const d of DISCS) e = Math.min(e, Math.hypot(x - d[0], z - d[1]) - d[2]); return e; };
 
 // Finding the way: which circle leads to which. A walker whose straight line to its target leaves the walkable ground
 // (the riverbed bends) heads for the overlap with the next circle on the shortest chain of them instead.
-const NEXT = (() => {
-  const n = DISCS.length, adj = DISCS.map((a, i) => DISCS.map((b, j) => i !== j && a[2] + b[2] - Math.hypot(a[0] - b[0], a[1] - b[1]) > 2.2));
-  return DISCS.map((_, to) => { const nx = new Int16Array(n).fill(-1), q = [to]; nx[to] = to; while (q.length) { const c = q.shift(); for (let k = 0; k < n; k++) if (adj[c][k] && nx[k] < 0) { nx[k] = c; q.push(k); } } return nx; }); // NEXT[to][from] = the next circle on the way
-})();
-const discOf = (x, z) => { let b = -1, bm = -1e9; DISCS.forEach((d, i) => { const m = d[2] - Math.hypot(x - d[0], z - d[1]); if (m > bm) { bm = m; b = i; } }); return b; };
-export function frontRoute(p, t) {
-  const px = p.x - FRONT.x, pz = p.z - FRONT.z, tx = t.x - FRONT.x, tz = t.z - FRONT.z, l = Math.hypot(tx - px, tz - pz), n = Math.ceil(l / 1.5);
-  let clear = true; for (let k = 1; k < n && clear; k++) if (outside(lerp(px, tx, k / n), lerp(pz, tz, k / n)) > -0.5) clear = false;
-  if (clear) return null;
-  const a = discOf(px, pz), b = discOf(tx, tz); if (a === b) return null; const c = NEXT[b][a]; if (c < 0 || c === a) return null;
-  const A = DISCS[a], C = DISCS[c], d = Math.hypot(C[0] - A[0], C[1] - A[1]), u = (d + A[2] - C[2]) / 2 / d; let gx = lerp(A[0], C[0], u), gz = lerp(A[1], C[1], u); // the middle of the overlap of the two
-  if (Math.hypot(gx - px, gz - pz) < 1.6) { gx = C[0]; gz = C[1]; } // there already: on into the next one
-  return [gx + FRONT.x, gz + FRONT.z];
+// (Any open site is built this way: `openArea` turns its circles, local to `at`, into the walkable area, the distance
+// outside it, and the router.)
+export function openArea(discs, at) {
+  const area = discs.map(([x, z, r]) => ({ x: at.x + x, z: at.z + z, r }));
+  const outside = (x, z) => { let e = 1e9; for (const d of discs) e = Math.min(e, Math.hypot(x - d[0], z - d[1]) - d[2]); return e; }; // metres outside the walkable ground (negative inside it)
+  const n = discs.length, adj = discs.map((a, i) => discs.map((b, j) => i !== j && a[2] + b[2] - Math.hypot(a[0] - b[0], a[1] - b[1]) > 2.2));
+  const next = discs.map((_, to) => { const nx = new Int16Array(n).fill(-1), q = [to]; nx[to] = to; while (q.length) { const c = q.shift(); for (let k = 0; k < n; k++) if (adj[c][k] && nx[k] < 0) { nx[k] = c; q.push(k); } } return nx; }); // next[to][from] = the next circle on the way
+  const discOf = (x, z) => { let b = -1, bm = -1e9; discs.forEach((d, i) => { const m = d[2] - Math.hypot(x - d[0], z - d[1]); if (m > bm) { bm = m; b = i; } }); return b; };
+  const route = (p, t) => {
+    const px = p.x - at.x, pz = p.z - at.z, tx = t.x - at.x, tz = t.z - at.z, l = Math.hypot(tx - px, tz - pz), k0 = Math.ceil(l / 1.5);
+    let clear = true; for (let k = 1; k < k0 && clear; k++) if (outside(lerp(px, tx, k / k0), lerp(pz, tz, k / k0)) > -0.5) clear = false;
+    if (clear) return null;
+    const a = discOf(px, pz), b = discOf(tx, tz); if (a === b) return null; const c = next[b][a]; if (c < 0 || c === a) return null;
+    const A = discs[a], C = discs[c], d = Math.hypot(C[0] - A[0], C[1] - A[1]), u = (d + A[2] - C[2]) / 2 / d; let gx = lerp(A[0], C[0], u), gz = lerp(A[1], C[1], u); // the middle of the overlap of the two
+    if (Math.hypot(gx - px, gz - pz) < 1.6) { gx = C[0]; gz = C[1]; } // there already: on into the next one
+    return [gx + at.x, gz + at.z];
+  };
+  return { area, outside, route };
 }
+const OPEN = openArea(DISCS, FRONT), outside = OPEN.outside;
+export const FAREA = OPEN.area, frontRoute = OPEN.route;
 
 // The lie of the land.
 const RA = -0.18, RNX = -Math.sin(RA), RNZ = Math.cos(RA); // the rise runs a little north of east
@@ -68,53 +72,46 @@ function land(x, z) {
   return h;
 }
 
-export function buildFront(scene, kit) {
-  const g = new T.Group(); g.position.set(FRONT.x, 0, FRONT.z); scene.add(g);
-  const q = rng(5151), Q = (a, b) => a + q() * (b - a), obs = [], banners = [];
-  const block = (x, z, r) => obs.push({ x: FRONT.x + x, z: FRONT.z + z, r });
-  const V = (x, y, z) => new T.Vector3(x, y, z), UP = V(0, 1, 0);
-
-  // ---- the ground: one sheet, fine where he walks and coarse far off (the grid's lines crowd toward the middle)
+// ---- shared by every open site (the frontier, the wash)
+// The ground: one sheet, fine where he walks and coarse far off (the grid's lines crowd toward the middle). `colour(x, z, slope, c)`
+// sets each vertex's colour in `c`. Returns the height at a local point: exactly the sheet's own surface (each cell is two
+// triangles, split along the same diagonal as the mesh), so feet meet it.
+export function openSheet(g, land, colour) {
   const N = 190, warp = (u) => 92 * u + 178 * u ** 7, xs = new Float32Array(N + 1); for (let i = 0; i <= N; i++) xs[i] = warp((i / N) * 2 - 1);
   const H = new Float32Array((N + 1) * (N + 1)); for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) H[j * (N + 1) + i] = land(xs[i], xs[j]);
   const cell = (v) => { let a = 0, b = N; while (b - a > 1) { const m = (a + b) >> 1; if (xs[m] <= v) a = m; else b = m; } return a; };
-  // exactly the sheet's own surface (each cell is two triangles, split along the same diagonal as the mesh below), so feet meet it
   const hl = (x, z) => {
     x = clamp(x, xs[0], xs[N] - 1e-3); z = clamp(z, xs[0], xs[N] - 1e-3); const i = cell(x), j = cell(z), u = (x - xs[i]) / (xs[i + 1] - xs[i]), v = (z - xs[j]) / (xs[j + 1] - xs[j]), k = j * (N + 1) + i;
     const a = H[k], b = H[k + 1], c = H[k + N + 1], d = H[k + N + 2];
     return u + v <= 1 ? a + (b - a) * u + (c - a) * v : d + (c - d) * (1 - u) + (b - d) * (1 - v);
   };
-  const height = (wx, wz) => hl(wx - FRONT.x, wz - FRONT.z);
-  { const pos = new Float32Array((N + 1) * (N + 1) * 3), uv = new Float32Array((N + 1) * (N + 1) * 2), col = new Float32Array((N + 1) * (N + 1) * 3), idx = [], c = new T.Color(), c2 = new T.Color();
-    const SAND = new T.Color(0xffffff), GRAVEL = new T.Color(0xb0a696), ROCK = new T.Color(0xb98f72), DAMP = new T.Color(0x9a9c74), PALE = new T.Color(0xfff0d2);
-    for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
-      const k = j * (N + 1) + i, x = xs[i], z = xs[j], h = H[k]; pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z; uv[k * 2] = x / 7; uv[k * 2 + 1] = z / 7;
-      const sl = Math.hypot(land(x + 0.5, z) - land(x - 0.5, z), land(x, z + 0.5) - land(x, z - 0.5)), [wd, ws] = nearLine(WADI, x, z), e = outside(x, z);
-      const bed = sm(2, 13, ws) * (1 - sm(3.6, 6.2, wd)), blot = 0.5 + 0.5 * Math.sin(x * 0.31 + Math.sin(z * 0.17) * 2) * Math.cos(z * 0.27 - Math.sin(x * 0.13) * 2);
-      c.copy(SAND).lerp(PALE, 0.5 * blot * sm(2, 20, e)); // wind-sorted sand on the dunes
-      c.lerp(c2.copy(GRAVEL).multiplyScalar(0.86 + 0.2 * blot), Math.max(bed * 0.9, 0.55 * (1 - blot) * (1 - sm(-2, 6, e)))); // gravel in the riverbed, and stony patches on the pans
-      c.lerp(ROCK, clamp((sl - 0.42) * 2.6, 0, 0.8) * (1 - sm(10, 30, e))); // bared rock where a bank is steep
-      c.lerp(DAMP, 0.6 * gauss(x, z, 0, -44, 6.5)); // darker and greener round the well
-      col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
-      if (i < N && j < N) idx.push(k, k + N + 1, k + 1, k + 1, k + N + 1, k + N + 2);
-    }
-    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.BufferAttribute(uv, 2)); geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.setIndex(idx); geo.computeVertexNormals();
-    const tx = TEX.sand.clone(); tx.repeat.set(1, 1); tx.needsUpdate = true;
-    const mat = toon(0xffffff, { map: tx, vertexColors: true }), ramp = new T.DataTexture(new Uint8Array([64, 92, 124, 156, 188, 216, 238, 255]), 8, 1, T.RedFormat); ramp.minFilter = ramp.magFilter = T.LinearFilter; ramp.needsUpdate = true;
-    mat.gradientMap = ramp; // a soft ramp: on broad smooth slopes the four hard toon bands showed as polygons the size of the grid
-    const m = new T.Mesh(geo, mat); m.receiveShadow = true; g.add(m); }
-
-  // ---- rock. Smooth, weathered lumps (a ball pushed about by a few octaves of noise), bedded like the mesas: four shapes,
-  // drawn many times over. Sand lies on their tops.
+  const pos = new Float32Array((N + 1) * (N + 1) * 3), uv = new Float32Array((N + 1) * (N + 1) * 2), col = new Float32Array((N + 1) * (N + 1) * 3), idx = [], c = new T.Color();
+  for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+    const k = j * (N + 1) + i, x = xs[i], z = xs[j], h = H[k]; pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z; uv[k * 2] = x / 7; uv[k * 2 + 1] = z / 7;
+    colour(x, z, Math.hypot(land(x + 0.5, z) - land(x - 0.5, z), land(x, z + 0.5) - land(x, z - 0.5)), c);
+    col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+    if (i < N && j < N) idx.push(k, k + N + 1, k + 1, k + 1, k + N + 1, k + N + 2);
+  }
+  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.BufferAttribute(uv, 2)); geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+  const tx = TEX.sand.clone(); tx.repeat.set(1, 1); tx.needsUpdate = true;
+  const mat = toon(0xffffff, { map: tx, vertexColors: true }), ramp = new T.DataTexture(new Uint8Array([64, 92, 124, 156, 188, 216, 238, 255]), 8, 1, T.RedFormat); ramp.minFilter = ramp.magFilter = T.LinearFilter; ramp.needsUpdate = true;
+  mat.gradientMap = ramp; // a soft ramp: on broad smooth slopes the four hard toon bands showed as polygons the size of the grid
+  const m = new T.Mesh(geo, mat); m.receiveShadow = true; g.add(m);
+  return hl;
+}
+// Rock. Smooth, weathered lumps (a ball pushed about by a few octaves of noise), bedded like the mesas: four shapes,
+// drawn many times over (made once, for every open site). Sand lies on their tops.
+let ROCKKIT = null;
+const hash = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); };
+const vnoise = (x, y, z) => { const X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z), fx = x - X, fy = y - Y, fz = z - Z, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), w = fz * fz * (3 - 2 * fz);
+  const L = (a, b, t) => a + (b - a) * t; return L(L(L(hash(X, Y, Z), hash(X + 1, Y, Z), u), L(hash(X, Y + 1, Z), hash(X + 1, Y + 1, Z), u), v), L(L(hash(X, Y, Z + 1), hash(X + 1, Y, Z + 1), u), L(hash(X, Y + 1, Z + 1), hash(X + 1, Y + 1, Z + 1), u), v), w) * 2 - 1; };
+function rockKit() {
+  if (ROCKKIT) return ROCKKIT;
   const rockTex = canvasTex(256, (c, n) => { const r = rng(88);
     speck(c, n, [186, 138, 100], 16, r);
     for (let y = 0; y < n;) { const h = 6 + r() * 22; c.fillStyle = ['rgba(140,84,56,.5)', 'rgba(224,182,134,.45)', 'rgba(116,72,52,.4)', 'rgba(206,150,100,.4)'][(r() * 4) | 0]; c.fillRect(0, y, n, h); c.fillStyle = 'rgba(60,36,26,.32)'; c.fillRect(0, y + h - 1.5, n, 1.5); y += h; }
     for (let k = 0; k < 12; k++) { let x = r() * n, y = r() * n; c.strokeStyle = `rgba(62,38,28,${0.08 + r() * 0.12})`; c.lineWidth = 0.8 + r() * 1.2; c.beginPath(); c.moveTo(x, y); for (let m = 0; m < 5; m++) { x += (r() - 0.5) * 8; y += 8 + r() * 20; c.lineTo(x, y); } c.stroke(); }
     for (let i = 0; i < 40; i++) { c.fillStyle = r() < 0.5 ? 'rgba(70,44,34,.14)' : 'rgba(236,206,160,.12)'; c.beginPath(); c.arc(r() * n, r() * n, 6 + r() * 24, 0, 7); c.fill(); } });
-  const mRock = toon(0xffffff, { map: rockTex, vertexColors: true });
-  const hash = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); };
-  const vnoise = (x, y, z) => { const X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z), fx = x - X, fy = y - Y, fz = z - Z, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), w = fz * fz * (3 - 2 * fz);
-    const L = (a, b, t) => a + (b - a) * t; return L(L(L(hash(X, Y, Z), hash(X + 1, Y, Z), u), L(hash(X, Y + 1, Z), hash(X + 1, Y + 1, Z), u), v), L(L(hash(X, Y, Z + 1), hash(X + 1, Y, Z + 1), u), L(hash(X, Y + 1, Z + 1), hash(X + 1, Y + 1, Z + 1), u), v), w) * 2 - 1; };
   const rockGeo = (seed, slab) => {
     let geo = new T.IcosahedronGeometry(1, 4); geo.deleteAttribute('normal'); geo.deleteAttribute('uv'); geo = mergeVertices(geo, 1e-4);
     const p = geo.attributes.position, uv = new Float32Array(p.count * 2), col = new Float32Array(p.count * 3), o = seed * 17.3;
@@ -127,10 +124,40 @@ export function buildFront(scene, kit) {
       col[i * 3] = lerp(foot, 1.16, top); col[i * 3 + 1] = lerp(foot, 1.02, top * 0.9); col[i * 3 + 2] = lerp(foot * 0.98, 0.78, top); }
     geo.setAttribute('color', new T.BufferAttribute(col, 3)); return geo;
   };
-  const ROCKS = [rockGeo(1), rockGeo(2), rockGeo(3, true), rockGeo(4, true)], rockAt = ROCKS.map(() => []);
-  const M4 = new T.Matrix4(), qt = new T.Quaternion(), eu = new T.Euler(), sv = V(1, 1, 1), pv = V(0, 0, 0);
-  // a rock of half-width r at (x, z), sunk a little into the ground; `solid` makes it something to walk round
+  ROCKKIT = { mRock: toon(0xffffff, { map: rockTex, vertexColors: true }), ROCKS: [rockGeo(1), rockGeo(2), rockGeo(3, true), rockGeo(4, true)] };
+  return ROCKKIT;
+}
+// A site's rocks: rock(x, z, r, o) puts one of half-width r at a local point, sunk a little into the ground (o.solid makes it
+// something to walk round, through `block`; o.kind picks the shape, o.sy its height); rock.done() draws them all.
+export function rockSet(g, hl, q, block) {
+  const { mRock, ROCKS } = rockKit(), rockAt = ROCKS.map(() => []), Q = (a, b) => a + q() * (b - a);
+  const M4 = new T.Matrix4(), qt = new T.Quaternion(), eu = new T.Euler(), sv = new T.Vector3(1, 1, 1), pv = new T.Vector3();
   const rock = (x, z, r, o = {}) => { const k = o.kind == null ? (q() * 4) | 0 : o.kind, sy = o.sy || Q(0.75, 1.25); pv.set(x, hl(x, z) - r * 0.12, z); qt.setFromEuler(eu.set(Q(-0.12, 0.12), Q(0, 6.3), Q(-0.12, 0.12))); sv.set(r * Q(0.85, 1.2), r * sy, r * Q(0.85, 1.2)); rockAt[k].push(M4.compose(pv, qt, sv).clone()); if (o.solid) block(x, z, r * 0.92); };
+  rock.done = () => ROCKS.forEach((geo, k) => { const im = new T.InstancedMesh(geo, mRock, rockAt[k].length); rockAt[k].forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = im.receiveShadow = true; im.frustumCulled = false; g.add(im); });
+  return rock;
+}
+
+export function buildFront(scene, kit) {
+  const g = new T.Group(); g.position.set(FRONT.x, 0, FRONT.z); scene.add(g);
+  const q = rng(5151), Q = (a, b) => a + q() * (b - a), obs = [], banners = [];
+  const block = (x, z, r) => obs.push({ x: FRONT.x + x, z: FRONT.z + z, r });
+  const V = (x, y, z) => new T.Vector3(x, y, z), UP = V(0, 1, 0);
+
+  // ---- the ground
+  const SAND = new T.Color(0xffffff), GRAVEL = new T.Color(0xb0a696), ROCK = new T.Color(0xb98f72), DAMP = new T.Color(0x9a9c74), PALE = new T.Color(0xfff0d2), c2 = new T.Color();
+  const hl = openSheet(g, land, (x, z, sl, c) => {
+    const [wd, ws] = nearLine(WADI, x, z), e = outside(x, z);
+    const bed = sm(2, 13, ws) * (1 - sm(3.6, 6.2, wd)), blot = 0.5 + 0.5 * Math.sin(x * 0.31 + Math.sin(z * 0.17) * 2) * Math.cos(z * 0.27 - Math.sin(x * 0.13) * 2);
+    c.copy(SAND).lerp(PALE, 0.5 * blot * sm(2, 20, e)); // wind-sorted sand on the dunes
+    c.lerp(c2.copy(GRAVEL).multiplyScalar(0.86 + 0.2 * blot), Math.max(bed * 0.9, 0.55 * (1 - blot) * (1 - sm(-2, 6, e)))); // gravel in the riverbed, and stony patches on the pans
+    c.lerp(ROCK, clamp((sl - 0.42) * 2.6, 0, 0.8) * (1 - sm(10, 30, e))); // bared rock where a bank is steep
+    c.lerp(DAMP, 0.6 * gauss(x, z, 0, -44, 6.5)); // darker and greener round the well
+  });
+  const height = (wx, wz) => hl(wx - FRONT.x, wz - FRONT.z);
+
+  // ---- rock
+  const M4 = new T.Matrix4(), qt = new T.Quaternion(), eu = new T.Euler(), sv = V(1, 1, 1), pv = V(0, 0, 0);
+  const rock = rockSet(g, hl, q, block);
   // along the edge of the walkable ground: outcrops where the land does not rise much by itself, heavier and nearly unbroken down the riverbed's banks
   for (let i = 0; i < DISCS.length; i++) { const [cx, cz, cr] = DISCS[i], n = Math.round((cr * 2 * PI) / 2.6);
     for (let k = 0; k < n; k++) { const a = (k / n) * PI * 2 + Q(-0.1, 0.1), x = cx + Math.sin(a) * (cr + 1.4), z = cz + Math.cos(a) * (cr + 1.4); if (outside(x, z) < 1.2) continue;
@@ -145,7 +172,7 @@ export function buildFront(scene, kit) {
   for (let k = 0; k < 16; k++) { const a = (k / 16) * PI * 2 + Q(-0.15, 0.15), d = Q(7.6, 9.6), x = BEACON[0] + Math.sin(a) * d, z = BEACON[1] + Math.cos(a) * d; if (outside(x, z) < 0.8) continue; rock(x, z, Q(1.6, 3.0), { kind: (q() * 4) | 0, sy: Q(0.9, 1.7) }); } // heaped against the foot of the beacon's rock, so it does not stand on the sand like a drum
   // out on the dunes, half buried
   for (let i = 0; i < 70; i++) { const a = Q(0, 6.3), d = Q(30, 95), x = Math.sin(a) * d + 4, z = Math.cos(a) * d + 4; if (outside(x, z) > 7) rock(x, z, Q(0.6, 3.2), { sy: Q(0.5, 1.0) }); }
-  ROCKS.forEach((geo, k) => { const im = new T.InstancedMesh(geo, mRock, rockAt[k].length); rockAt[k].forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = im.receiveShadow = true; im.frustumCulled = false; g.add(im); });
+  rock.done();
 
   // ---- mesas and buttes on the skyline (the waystation's), and the butte the beacon stands on
   const TOP = 7.2; // how high the beacon's rock stands

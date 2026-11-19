@@ -29,10 +29,15 @@ export const DECAL = {
 };
 // const sand = decals(DECAL.soft, 0xd8c090, 0.7); sand.at(x, z, w, h, ry); ... sand.done(parent)
 // The top of the texture points along -z, turned by ry (so prints and ruts heading at angle a take ry = a + PI).
-export function decals(map, color, opacity) {
+// `ground` (open country, which is not flat): a function of x, z giving the height there; each patch is then cut finer and laid over it.
+export function decals(map, color, opacity, ground) {
   const parts = [];
   return {
-    at(x, z, w, h, ry = 0, y = 0.03) { const g = new T.PlaneGeometry(w, h); g.rotateX(-PI / 2); g.rotateY(ry); g.translate(x, y, z); parts.push(g); },
+    at(x, z, w, h, ry = 0, y = 0.03) {
+      const g = ground ? new T.PlaneGeometry(w, h, Math.ceil(w / 0.6), Math.ceil(h / 0.6)) : new T.PlaneGeometry(w, h); g.rotateX(-PI / 2); g.rotateY(ry); g.translate(x, y, z);
+      if (ground) { const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, ground(p.getX(i), p.getZ(i)) + y); g.computeVertexNormals(); }
+      parts.push(g);
+    },
     done(parent) {
       if (!parts.length) return null;
       const m = new T.Mesh(mergeGeometries(parts), toon(color, { map, transparent: true, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
