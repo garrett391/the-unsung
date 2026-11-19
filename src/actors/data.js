@@ -99,11 +99,13 @@ export const TYPES = {
   skirmisher: { name: 'JAVELIN THROWER', hp: 44, speed: 3.9, poise: 1, scale: 0.96, ranged: { min: 6.5, max: 14, dmg: 12 }, tele: 0xffc070,
     look: { ...RAIDER, armor: 0x7a6248, trim: 0x8a3226, under: 0xb8a37c, wrap: 0x6a2a20, skirt: undefined, weapon: 'javelin', blade: 1.05, quiver: 1 },
     moves: [{ style: 'thrust', wind: 0.5, rec: 0.8, dmg: 10, range: 2.6, lunge: 7 }, { style: 'over', wind: 0.85, rec: 0.75, dmg: 12, range: 0, lunge: 0, throw: true, follow: true }] },
-  // The Veiled (data above, LOOKS.veiled). Quick, a cut that can run on into a thrust, modest numbers (they are the first sign
-  // of them). `silent`: no breath as they wind up, no cry as they fall; `fearless`: flee() does nothing, so where raiders break
-  // and run, these fight until they drop.
-  veiled: { name: 'VEILED', hp: 74, speed: 3.8, poise: 2, scale: 1.04, silent: true, fearless: true, tele: 0xd8ccff, look: LOOKS.veiled,
-    moves: [{ style: 'slash', wind: 0.6, rec: 0.7, dmg: 14, range: 2.45, lunge: 6.5, chain: 0.45, then: 1 }, { style: 'thrust', wind: 0.36, rec: 0.85, dmg: 12, range: 2.75, lunge: 9, follow: true }] },
+  // The Veiled (data above, LOOKS.veiled). `silent`: no breath as they wind up, no cry as they fall; `fearless`: flee() does
+  // nothing, so where raiders break and run, these fight until they drop; `again`: the first time one is cut down he lies
+  // still for that many seconds and then gets up with half his health (Enemy.fell). Owner, 19 Nov 2026: they were too easy
+  // for what the chapter makes of them. Now quicker on their feet, closer in, less wait between attacks (`press`), a quicker
+  // cut that runs on into the thrust more often.
+  veiled: { name: 'VEILED', hp: 74, speed: 4.6, poise: 2, scale: 1.04, silent: true, fearless: true, again: 2.6, close: 0.3, press: 0.5, tele: 0xd8ccff, look: LOOKS.veiled,
+    moves: [{ style: 'slash', wind: 0.5, rec: 0.6, dmg: 14, range: 2.45, lunge: 7.5, chain: 0.6, then: 1 }, { style: 'thrust', wind: 0.32, rec: 0.75, dmg: 12, range: 2.75, lunge: 10, follow: true }] },
   // Leads the raid on the waystation: a raider's cut that can run on into an overhead with a shockwave.
   chief: { name: 'RAID LEADER', hp: 220, speed: 3.1, poise: 4, scale: 1.16, heavy: true,
     look: { ...HELMED, armor: 0x4a302a, trim: 0xb9853a, eye: 0xffb24a, horns: 1, cape: 0x5a2420, skirt: 0x5a2420, blade: 1.05, lames: 1 },

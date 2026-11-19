@@ -177,15 +177,20 @@ if (at('caravan')) { // the stripe at the picket, the old road, the stopped cara
   log('the wash', await walkW([[0.5, -52], [0.3, -40], [-2.5, -26], [-1.2, -14], [3.5, -4], [6.5, 3]], "G.cinematic")); await play(20, { until: "G.cinematic" }); await play(1.6); await shot('1f-the-caravan');
   await play(20, { until: "G.player.controlEnabled" }); await play(0.5); await shot('1f2-the-caravan');
   for (const [k, pts] of [[1, [[8.6, 7.5], [8.3, 10.4]]], [2, [[8.9, 13.4]]], [3, [[5.6, 18.6], [2.6, 21.5], [3.0, 27]]]]) { await walkW(pts, obj(`/${k}\\/3/`)); log(`found ${k}`, await play(20, { until: obj(`/\\(${k}\\/3/`) })); if (k === 2) { await play(2.2); await shot('1g-casks'); } }
-  log('under the wagon', await walkW([[3.0, 27], [2.6, 21.5], [6.4, 19.2], [9.6, 15.2]], "G.cinematic")); await play(40, { until: "G.talking" }); await play(0.8); await shot('1h-under-the-wagon');
+  log('under the wagon', await walkW([[3.0, 27], [2.6, 21.5], [6.4, 19.2], [9.9, 15.0]], "G.cinematic")); await play(40, { until: "G.talking" }); await play(0.8); await shot('1h-under-the-wagon');
   await play(30, { tap: true, until: dtxt('/yard hand/') }); await play(0.8); await shot('1h2-yard-hand'); await play(10, { tap: true, until: dtxt('/^I was/') }); await play(0.8); await shot('1h2b-i-was');
   await play(30, { tap: true, until: dtxt('/never said a word/') }); await play(0.8); await shot('1h3-never-a-word');
-  log('the way back', await play(60, { tap: true, until: "G.player.controlEnabled" })); await play(1.0); await shot('1i-the-way-back');
+  log('raiders', await play(60, { tap: true, until: "G.enemies.length>0&&G.cinematic" })); await play(1.6); await shot('1i-raiders'); // they were waiting at the caravan
+  await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('1i2-raiders-fight');
+  log('they break', await play(240, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.state==='flee')" })); await play(3.5); await shot('1j-they-break'); // and go back under the sand
+  log('the way back', await play(60, { until: obj('/back to the picket/') })); await play(1.0); await shot('1j2-the-way-back');
+  if (await page.evaluate(() => G.player.pos.z > -120 + 18)) await walkW([[1.4, 23], [3.0, 17.5]], 'false'); // (the fight may end up the wash, behind the overturned wagon: the bot does not steer round things)
+  await walkW([[3.4, 12.5], [8.6, 7.5]], 'G.enemies.length>0');
   for (let k = 0; k < 160 && !(await page.evaluate("G.enemies.length>0")); k++) { const p = await page.evaluate(() => [G.extras[0].pos.x, G.extras[0].pos.z]); await play(0.6, { bot: true, god: true, to: p, until: `G.enemies.length>0||Math.hypot(G.player.pos.x-(${p[0]}),G.player.pos.z-(${p[1]}))<3` }); await play(0.4, { until: "G.enemies.length>0" }); }
-  await play(1.6); await shot('1j-ambush'); await play(20, { until: "G.enemies.some(e=>e.kind==='veiled')&&G.cinematic" }); await play(2.0); await shot('1k-the-veiled');
+  await play(20, { until: "G.cinematic" }); await play(2.2); await shot('1k-the-veiled'); // in the narrows: they get up and stand there
   await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('1l-fight');
-  log('rout', await play(200, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.state==='flee')" })); await play(0.6, { bot: true, god: true }); await shot('1m-rout');
-  log('on the boy', await play(120, { bot: true, god: true, heavy: true, until: obj('/Get to Corin/') })); await play(2.5, { bot: true, god: true }); await shot('1n-on-the-boy');
+  log('getting up', await play(200, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.state==='rising')" })); await play(0.9, { bot: true, god: true }); await shot('1m-getting-up');
+  log('on the boy', await play(200, { bot: true, god: true, heavy: true, until: obj('/Get to Corin/') })); await play(2.5, { bot: true, god: true }); await shot('1n-on-the-boy');
   log('cleared', await play(240, { bot: true, god: true, heavy: true, until: "G.cinematic" })); await play(40, { until: "G.talking" }); await play(1.0); await shot('1o-after');
   await play(30, { tap: true, until: dtxt('/not hurt/') }); await play(0.8); await shot('1p-not-hurt');
   log('to the camp', await play(60, { tap: true, until: stageIs('intro') }));

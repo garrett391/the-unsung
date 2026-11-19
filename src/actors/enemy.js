@@ -5,7 +5,7 @@ import { PI, clamp, lerp, sstep, wrap, damp, rnd } from '../core/util.js';
 import { Char } from './char.js';
 import { NJ, PL, JI } from './rig.js';
 import { drip } from '../gfx/fx.js';
-import { CL } from './anim.js';
+import { CL, PZ, C } from './anim.js';
 import { TYPES } from './data.js';
 import { FX, Trail, shock, blood, poof } from '../gfx/fx.js';
 import { pickLock } from './player.js';
@@ -13,6 +13,8 @@ import { steer, route } from '../world/level.js';
 import { throwJavelin } from './missile.js';
 
 const tmpA = new T.Vector3(), tmpB = new T.Vector3(), tmpR = new T.Vector3();
+// A die-hard getting up off the ground (`again`): the fall run backwards, through a knee, to his guard.
+const UP = C(1.5, [0, PZ.d2], [0.5, PZ.d1], [0.95, PZ.kneel], [1.25, PZ.rise3, 'i'], [1.5, PZ.guard]);
 export const attackers = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && !e.marked() && !e.mv.throw ? 1 : 0), 0); // those swinging at him (one set on a soldier is not his to worry about, and a javelin is not a blade at his shoulder)
 const throwing = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && e.mv.throw ? 1 : 0), 0);
 // Who is fighting whom: how many raiders are on the captain, or on one soldier (not counting `self`).
@@ -71,6 +73,14 @@ export class Enemy extends Char {
     G.emit('kill', { enemy: this });
   }
   flee() { if (!this.dead && !this.type.fearless) this.set('flee'); } // fearless: never breaks and runs (the Veiled)
+  // A die-hard (type field `again`: seconds he lies there) the first time he is cut down: he falls as the dead fall and lies
+  // still, out of reach (`dead`, so nothing can strike or lock on to him; `downed` marks that he is not finished), then gets
+  // up again with half his health. The second time he stays down.
+  fell() {
+    this.downed = true; this.dead = true; this.hp = 0; this.open = false; this.set('felled'); this.play(CL.death, 0.08); this.trailOn = false; this.mark = null;
+    if (G.player.lock === this) G.player.lock = pickLock(true);
+    G.emit('felled', { enemy: this });
+  }
   // Returns 'block' | 'hit' | 'kill'.
   takeHit(a, from, dmg) {
     const t_counter = (e) => e.type.counter && Math.random() < e.type.counter;
@@ -99,7 +109,7 @@ export class Enemy extends Char {
     if (!a.quiet) { G.hitstop = Math.max(G.hitstop, a.stop || 0.05); G.shake = Math.max(G.shake, a.crit ? 0.5 : a.heavy ? 0.35 : 0.16); } if (a.crit) G.slow = 0.4; // quiet: a soldier's blow beside him, which must not stop the game's clock or shake his camera
     this.vel.copy(dir).multiplyScalar((a.knock || 2) / (this.scale * this.scale));
     if (!G.blunt) blood(hp, dir, a.crit ? 3 : a.heavy ? 2 : 1, this.hp <= 0, from);
-    if (this.hp <= 0) { this.die(); if (a.launch) { this.yv = a.launch * 0.7; this.yoff = 0.01; } return 'kill'; }
+    if (this.hp <= 0) { if (this.type.again && !this.risen) { this.fell(); return 'kill'; } this.die(); if (a.launch) { this.yv = a.launch * 0.7; this.yoff = 0.01; } return 'kill'; }
     if (a.launch && !this.type.heavy) { this.set('air'); this.yv = a.launch; this.yoff = 0.02; this.play(CL.air, 0.08); this.open = false; this.trailOn = false; return 'hit'; }
     if (this.state === 'air') { this.yv = Math.max(this.yv, 3.5); return 'hit'; }
     if (this.state === 'down') return 'hit';
@@ -206,7 +216,14 @@ export class Enemy extends Char {
       case 'getup': brake(8); if (this.st >= 0.4) { this.set('circle'); this.cd = rnd(0.4, 1.2); } break;
       case 'flee': {
         this.turnTo(steer(this.pos, this.radius, Math.atan2(-dx, -dz), 6, this), 8, dt);
-        this.vel.x = damp(this.vel.x, f.x * 5.5, 6, dt); this.vel.z = damp(this.vel.z, f.z * 5.5, 6, dt); if (this.st > 4) this.gone = true; break; }
+        this.vel.x = damp(this.vel.x, f.x * 5.5, 6, dt); this.vel.z = damp(this.vel.z, f.z * 5.5, 6, dt);
+        if (this.st > 3.3 && G.level.ground) { // in open country they go back under the sand they came out of, instead of vanishing on the run
+          if (!this.sank) { this.sank = true; poof(this.pos, this.scale * 0.8); } this.yoff -= dt * 3.2; brake(6); }
+        if (this.st > 4) this.gone = true; break; }
+      case 'felled': brake(5); eye = 0; this.yoff = 0; // lying as the dead lie; then the light comes back into his eyes, and he gets up
+        if (this.st >= t.again) { this.set('rising'); this.play(UP, 0.35); poof(this.pos, this.scale * 0.55); G.emit('rising', { enemy: this }); } break;
+      case 'rising': brake(8); eye = Math.min(3, this.st * 3.5);
+        if (this.st >= UP.dur) { this.dead = false; this.downed = false; this.risen = true; this.hp = this.maxHp * 0.5; this.poise = t.poise; this.set('circle'); this.stop(0.2); this.cd = rnd(0.2, 0.7); } break;
       case 'dead':
         brake(5); eye = Math.max(0, 1 - this.st);
         if (this.yoff > 0 || this.yv > 0) { this.yv -= 20 * dt; this.yoff = Math.max(0, this.yoff + this.yv * dt); }
