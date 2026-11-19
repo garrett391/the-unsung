@@ -65,9 +65,9 @@ These made the three tracks above. Same palette and key as the rest. Each leads 
 
 Two tracks the owner made with Gemini from the prompts below. Neither had silence at the start; the 1.7 s and 2.6 s of silence at their ends were cut so they loop (with a 60 ms fade against a click), and both were re-encoded at 128 kbps. Loudness already matched the others (-12.3 and -12.0 LUFS after the cut), so the levels were left alone. Unheard: the owner's ear decides.
 
-- "Only the Wind Remains" (`wind`, 63.3 s, looped): the night. It takes over from "Beneath the Flagstones" as the picket fades up, and runs while he walks in past Hale, Brann and Wren to the corporal and through the corporal's death. It goes out with the light as the night fades to black.
-- "A Brother's Final Watch" (`watch`, 64.0 s, looped): the morning. It comes in as the morning fades up, and runs while he talks to the sergeant, looks for Corin on the rise and finds him; it carries on under the next chapter's cards until `actOne()` crossfades to the camp's theme.
-- Both are preloaded once the beacon is lit, so the night's track is ready when the picket starts.
+- "Only the Wind Remains" (`wind`, 63.3 s): no longer played (owner, 19 Nov 2026: he didn't like it). The file and its `TRACKS` entry are kept.
+- "A Brother's Final Watch" (`watch`, 64.0 s, looped): the whole chapter. It takes over from "Beneath the Flagstones" as the picket fades up, runs while he walks in past Hale, Brann and Wren to the corporal and through the corporal's death, carries on across the dip to black into the morning, while he talks to the sergeant, looks for Corin on the rise and finds him, and under the next chapter's cards until `actOne()` crossfades to the camp's theme.
+- It is preloaded once the beacon is lit, so it is ready when the picket starts.
 
 **The night** ("Only the Wind Remains"):
 
