@@ -461,7 +461,7 @@ stage('road', {
 });
 
 // Prologue 4: the waystation. Years on, he is a yard hand. One raider comes in quietly behind the gate's
-// one guard and cuts him down, and the rest come in off the road at the horn; they take him for nobody and go for the goods; he takes up the dead
+// one guard and cuts him down, and the rest come in off the road at once; they take him for nobody and go for the goods; he takes up the dead
 // man's sword and shield. The first open fight of the game, in three waves, as the light goes:
 // raiders, then quicker ones (the roll is taught), then the one who leads them (the heavy blow).
 // A guard officer comes up the road behind them, in at the end, to see what he did.
@@ -501,13 +501,13 @@ stage('waystation', {
         const idle = new Float32Array(P.cur), start = pose({ spine: [-0.22, 0, 0], chest: [-0.14, 0, 0], neck: [0.14, 0, 0], shL: [-0.8, 0, 0.5], elL: [-1.5, 0, -0.3], shR: [-0.65, 0, -0.5], elR: [-1.4, 0, 0], pos: [0, -0.05, -0.1] }, idle);
         P.state = 'cine'; P.play(C(1.4, [0.12, start, 'o'], [0.6, start], [1.4, pose({ spine: [-0.08, 0, 0], chest: [-0.05, 0, 0], shL: [-0.3, 0, 0.3], elL: [-0.9, 0, 0], shR: [-0.25, 0, -0.3], elR: [-0.8, 0, 0] }, idle)]), 0.06); P.vel.set(-Math.sin(P.face) * 2.4, 0, -Math.cos(P.face) * 2.4); }
       await d.wait(1.4);
-      // Then the horn, out in the dunes, and the rest of them come running in off the road.
-      G.shake = 0.1; SFX.horn();
+      // Then the rest of them come running in off the road.
+      // (owner, 19 Nov 2026: no war horn here any more; the recording didn't sound good)
       for (const [x, z] of [[-1.4, 19], [0.5, 21.5]]) R.push(G.spawn('raider', ...wy(x, z)));
       cam.shot(wy3(-3.2, 1.5, 3.6), wy3(0.9, 1.5, 10.5)); cam.shot(wy3(-2.6, 1.4, 5), wy3(1.2, 1.3, 10.5), 3.5);
       drover.go(...wy(0.4, -11.2), 4.4);
       // (Owner, Nov 2026: it went straight from the kill to "leave that one"; then, that the walk up took too long.) The one who
-      // killed the guard does not look round at the horn: he is already walking at the yard hand, at a stride, while the others
+      // killed the guard does not look round: he is already walking at the yard hand, at a stride, while the others
       // run in behind him, so he is nearly there when the camera comes back. The yard hand does not back away.
       { const k = R[0], dx = k.pos.x - P.pos.x, dz = k.pos.z - P.pos.z, l = Math.hypot(dx, dz) || 1, kx = P.pos.x + (dx / l) * 2.1, kz = P.pos.z + (dz / l) * 2.1, a = Math.atan2(dx, dz);
         k.stop(0.3); /* out of the cut he killed the guard with: he was held in its last pose and slid across the yard */ const near = march(d, k, kx, kz, 3.1); near.catch(() => {});
@@ -871,17 +871,17 @@ stage('beacon', {
     });
     await d.until(() => H.progress >= 1);
     stop(); offJ(); ui.holdBar(false); G.hold = null; ui.hint(''); ui.objective('');
-    // It burns. Out in the dunes they see it too, and break off; and from the south, the company's horn.
+    // It burns. Out in the dunes they see it too, and break off; and the company, to the south, will have seen it.
     await settled(d, 1); P.controlEnabled = false; P.lock = null; P.calm = true; P.inv = 1e6; G.cinematic = true; ui.cinematic(true);
     L.front.light(true); SFX.flame(); SFX.boom(); G.shake = 0.2; for (const e of G.enemies) e.flee(); actOne(); preloadMusic('watch'); // the picket's track, for the night that follows
     cam.shot(fr3(9, 1.6, 37), [L.front.beacon[0], L.front.top + 7, L.front.beacon[1]]); cam.shot(fr3(7, 1.5, 34.5), [L.front.beacon[0], L.front.top + 8, L.front.beacon[1]], 7);
-    await d.wait(3.4); SFX.horn(); await d.wait(2.4); rallyAll(); G.freezeAI = true;
+    await d.wait(4.2); rallyAll(); G.freezeAI = true;
     ui.fade(1, 0.6); await d.wait(0.7);
     P.place(...fr(16.4, 42.0), 0); P.face = P.angleTo(corp); P.state = 'loco'; P.stop(0.1);
     for (const [a, x, z] of [[hale, 12.4, 40.0], [brann, 15.0, 38.6], [p1, 16.8, 46.6]]) { a.place(...fr(x, z), 0); a.face = a.angleTo(corp); a.post = [...fr(x, z), a.face]; a.set('loco'); a.stop(0.1); }
     cam.shot(fr3(12.6, 1.7, 44.4), fr3(18.0, 1.4, 43.4)); cam.shot(fr3(13.2, 1.5, 44.2), fr3(18.0, 1.2, 43.4), 9); ui.fade(0, 0.8); await d.wait(1.0);
     await d.talk([
-      ['Corporal', "That's the horn. The company's seen it."],
+      ['Corporal', "It's burning. The company will have seen it."],
       ['Corporal', "Everyone under this rock is walking home. An hour ago I couldn't have said that."],
       ['Hale', 'That was him, Corporal. We just tried to keep up.'],
       ['Corporal', 'I saw. What do they call you, soldier?'],
@@ -1042,7 +1042,7 @@ stage('spar', {
       ['Corin', 'Then teach me that part.'],
       ['Captain', 'Tomorrow.'],
     ]);
-    G.spar = false; G.shake = 0.12; ui.banner('A war horn sounds from the dunes', 2.6); SFX.horn(); playMusic('granite', { cross: 1.5, fade: 2.5 });
+    G.spar = false; G.shake = 0.12; ui.banner('Raiders in the dunes', 2.6); playMusic('granite', { cross: 1.5, fade: 2.5 });
     await d.wait(2.8);
   },
 });

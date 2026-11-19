@@ -33,7 +33,7 @@ Owner's direction: melancholy over adventurous. Instrumental only, no singing.
 ## Act I, the fighting: "The Weight of Granite"
 
 - File: `public/music/granite.mp3` (the owner's track, 128 kbps; the 2.3 s of silence at the end was cut: 2 min 58.7 s, looped). `actOne(true)` in `src/story/mission.js` plays it.
-- Comes in when the war horn banner shows at the end of the spar and runs through the raid, the fall back, the hold and Vessa; "Beneath the Flagstones" returns at dawn. So the camp's theme is now only the quiet before and after. The cue points are unheard: the owner's ear decides.
+- Comes in when the "Raiders in the dunes" banner shows at the end of the spar and runs through the raid, the fall back, the hold and Vessa; "Beneath the Flagstones" returns at dawn. So the camp's theme is now only the quiet before and after. The cue points are unheard: the owner's ear decides.
 
 ## The waystation and the muster (Nov 2026)
 
@@ -90,7 +90,7 @@ In use (Nov 2026): **20 Sword Sound Effects (Attacks and Clashes)** by StarNinja
 - Sixteen of the twenty takes are in `public/sfx/` as short mono WAVs (24 kHz; WAV because older iPhones can't decode Ogg, and it has no encoder delay). Each was cut to start 35 ms before its strike and end where it dies away, so the sound lands with the blow.
 - `hit1-5` (sword 1, 2, 3, 4, 7): a blow landing. `big1-3` (sword 5, 8, 10): heavy blows and ripostes. `clang1-4` (clash 2, 3, 4, 5): a block. `parry1-4` (clash 1, 6, 8, 10): a parry.
 - `SFX.hit`, `big`, `clang` and `parry` play a random take (never the same twice running, pitch varied a little) over a low synthesized thump; the old synthesized versions remain as the fallback until the files load. Everything else (swings, rolls, the boom) is still synthesized.
-- The war horn (`horn.mp3`, `SFX.horn()`): "Nordic warhorns sound effects" by fronbondi_skegs on Pixabay (file 162120; Pixabay Content License: free to use, no credit required), supplied by the owner (Nov 2026: "our war horn for now"). The download is 70 s of calls; this is the first one only, from 0.42 s to 6.92 s: about 3.5 s of horn and its dying away, faded out over the last 1.6 s, before the second call begins at 7.0 s. Normalized to -16 LUFS, 24 kHz mono, 96 kbps. It sounds when the raiders reach the waystation and at the end of the spar ("A war horn sounds from the dunes"). Its level (1.5 in `SFX.horn`) is unheard. The synthesized horn it replaces was removed earlier (owner: he would rather have none than that).
+- The war horn: removed (owner, 19 Nov 2026: it didn't sound good). `horn.mp3` and `SFX.horn()` are gone; the waystation, the beacon and the end of the spar play no horn. It was "Nordic warhorns sound effects" by fronbondi_skegs on Pixabay.
 - Chosen by measurement (length, onset, decay), not by ear: the session can't listen. If a take sounds wrong, delete its file and lower the count in `TAKES`.
 - `quake.mp3`: the vault shaking in the false ending, supplied by the owner (Nov 2026; source not recorded). Loudness-normalized to -16 LUFS, true peak -1.5 dB (two-pass `loudnorm`, linear), 24 kHz, 128 kbps. Twelve seconds: it hits at about 0.5 s and holds; `SFX.quake()` starts it with the first tremor and the scene fades it over 1.2 s when the Usurper lands. Its level (1.6 in `SFX.quake`) is unheard.
 
