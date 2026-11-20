@@ -178,7 +178,7 @@ export class Enemy extends Char {
           if (v.p === 1) { v.p = 2; this.play(C(0.3, [0.3, PZ.guard]), 0.15); }
           this.pos.x = lerp(v.from[0], v.to[0], k); this.pos.z = lerp(v.from[1], v.to[1], k); this.yoff = v.h * (1 - k * k) + Math.sin(PI * k) * 0.6;
           if (k >= 1 && v.p === 2) { v.p = 3; this.yoff = 0; poof(this.pos, this.scale * 0.5); G.shake = Math.max(G.shake, 0.12); this.play(C(0.35, [0.12, PZ.kneel], [0.35, PZ.guard]), 0.05); }
-          if (v.p === 3 && u > 1.5) { this.unbound = false; this.vault = null; this.set('chase'); }
+          if (v.p === 3 && u > 1.5) { this.unbound = false; this.vault = null; this.stop(0.2); this.set('chase'); } // (release the landing clip, or it holds and he slides in it)
           break; }
         // getting up out of the sand: it bursts up round him as he starts, streams off him as he rises, and puffs again as he steps clear
         if (!this.poofed) { this.poofed = true; poof(this.pos, this.scale); }
