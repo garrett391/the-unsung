@@ -48,6 +48,10 @@ async function glance(d, x, z, o = {}) {
 // (world/waystation.js). Yard coordinates: x east, z north, from the middle of the yard.
 const wy = (x, z) => [WAY.x + x, WAY.z + z], wy3 = (x, y, z) => [WAY.x + x, y, WAY.z + z];
 const flank = (s) => wy(s * rnd(8, 13), rnd(15.6, 19.6)); // outside the north wall, east (1) or west (-1) of the gate: out of sight from the yard, and they come round to the gate (route() in level.js)
+// The waystation's raiders take more cutting than elsewhere (owner, 19 Nov 2026: the fights there were over too quickly).
+const TOUGH = { hpMul: 1.3 };
+// One raider over the yard's north wall, east (1) or west (-1) of the gate: on its top, then down into the yard.
+const overWall = (s, kind = 'raider') => G.spawn(kind, ...wy(s * rnd(8, 10), 12.6), { ...TOUGH, vault: { to: wy(s * rnd(7.5, 9), 10.4), h: 4.6 } });
 // Walk the captain to a point under a script, and wait until he is there (or `max` seconds have gone).
 async function stroll(d, x, z, sp, max = 8) { const P = G.player, w = (P.walk = { x, z, sp }), t0 = G.time; await d.until(() => P.walk !== w || Math.hypot(P.pos.x - x, P.pos.z - z) < 0.2 || G.time - t0 > max); if (P.walk === w) P.walk = null; }
 const turnTo = (d, c, to, dur) => { const f0 = c.face, df = wrap(to - f0); return d.tween(dur, (u) => { c.face = wrap(f0 + df * u * u * (3 - 2 * u)); }); };
@@ -562,21 +566,26 @@ stage('waystation', {
     await d.until(() => live() === 0); await d.wait(0.9);
     // More of them, and quicker, with the light going.
     d.tween(8, (u) => L.setDawn(u * 0.45)).catch(() => {});
-    G.maxAtk = 2; G.spawn('runner', ...flank(1)); G.spawn('runner', ...flank(1)); G.spawn('raider', ...flank(1)); G.spawn('raider', ...flank(1));
+    // (Owner, 19 Nov 2026: they came in as one clump, and a few swings put the lot down.) They are tougher in the yard
+    // (`TOUGH`), and come in twos, from both sides, a few seconds apart, with one over the wall.
+    G.maxAtk = 2; G.spawn('runner', ...flank(1), TOUGH); G.spawn('raider', ...flank(1), TOUGH);
     await d.wait(1.6); await glance(d, ...wy(0, 14), { from: wy3(-5.5, 3.4, 2.5) }); // they are at the gate by the time the camera is
+    await d.wait(4.5); G.spawn('raider', ...flank(-1), TOUGH); overWall(1);
+    await d.wait(5); G.spawn('runner', ...flank(-1), TOUGH);
     await d.until(() => live() === 0); await d.wait(0.9);
     // The one who leads them.
     d.tween(8, (u) => L.setDawn(0.45 + u * 0.55)).catch(() => {});
     // (Owner, Nov 2026: the yard was a little easy.) Three may swing at once now, not two, and the leader is a fight
     // of his own: beaten to half he roars (`phase2`: quicker, chains oftener, less wait between blows) and calls two
     // more over the wall. No rush: that is the sergeant's, and the muster teaches it.
-    const chief = G.spawn('chief', ...wy(-8.5, 17.5)); G.spawn('raider', ...flank(-1)); G.spawn('raider', ...flank(-1)); G.spawn('runner', ...flank(-1)); G.spawn('runner', ...flank(-1));
+    const chief = G.spawn('chief', ...wy(-8.5, 17.5), TOUGH); G.spawn('raider', ...flank(-1), TOUGH); G.spawn('runner', ...flank(-1), TOUGH);
     await d.wait(1.6); await glance(d, ...wy(0, 14), { from: wy3(5.5, 3.4, 2.5) }); G.boss = chief; G.maxAtk = 3;
+    d.wait(5).then(() => { if (!chief.dead) { G.spawn('raider', ...flank(1), TOUGH); G.spawn('runner', ...flank(1), TOUGH); } }, () => {});
     const rage = d.every(() => {
       if (chief.phase2 || chief.dead || chief.hp > chief.maxHp * 0.5 || G.freezeAI) return;
       chief.phase2 = true; chief.flash = 0.8; chief.cd = Math.min(chief.cd, 0.6); SFX.tele();
       ui.say('Raid leader', 'To me! Over the wall, all of you!', 3.2);
-      G.spawn('raider', ...flank(1)); G.spawn('raider', ...flank(-1));
+      overWall(-1); d.wait(0.7).then(() => overWall(1), () => {});
     });
     await d.until(() => live() === 0); rage(); G.maxAtk = 2;
 

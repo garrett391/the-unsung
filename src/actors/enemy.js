@@ -24,7 +24,9 @@ export class Enemy extends Char {
   constructor(kind, x, z, o = {}) {
     const t = TYPES[kind]; super(t.look, t.scale);
     this.kind = kind; this.type = t; this.hp = this.maxHp = t.hp * (o.hpMul || 1); this.pos.set(x, 0, z); this.guard = 1;
-    this.state = o.rise ? 'spawn' : 'chase'; this.yoff = o.rise ? -2 : 0; this.st = 0;
+    this.state = o.rise || o.vault ? 'spawn' : 'chase'; this.yoff = o.rise ? -2 : 0; this.st = 0;
+    // vault: { to: [x, z], h }: he crouches on a wall top (x, z, at height h), then jumps down to `to` and comes on (the waystation's wall)
+    if (o.vault) { this.vault = { from: [x, z], to: o.vault.to, h: o.vault.h }; this.yoff = o.vault.h; this.unbound = true; }
     this.cd = rnd(0.8, 2.2); this.dir = Math.random() < 0.5 ? 1 : -1; this.poise = t.poise; this.gp = t.guard || 3; this.blk = 0; this.blkT = -9; this.yv = 0;
     this.hitDone = false; this.stagDur = 0.45; this.mv = t.moves[0]; this.phase2 = false;
     this.spare = !!o.spare; // a spared foe can't be killed: the stage script ends the fight when hp reaches 1
@@ -168,7 +170,17 @@ export class Enemy extends Char {
         this.cd -= dt;
         if (this.cd <= 0 && d >= r.min - 1.5 && d <= r.max + 2 && !P_.dead && throwing() < 2) { this.thrown = false; this.startMove(t.moves.find((x) => x.throw)); }
         break; }
-      case 'spawn': // getting up out of the sand: it bursts up round him as he starts, streams off him as he rises, and puffs again as he steps clear
+      case 'spawn': if (this.vault) { // over a wall: a crouch on its top, a jump down into the yard, a landing in a puff of dust
+          const v = this.vault, u = this.st; this.face = Math.atan2(G.player.pos.x - this.pos.x, G.player.pos.z - this.pos.z);
+          if (!v.p) { v.p = 1; this.play(C(0.3, [0.3, PZ.kneel]), 0.2); }
+          if (u < 0.6) { this.yoff = v.h; break; }
+          const k = Math.min(1, (u - 0.6) / 0.55);
+          if (v.p === 1) { v.p = 2; this.play(C(0.3, [0.3, PZ.guard]), 0.15); }
+          this.pos.x = lerp(v.from[0], v.to[0], k); this.pos.z = lerp(v.from[1], v.to[1], k); this.yoff = v.h * (1 - k * k) + Math.sin(PI * k) * 0.6;
+          if (k >= 1 && v.p === 2) { v.p = 3; this.yoff = 0; poof(this.pos, this.scale * 0.5); G.shake = Math.max(G.shake, 0.12); this.play(C(0.35, [0.12, PZ.kneel], [0.35, PZ.guard]), 0.05); }
+          if (v.p === 3 && u > 1.5) { this.unbound = false; this.vault = null; this.set('chase'); }
+          break; }
+        // getting up out of the sand: it bursts up round him as he starts, streams off him as he rises, and puffs again as he steps clear
         if (!this.poofed) { this.poofed = true; poof(this.pos, this.scale); }
         this.yoff = lerp(-1.9 * this.scale, 0, sstep(Math.min(1, this.st / 0.9)));
         if (Math.random() < 0.8) FX.dust.emit(this.pos, 2, 1.5, 0xf0e2c4, 0.5, { flat: 1, spread: 0.45, grav: -1 });
