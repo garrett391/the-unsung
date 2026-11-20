@@ -128,6 +128,7 @@ if (at('muster')) {
   log('rush', await play(40, { bot: true, god: true, until: "G.enemies[0].mv.rush&&G.enemies[0].state==='strike'" })); await shot('0q4-rush');
   log('round three', await play(240, { bot: true, god: true, heavy: true, tap: true, until: "G.enemies.filter(e=>e.kind==='trooper').length===2&&G.player.controlEnabled&&!G.talking" })); await play(1.0); await shot('0q5-three'); // he calls two of the line into the ring
   log('yields', await play(300, { bot: true, god: true, heavy: true, until: "G.cinematic" })); await play(2.0); await shot('0r-yields');
+  await play(30, { tap: true, until: "G.talking&&document.getElementById('dtxt').textContent.includes('Then he is')" }); await play(1.5); await shot('0r2-officer'); // the officer answers the sergeant
   await play(30, { tap: true, until: "G.player.walk" }); await play(40, { until: "G.talking" }); await play(1.2); await shot('0s-clerk');
   log('to act one', await play(60, { tap: true, until: stageIs('patrol') }));
 }

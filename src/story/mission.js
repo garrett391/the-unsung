@@ -637,12 +637,15 @@ stage('muster', {
     // is an Extra at the ring's edge (an Enemy standing by could be locked on to and struck).
     const T1 = G.spawn('trooper', ...wy(1.5, 0.9), { spare: true }); T1.face = PI;
     const sgt = new Extra(TYPES.sergeant.look, ...wy(-1.2, 3.6), 2.6, { scale: TYPES.sergeant.scale }); sgt.watch = P;
-    const off = new Extra(LOOKS.officer, ...wy(5.2, -6.2), -0.75), clerk = new Extra(LOOKS.clerk, ...wy(7.6, -9.3), 0, { scale: 0.96 }); clerk.watch = P;
+    const off = new Extra(LOOKS.officer, ...wy(1.9, -6.4), PI), clerk = new Extra(LOOKS.clerk, ...wy(7.6, -9.3), 0, { scale: 0.96 }); clerk.watch = P;
     const co = []; for (const [a, r] of [[0.5, 6.8], [1.25, 6.8], [-0.6, 6.8], [-1.35, 5.6], [-2.3, 6.8]]) { const e = new Extra(LOOKS.soldier, ring[0] + Math.sin(a) * r, ring[1] + Math.cos(a) * r, a + PI, /* the company, standing well back from the ring */ { scale: 0.97 + Math.abs(a) * 0.02 }); e.watch = P; co.push(e); }
     const guards = [new Extra(LOOKS.soldier, ...wy(0.4, -9.5), 0), new Extra(LOOKS.soldier, ...wy(2.6, -9.5), 0)]; // his escort
-    cam.shot(wy3(1.2, 1.9, -4.6), wy3(1.5, 1.3, -8.9)); cam.shot(wy3(1.4, 1.8, -5.2), wy3(1.5, 1.3, -8.9), 7); ui.fade(0, 2.2); // first on him, between his guards
+    // The officer stands in front of him to put it to him (owner, Nov 2026: he used to speak from behind the camera, and on a
+    // phone was never seen at all), so the first shot is the two of them side on, the guards behind, the clerk's table beyond.
+    off.watch = P; cam.shot(wy3(-4.2, 1.9, -8.9), wy3(1.75, 1.35, -7.4)); cam.shot(wy3(-3.6, 1.85, -8.7), wy3(1.75, 1.35, -7.4), 7); ui.fade(0, 2.2);
     await d.wait(2.6);
     await d.talk([['Officer', 'The drover swears you killed them. The other stations swear a man on the inside opened the gate.'], ['Officer', 'A man with no name who fights like a soldier is a deserter, or he is theirs.']]);
+    off.go(...wy(5.2, -6.2), 1.4); // back to his place by the table, out of the way to the ring
     cam.shot(wy3(-6.5, 3.6, -10), wy3(2.5, 1.2, -2)); cam.shot(wy3(-4.5, 2.6, -8.5), wy3(2.5, 1.3, -2), 6); // then the yard, the ring and the sergeant
     await d.talk([['Sergeant', "Or both. Give him blunt steel, sir, and I'll tell you which."], ['Soldier', 'Whenever you like, yard hand.']]);
     guards[0].go(...wy(-0.6, -7.6), 1.8); guards[1].go(...wy(3.6, -7.6), 1.8); for (const g of guards) { g.watch = P; } // they walk him to the ring and stand off behind it
@@ -728,7 +731,16 @@ stage('muster', {
     { const dx = P.pos.x - S.pos.x, dz = P.pos.z - S.pos.z, l = Math.hypot(dx, dz) || 1, mx = (P.pos.x + S.pos.x) / 2, mz = (P.pos.z + S.pos.z) / 2;
       cam.shot([mx - (dz / l) * 3.4, 1.5, mz + (dx / l) * 3.4], [mx, 1.1, mz]); cam.shot([mx - (dz / l) * 3.0, 1.4, mz + (dx / l) * 3.0], [mx, 1.1, mz], 5); }
     await d.wait(1.4);
-    await d.talk([['Sergeant', 'Enough. I yield.'], ['Sergeant', "He's no deserter, sir. A deserter would have run by now."], ['Officer', 'Then he is a soldier. Put him on the roll.']]);
+    await d.talk([['Sergeant', 'Enough. I yield.'], ['Sergeant', "He's no deserter, sir. A deserter would have run by now."]]);
+    // Then on the officer for his answer: from the ring's side of him, picked clear of the fighters and the company,
+    // since the fight can end anywhere in the ring.
+    { const ax = (P.pos.x + S.pos.x) / 2 - off.pos.x, az = (P.pos.z + S.pos.z) / 2 - off.pos.z, a0 = Math.atan2(ax, az), at = (a, r) => [off.pos.x + Math.sin(a) * r, off.pos.z + Math.cos(a) * r];
+      const ok = ([x, z]) => Math.abs(x - WAY.x) < 10 && Math.abs(z - WAY.z) < 11 && [P, S, ...G.extras].every((e) => e === off || Math.hypot(e.pos.x - x, e.pos.z - z) > 1.3);
+      const a = [0.45, -0.45, 0.85, -0.85, 0, 1.2, -1.2].map((k) => a0 + k).find((k) => ok(at(k, 3.0))) ?? a0 + 0.45;
+      const [x0, z0] = at(a, 3.0), [x1, z1] = at(a, 2.6), look = [off.pos.x, 1.55, off.pos.z];
+      cam.shot([x0, 1.7, z0], look); cam.shot([x1, 1.65, z1], look, 4); }
+    await d.wait(0.4);
+    await d.talk([['Officer', 'Then he is a soldier. Put him on the roll.']]);
     // The clerk's table. On a wide screen, across the yard from the east wall; held upright (a phone), that shot only had
     // room for the clerk, so there it looks down the yard from by the ring (west of the cart): officer, clerk and yard hand
     // left to right, in depth.
@@ -739,7 +751,7 @@ stage('muster', {
     await turnTo(d, P, P.angleTo(clerk), 0.4);
     await d.talk([['Clerk', 'Name?'], ['Clerk', 'I need something for the roll.'], ['Yard hand', 'Write whatever you like.']]);
     await d.wait(0.5);
-    await d.talk([['Clerk', '...Western Watch, Third Company. It is the worst posting on the frontier.'], ['Officer', 'It is where I need him.'], ['Officer', 'You belong to the Watch now. Walk away from it, and you are the deserter I took you for.']]);
+    await d.talk([['Clerk', 'Posting, sir?'], ['Officer', 'Western Watch. Third Company.'], ['Clerk', '...Poor devil.'], ['Officer', 'You belong to the Watch now. Walk away from it, and you are the deserter I took you for.']]);
     await d.wait(0.6); ui.fade(1, 1.6); await d.wait(1.8);
   },
 });
