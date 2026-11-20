@@ -729,7 +729,11 @@ stage('muster', {
       cam.shot([mx - (dz / l) * 3.4, 1.5, mz + (dx / l) * 3.4], [mx, 1.1, mz]); cam.shot([mx - (dz / l) * 3.0, 1.4, mz + (dx / l) * 3.0], [mx, 1.1, mz], 5); }
     await d.wait(1.4);
     await d.talk([['Sergeant', 'Enough. I yield.'], ['Sergeant', "He's no deserter, sir. A deserter would have run by now."], ['Officer', 'Then he is a soldier. Put him on the roll.']]);
-    cam.shot(wy3(9.9, 1.8, -3.2), wy3(7.4, 1.3, -8.2)); cam.shot(wy3(9.5, 1.7, -3.8), wy3(7.4, 1.3, -8.2), 6);
+    // The clerk's table. On a wide screen, across the yard from the east wall; held upright (a phone), that shot only had
+    // room for the clerk, so there it looks down the yard from by the ring (west of the cart): officer, clerk and yard hand
+    // left to right, in depth.
+    if (innerWidth < innerHeight) { cam.shot(wy3(4.3, 2.4, 0.0), wy3(6.55, 1.2, -7.2)); cam.shot(wy3(4.6, 2.2, -0.8), wy3(6.55, 1.2, -7.2), 6); }
+    else { cam.shot(wy3(9.9, 1.8, -3.2), wy3(7.4, 1.3, -8.2)); cam.shot(wy3(9.5, 1.7, -3.8), wy3(7.4, 1.3, -8.2), 6); }
     await stroll(d, ...wy(7.2, -5.9), 2.0, 6);
     if (Math.hypot(P.pos.x - wy(7.2, -5.9)[0], P.pos.z - wy(7.2, -5.9)[1]) > 1) P.place(...wy(7.2, -5.9), PI);
     await turnTo(d, P, P.angleTo(clerk), 0.4);
