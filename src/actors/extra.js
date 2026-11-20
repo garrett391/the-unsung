@@ -29,13 +29,25 @@ export class Extra extends Char {
       else { this.turnTo(Math.atan2(dx, dz), 7, dt); const f = this.fwd(tmp), sp = Math.min(t.sp, l * 3 + 0.3); this.vel.x = damp(this.vel.x, f.x * sp, 8, dt); this.vel.z = damp(this.vel.z, f.z * sp, 8, dt); }
       this.gait = t.sp < 2.5 ? 2.4 : 1; // a walk takes real steps (see Char.setLoco)
     }
-    let turn = 0; // how far he still has to turn, standing
+    let turn = 0, wheel = false; // how far he still has to turn, standing; and whether the feet are stepping round
     if (!this.to) {
       this.vel.multiplyScalar(Math.exp(-8 * dt));
-      if (this.faceTo != null) { turn = this.turnTo(this.faceTo, 4, dt); if (Math.abs(turn) < 0.02) this.faceTo = null; }
-      else if (this.watch && !this.dead) { const a = this.angleTo(this.watch), far = Math.abs(wrap(a - this.face)) > 0.3; turn = this.turnTo(a, far && Math.abs(this.headY) < 0.25 ? 0.5 : 2.6, dt); } // (the body waits a moment for the head)
+      if (this.faceTo != null) { turn = this.turnTo(this.faceTo, 4, dt); wheel = Math.abs(turn) > 0.3; if (Math.abs(turn) < 0.02) this.faceTo = null; }
+      else if (this.watch && !this.dead) {
+        // Following someone who moves (owner, Nov 2026: the company round the ring swivelled on still legs as he walked to
+        // the table): the head keeps on him while the body stands; once he is well off to one side, the body comes round
+        // after it in a few steps, a little past him if he is still going, and stands again.
+        const w = this.watch, a = this.angleTo(w), off = wrap(a - this.face), moving = Math.hypot(w.vel.x, w.vel.z) > 0.5;
+        if (!this.wheelT && Math.abs(off) > (moving ? 0.6 : 0.25)) { this.wheelT = G.time; this.wheelS = moving ? Math.sign(off) * 0.12 : 0; } // (squares up to someone standing still)
+        if (this.wheelT) {
+          const go = Math.abs(this.headY) > 0.25 || Math.abs(off) < 1.2 || G.time - this.wheelT > 0.35; // (a big turn waits a moment for the head)
+          turn = go ? this.turnTo(a + this.wheelS, 1.7, dt) : off; wheel = go;
+          if (go && Math.abs(turn) < 0.04) this.wheelT = 0;
+        } else turn = off; // head only
+      }
     }
-    const big = !this.clip && !this.dead && Math.abs(turn) > 0.3;
+    if (this.to || !this.watch) this.wheelT = 0;
+    const big = !this.clip && !this.dead && wheel;
     this.headY = damp(this.headY, this.clip || this.dead ? 0 : clamp(turn, -0.9, 0.9), 7, dt); this.stepK = damp(this.stepK, big ? 1 : 0, big ? 10 : 6, dt);
     this.setLoco(4.6, dt);
     if (this.stepK > 0.02 && !this.to) { this.speedN = Math.max(this.speedN, 0.13 * this.stepK); this.phase += dt * 9.5 * this.stepK; } // short steps round, in place
