@@ -61,6 +61,8 @@ export const LOOKS = {
     skin: 0x8a5a3c, hair: 0x1a1614, robe: 1, mantle: 0xc4baa4, sash: 0x2c2640, blade: 1.12, pads: 0.5 },
   // Corin a season after the beacon (the excursions): the same jack, hat and neckcloth, and now a short sword and a buckler
   lad: { ...WAYGUARD, armor: 0x2a3560, under: 0x26305a, scarf: 0xb0283c, beard: undefined, hair: 0x6a4a2a, skin: 0xc99872, shield: 1, blade: 0.8 },
+  carter: { ...PLAIN, armor: 0x6f7446, under: 0xa89878, helm: 'none', hat: 0x6a5a3a, hair: 0x5a4028, skin: 0xb9855f, sash: 0x7a4a2a, weapon: 'none', pads: 0.45 }, // the restored forecourt's carter: not the drover (he recurs)
+  scribe: { ...PLAIN, armor: 0x6a3a34, trim: 0x8a7a5c, under: 0x4a2a26, helm: 'none', hair: 0x2e2620, skin: 0xc99872, weapon: 'none', pads: 0.4, robe: 1, strap: 1 }, // the forecourt's clerk: not the muster's
   clerk: { ...PLAIN, armor: 0x3a4466, trim: 0x8a7a5c, under: 0x2a3050, helm: 'none', hair: 0x9a9690, skin: 0xd9a77e, weapon: 'none', pads: 0.4, robe: 1, mantle: 0x7a6a50, hat: 0x5a2630, beard: 1, strap: 1 }, // the guard's clerk: a long robe and sleeves, a short shoulder cape, a felt cap, a grey beard, his papers in a satchel
 };
 

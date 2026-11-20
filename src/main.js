@@ -56,8 +56,9 @@ const REACHED = 'the-unsung.reached';
 const loadReached = () => { const r = new Set([STAGES[0].name]); try { for (const n of JSON.parse(localStorage.getItem(REACHED) || '[]')) r.add(n); const v = localStorage.getItem(SAVE), k = STAGES.findIndex((s) => s.name === (OLD[v] || v)); for (let i = 0; i <= k; i++) if (STAGES[i].checkpoint) r.add(STAGES[i].name); } catch (_) { /* storage blocked */ } return r; };
 const reached = loadReached();
 const writeSave = (k) => { reached.add(STAGES[k].name); try { localStorage.setItem(SAVE, STAGES[k].name); localStorage.setItem(REACHED, JSON.stringify([...reached])); } catch (_) { /* storage blocked: play on without saving */ } if (G.drawChapters) G.drawChapters(); };
+G.finish = () => { if (G.auto) return; try { localStorage.removeItem(SAVE); } catch (_) { /* storage blocked */ } }; // chapters reached are kept
 const LESSONS = { taughtStrike: 'forecourt', taughtDoor: 'halls', taughtWay: 'waystation' }; // which chapter teaches what
-const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', patrol: 'the patrol', beacon: 'the beacon', picket: 'the well picket', caravan: 'the lost caravan', spar: 'the Western Watch', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', patrol: 'the patrol', beacon: 'the beacon', picket: 'the well picket', caravan: 'the lost caravan', spar: 'the ruins', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {

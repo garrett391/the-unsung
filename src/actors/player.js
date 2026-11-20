@@ -152,7 +152,7 @@ export class Player extends Char {
     const now = G.time; this.inv -= dt; this.aT += dt; this.gait = this.walk ? 2.9 : 1; // a walked-to-a-point pace takes real steps: about 0.65 m each
     const blockHeld = I.block && this.controlEnabled;
     if (this.stDelay > 0) this.stDelay -= dt; else this.st = Math.min(100, this.st + (blockHeld && this.state === 'loco' ? 12 : 30) * dt);
-    if (this.lock && (this.lock.dead || this.dist(this.lock) > 24 || !this.lock.root.visible)) this.lock = pickLock(true);
+    if (this.lock && (this.lock.dead || this.lock.gone || this.dist(this.lock) > 24 || !this.lock.root.visible)) this.lock = pickLock(true);
     if (!this.controlEnabled) this.buf.a = '';
     const sd = tmpB, mag = this.stick(sd); this.trailOn = false;
     let near = false; if (!this.calm) for (const e of G.targets()) if (!e.dead && this.dist(e) < 9) { near = true; break; } // calm: a script has him lower his guard with a foe still on stage
