@@ -30,8 +30,9 @@ const breach = () => [rnd(-2.6, 2.6), rnd(29, 36)]; // out on the raiders' road,
 const east = () => [rnd(22, 26), rnd(-4, -2)];
 // Act I's music ("Beneath the Flagstones"): whatever is playing fades out, then it fades in and loops
 // through the night. Every Act I stage asks for it, so a retry or CONTINUE has it too; asking while it plays does nothing.
-// The lost caravan's own pair (owner, 21 Nov 2026: the Act I pair was getting repetitive): "The Unceasing Gait" for the wash, "Midday Vigil" (a placeholder) for the Veiled. The raiders at the bend keep "The Weight of Granite".
-const wash = (fight) => playMusic(fight ? 'vigil' : 'gait', { cross: 3, fade: 4, over: true });
+// The lost caravan's own pair (owner, 21 Nov 2026): "Midday Vigil" from the picket through the search and the drover, then
+// "The Unceasing Gait" from the first fight at the bend to the end of the chapter. Nothing from the Act I pair.
+const wash = (fight) => playMusic(fight ? 'gait' : 'vigil', { cross: 3, fade: 4, over: true });
 const actOne = (fight) => playMusic(fight ? 'granite' : 'flagstones', { cross: 3, fade: 4, over: true }); // the camp's music, or (fight) the night's fighting: from the first raiders until Vessa is driven off
 // Turn the camera to something the player needs to know about (a wave coming in, where to go),
 // hold on it for a moment, then hand it back. The captain can't act or be hurt meanwhile.
@@ -1058,14 +1059,14 @@ stage('caravan', {
     if (first) {
       // ---- the well picket, a season on: the dead corporal's stripe
       ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'morning', look: 'ranker', player: [...fr(2.2, -36.0), 0], corin: null }); G.carry = null;
-      take(); G.freezeAI = true; G.maxAtk = 2; preloadMusic('flagstones', 'granite');
+      take(); G.freezeAI = true; G.maxAtk = 2; preloadMusic('vigil', 'gait');
       await d.chronicle('A season on', [
         'They buried the corporal under the palms by the well. The season turned, and the raids along the line did not let up.',
         'The boy went on carrying water, to the yard hand now. Every morning he asked his name, and every morning he got the same answer.',
         'Then a caravan due in on the old road from the deep desert did not come.',
         '<em>The well picket.</em>',
       ], TAP); ui.chronClose();
-      actOne(); forgetMusic(); preloadMusic('gait', 'granite', 'vigil');
+      wash(); forgetMusic(); preloadMusic('vigil', 'gait');
       const sgt = new Extra(TYPES.sergeant.look, ...fr(0.9, -38.4), 0, { scale: TYPES.sergeant.scale }); sgt.watch = P; P.face = P.angleTo(sgt);
       S = squad([[...fr(4.6, -35.6), -2.4], [...fr(-0.8, -35.0), 2.6], [...fr(3.8, -33.8), -2.8], [...fr(3.7, -42.9), 2.6]]);
       S.corin.face = Math.atan2(2.6 - 3.7, -41.6 + 42.9) + PI * 0.15; // by the trough, where his brother died: not with the others
@@ -1147,7 +1148,7 @@ stage('caravan', {
       ui.fade(1, 0.5); await d.wait(0.6);
       G.seenCaravan = 1; // (a retry starts from here)
     } else {
-      ui.fade(1, 0); G.resetWorld({ site: 'wash', sky: 'day', look: 'corporal', player: [...wa(SIT[0] + bx * 1.9, SIT[1] + bz * 1.9), 0], corin: null }); G.maxAtk = 2; preloadMusic('granite', 'vigil'); wash();
+      ui.fade(1, 0); G.resetWorld({ site: 'wash', sky: 'day', look: 'corporal', player: [...wa(SIT[0] + bx * 1.9, SIT[1] + bz * 1.9), 0], corin: null }); G.maxAtk = 2; preloadMusic('vigil', 'gait'); wash(lvl >= 2);
       S = squad([[...wa(7.9, 16.6), 0], [...wa(8.6, 12.2), 0], [...wa(10.0, 18.6), 0], [...wa(SIT[0] + bx * 0.9 + bz * 1.0, SIT[1] + bz * 0.9 - bx * 1.0), 0]]);
       drover = new Extra(LOOKS.drover, ...wa(...SIT), sitF); take(); G.freezeAI = true;
     }
@@ -1190,7 +1191,7 @@ stage('caravan', {
       // (owner, 21 Nov 2026: they popped up on top of him, some behind rocks, and it led up to nothing.) Three waves, each from one
       // side and clear of the rocks and wagons: up the tracks, then down the wash behind them, then their leader. When he falls, the rest run.
       const w1 = rise([['raider', -2.6, 35.5, S.hale], ['raider', 2.6, 36.5], ['raider', 1.4, 39.5], ['skirmisher', -0.6, 41.5]]);
-      G.freezeAI = true; actOne(true); SFX.tele(); ui.say('Raider', "That's far enough, Watch! Leave the old man and walk home!", 3.6);
+      G.freezeAI = true; wash(true); SFX.tele(); ui.say('Raider', "That's far enough, Watch! Leave the old man and walk home!", 3.6);
       await glance(d, ...wa(1, 36), { from: wa3(4.5, 2.6, 22), hold: 1.9 });
       give(); G.maxAtk = 2; for (const e of w1) e.cd = rnd(0.8, 2); ui.objective('Hold the bend');
       const left = () => w1.filter((e) => !e.dead).length; let t0 = G.time;
@@ -1208,12 +1209,12 @@ stage('caravan', {
       rage(); G.boss = null; G.maxAtk = 2; for (const e of w1) e.flee();
       if (w1.some((e) => !e.dead)) say([['Hale', "He's down! Look at them run!", 3], ['Wren', "Back under the sand. They'll be back, and more of them.", 4], [CPL, "Then we don't wait for them.", 2.8]]);
       await d.until(() => !G.enemies.some((e) => !e.dead) && G.time > quiet);
-      offJ(); rallyAll(); wash(); ui.objective(''); await d.wait(0.6);
+      offJ(); rallyAll(); wash(true); ui.objective(''); await d.wait(0.6);
       G.seenCaravan = 2; // (a retry starts on the way back)
     } else { cam.shot(over(), eye(drover, 0.85)); ui.fade(0, 0.8); await d.wait(1.0); await d.talk([[CPL, 'On your feet. We go now.']]); }
 
     // ---- the way back. The drover walks (slowly, and he stops if the corporal gets too far ahead), with the boy at his side.
-    drover.unbound = false; drover.stop(0.3); give(); wash(); ui.objective('Get the drover back to the picket'); L.marker(...wa(0, -46));
+    drover.unbound = false; drover.stop(0.3); give(); wash(true); ui.objective('Get the drover back to the picket'); L.marker(...wa(0, -46));
     const PATH = [[9.4, 9.5], [6.0, 0], [2.0, -6], [-0.8, -12.5], [-2.6, -22], [-1.5, -32], [0.2, -44]]; let leg = 0, apart = false;
     const lead = d.every(() => {
       const far = P.dist(drover) > 12; if (far !== apart) { apart = far; ui.hint(far ? 'Stay with the drover' : ''); }
@@ -1260,7 +1261,7 @@ stage('caravan', {
     for (const [a, x, z] of [[S.corin, -6.9, -13.1], [S.hale, -3.4, -12.6], [S.brann, -3.1, -16.2], [S.wren, -4.9, -11.2]]) { a.rally(); a.place(...wa(x, z), 0); a.face = a.angleTo(drover); a.post = [...wa(x, z), a.face]; a.set('loco'); a.stop(0.1); }
     S.corin.face = S.corin.angleTo(P); S.corin.post[2] = S.corin.face;
     cam.shot(wa3(-2.4, 1.7, -18.6), wa3(-7.0, 0.9, -13.6)); cam.shot(wa3(-2.6, 1.6, -18.0), wa3(-7.0, 0.9, -13.6), 9); ui.fade(0, 0.7); await d.wait(0.9);
-    wash();
+    wash(true);
     await d.talk([
       ['Wren', "Not a sound out of them. Not when they came, not when they fell. Not when they got up again."],
       ['Hale', "The raiders ran when it went against them. Raiders always run. Those never even looked like it."],
