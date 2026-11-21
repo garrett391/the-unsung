@@ -183,7 +183,7 @@ if (at('caravan')) { // the stripe at the picket, the old road, the stopped cara
   await play(30, { tap: true, until: dtxt('/never said a word/') }); await play(0.8); await shot('1h3-never-a-word');
   log('raiders', await play(60, { tap: true, until: "G.enemies.length>0&&G.cinematic" })); await play(1.6); await shot('1i-raiders'); // they were waiting at the caravan
   await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('1i2-raiders-fight');
-  log('they break', await play(240, { bot: true, god: true, heavy: true, until: "G.boss" })); await play(1.5, { bot: true, god: true }); await shot('1i3-war-leader'); log('they break', await play(240, { bot: true, god: true, heavy: true, until: "!G.boss&&(G.enemies.some(e=>e.state==='flee')||/back to the picket/.test(document.getElementById('obj').textContent))" })); await play(3.5); await shot('1j-they-break'); // and go back under the sand
+  log('they break', await play(300, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.state==='flee')||/back to the picket/.test(document.getElementById('obj').textContent)" })); await play(3.5); await shot('1j-they-break'); // and go back under the sand
   log('the way back', await play(60, { until: obj('/back to the picket/') })); await play(1.0); await shot('1j2-the-way-back');
   if (await page.evaluate(() => G.player.pos.z > -120 + 18)) await walkW([[1.4, 23], [3.0, 17.5]], 'false'); // (the fight may end up the wash, behind the overturned wagon: the bot does not steer round things)
   await walkW([[3.4, 12.5], [8.6, 7.5]], 'G.enemies.length>0');
@@ -191,9 +191,11 @@ if (at('caravan')) { // the stripe at the picket, the old road, the stopped cara
   await play(20, { until: "G.cinematic" }); await play(2.2); await shot('1k-the-veiled'); // in the narrows: they get up and stand there
   await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('1l-fight');
   log('getting up', await play(200, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.state==='rising')" })); await play(0.9, { bot: true, god: true }); await shot('1m-getting-up');
-  log('on the boy', await play(200, { bot: true, god: true, heavy: true, until: obj('/Get to Corin/') })); await play(2.5, { bot: true, god: true }); await shot('1n-on-the-boy');
-  log('the pale blade', await play(240, { bot: true, god: true, heavy: true, until: "G.boss&&!G.cinematic" })); await play(2.5, { bot: true, god: true }); await shot('1n2-pale-blade');
-  log('cleared', await play(300, { bot: true, god: true, heavy: true, until: "!G.boss&&G.cinematic" })); await play(40, { until: "G.talking" }); await play(1.0); await shot('1o-after');
+  log('narrows won', await play(400, { bot: true, god: true, heavy: true, until: obj('/back to the picket/') })); await play(1.0); await shot('1n-on-again');
+  for (let k = 0; k < 200 && !(await page.evaluate("G.cinematic")); k++) { const p = await page.evaluate(() => [G.extras[0].pos.x, G.extras[0].pos.z]); await play(0.6, { bot: true, god: true, to: p, until: `G.cinematic||Math.hypot(G.player.pos.x-(${p[0]}),G.player.pos.z-(${p[1]}))<3` }); await play(0.4, { until: "G.cinematic" }); }
+  await play(2.0); await shot('1n2-last-wave'); // out on the plain: both kinds, all round
+  await play(20, { until: "G.player.controlEnabled" }); await play(8, { bot: true, god: true }); await shot('1n3-last-fight');
+  log('cleared', await play(500, { bot: true, god: true, heavy: true, until: "G.talking" })); await play(1.0); await shot('1o-after');
   await play(30, { tap: true, until: dtxt('/not hurt/') }); await play(0.8); await shot('1p-not-hurt');
   log('to the camp', await play(60, { tap: true, until: stageIs('intro') }));
   await page.evaluate(() => { G.auto = true; });

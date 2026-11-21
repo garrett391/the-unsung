@@ -4,11 +4,11 @@ import { SFX, stopMusic, playMusic, preloadMusic, forgetMusic } from '../core/au
 import { PI, rnd, lerp, clamp, wrap } from '../core/util.js';
 import { ui } from '../ui/hud.js';
 import { cam } from '../world/camera.js';
-import { MOUTH, RING, WAY } from '../world/level.js';
+import { MOUTH, RING, WAY, OBSTACLES } from '../world/level.js';
 import { HALLS } from '../world/halls.js';
 import { FORE } from '../world/forecourt.js';
 import { FRONT } from '../world/front.js';
-import { WASH, WAGONS, CASKS } from '../world/wash.js';
+import { WASH, WAGONS, CASKS, WAREA } from '../world/wash.js';
 import { PZ, C, P as pose, eClip } from '../actors/anim.js';
 import { FX, shock, clearBlood, blood } from '../gfx/fx.js';
 import { coarse, opts } from '../core/input.js';
@@ -1029,10 +1029,11 @@ stage('picket', {
 // him the dead corporal's stripe, and the corporal's runner with it, and sends him with Hale, Brann, Wren and Corin out along
 // the old road to find a caravan that is overdue from the deep desert. They find it stopped in a dry wash (world/wash.js):
 // no beasts, no drivers, the goods untouched, the water casks stove in, and the tracks of everyone walked off north, deeper in.
-// Under a wagon, the drover from the waystation. Then raiders get up out of the sand all round the bend, a hard fight, and when
-// it goes against them they break and run. On the way back, in the narrows, the first of the Veiled (TYPES.veiled): pale,
-// silent; they don't run, and one cut down gets up again. Corin is set to guard the drover through both, and does. All lines
-// are drafts. (No glass, no Vessa, no word of the Usurper: that is for the midpoint.)
+// Under a wagon, the drover from the waystation. Three fights (owner, 21 Nov 2026), each a single wave that gets up in a ring
+// round the squad with a few foes to each of the five: raiders at the bend, who break and run; on the way back, in the narrows,
+// the first of the Veiled (TYPES.veiled): pale, silent; they don't run, and one cut down gets up again; and where the track
+// comes down off the plain, both together. Corin is set to guard the drover through all three, and does. All lines are drafts.
+// (Glass blades are the only hint: no Vessa, no word of the Usurper. That is for the midpoint.)
 const CPL = 'Corporal'; // his speaker label from here on, until he is made captain
 const wa = (x, z) => [WASH.x + x, WASH.z + z], wa3 = (x, y, z) => [WASH.x + x, y + G.level.height(WASH.x + x, WASH.z + z), WASH.z + z]; // (wa3: y is above the ground there)
 const WREN = { ...LINE, skin: 0xc4926c, hair: 0x2a1c14 };
@@ -1045,15 +1046,33 @@ const squad = (at) => {
 stage('caravan', {
   checkpoint: true, cards: true, // it opens on cards: main.js leaves the music playing under them
   async run(d) {
-    const P = G.player, L = G.level, lvl = G.seenCaravan || 0, first = !lvl; let quiet = 0; // (a retry starts at the drover, or once the raiders are driven off, on the way back: G.seenCaravan 1 or 2)
+    const P = G.player, L = G.level, lvl = G.seenCaravan || 0, first = !lvl; let quiet = 0, gen = 0; // (a retry starts at the drover, once the raiders are driven off, or once the narrows is won: G.seenCaravan 1, 2 or 3)
     const take = () => { P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); ui.objective(''); ui.hint(''); L.marker(null); ui.hideDialogue(); };
     const give = () => { G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; G.freezeAI = false; };
     const eye = (c, h = 1.5) => [c.pos.x, L.height(c.pos.x, c.pos.z) + h, c.pos.z]; // (from the ground there: a figure just placed has no height yet)
     // a few lines said in turn without stopping the game ([who, text, seconds]); returns when they are said
-    const lines = async (list) => { for (const [who, text, dur] of list) { if (G.talking) return; ui.say(who, text, dur); quiet = G.time + dur + 0.4; await d.wait(dur + 0.4); } };
+    const lines = async (list) => { const g = gen; for (const [who, text, dur] of list) { if (G.talking || g !== gen) return; ui.say(who, text, dur); quiet = G.time + dur + 0.4; await d.wait(dur + 0.4); } };
     const say = (list) => { lines(list).catch(() => {}); };
     const rise = (list) => list.map(([kind, x, z, mark]) => { const e = G.spawn(kind, ...wa(x, z), { rise: true }); if (mark) e.mark = mark; return e; });
+    const hush = () => { gen++; quiet = 0; ui.hideDialogue(); }; // cut off whatever is being said in passing
     let S, drover;
+    // Open, clear ground for someone to get up out of: on the walkable sand, off the rocks and wagons, not under anyone's feet.
+    const clearAt = (x, z) => WAREA.some((c) => Math.hypot(x - c.x, z - c.z) < c.r - 1.4) && !OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + 1.2) && ![P, drover, ...G.allies].some((c) => c && Math.hypot(c.pos.x - x, c.pos.z - z) < 3.5);
+    // `n` places evenly round a point, each as far out as the ground allows (between r1 and r0): a ring on open ground, and in the wash as much of one as the banks leave.
+    const ring = (cx, cz, n, r1, r0) => { const out = [], a0 = rnd(0, PI * 2);
+      for (let i = 0; i < n; i++) { const a = a0 + (i / n) * PI * 2; for (let r = r1; r >= r0; r -= 0.6) { const x = WASH.x + cx + Math.sin(a) * r, z = WASH.z + cz + Math.cos(a) * r; if (clearAt(x, z) && !out.some((p) => Math.hypot(p[0] - x, p[1] - z) < 1.8)) { out.push([x, z]); break; } } }
+      return out; };
+    // They get up at those places, and each takes the nearest of the five who has fewer than `cap` on him already (the corporal is one of the five).
+    const surround = (pts, kinds, cap) => { const who = [P, S.hale, S.brann, S.wren, S.corin], n = who.map(() => 0);
+      return pts.map(([x, z], i) => { const e = G.spawn(kinds[i % kinds.length], x, z, { rise: true }); let b = 0, bd = 1e9; who.forEach((w, k) => { const l = Math.hypot(w.pos.x - x, w.pos.z - z); if (n[k] < cap && l < bd) { bd = l; b = k; } }); n[b]++; if (b) e.mark = who[b]; return e; }); };
+    // The drover walks a path (slowly, and he stops if the corporal gets too far ahead) with the boy at his shoulder, until `done`.
+    const escort = async (path, done) => { let leg = 0, apart = false; drover.unbound = false; drover.stop(0.3); give(); wash(true); ui.objective('Get the drover back to the picket'); L.marker(...wa(0, -46));
+      const lead = d.every(() => {
+        const far = P.dist(drover) > 12; if (far !== apart) { apart = far; ui.hint(far ? 'Stay with the drover' : ''); }
+        const f = drover.face, sx = Math.cos(f), sz = -Math.sin(f); S.corin.post = [drover.pos.x + sx * 1.1 - Math.sin(f) * 0.4, drover.pos.z + sz * 1.1 - Math.cos(f) * 0.4, f]; // at his right shoulder
+        if (!drover.to && leg < path.length && !far) { drover.go(...wa(...path[leg]), 1.7); leg++; } });
+      await d.until(done); lead(); ui.hint(''); L.marker(null); };
+    const POCKET = [-8.2, -14.4], CPOST = [-6.6, -13.8], END = [-3.8, -47.0]; // where the drover is sat down for the second fight (the rocks off the west bank) and the third (the rock at the head of the track)
     const [Bx, Bz, Br] = WAGONS[1], bx = Math.cos(Br), bz = -Math.sin(Br), SIT = [Bx + bx * 1.75, Bz + bz * 1.75], sitF = Math.atan2(bx, bz); // the drover, sitting against the second wagon's side
 
     if (first) {
@@ -1074,24 +1093,20 @@ stage('caravan', {
       const dir = [-0.476, -0.879], perp = [0.879, -0.476];
       cam.shot(fr3(2.2 - dir[0] * 2.3 + perp[0] * 1.0, 1.8, -36.0 - dir[1] * 2.3 + perp[1] * 1.0), eye(sgt, 1.45)); cam.shot(fr3(2.2 - dir[0] * 2.1 + perp[0] * 0.95, 1.8, -36.0 - dir[1] * 2.1 + perp[1] * 0.95), eye(sgt, 1.45), 9); // over his shoulder, at the sergeant
       await d.talk([
-        ['Sergeant', "The salt caravan should have come up the old road four days ago. It hasn't, and nobody's seen it."],
-        ['Sergeant', "Somebody has to go out and look. It's further than the beacon, and nobody's been out that way since the spring."],
-        ['Sergeant', "That's you. ...Give me your arm."],
+        ['Sergeant', "The salt caravan should have come up the old road four days ago. Nobody's seen it."],
+        ['Sergeant', "Somebody has to go out and look. That's you. ...Give me your arm."],
       ]);
       P.wear('corporal'); SFX.cue && SFX.cue(); // (owner, 21 Nov 2026: it wasn't clear what he was given) the stripe, close, on his sword arm
       { const f = P.face, fw = [Math.sin(f), Math.cos(f)], rt = [-Math.cos(f), Math.sin(f)], ax = P.pos.x + rt[0] * 0.3, az = P.pos.z + rt[1] * 0.3, y = L.height(P.pos.x, P.pos.z);
         cam.shot([ax + fw[0] * 0.75 + rt[0] * 0.95, y + 1.0, az + fw[1] * 0.75 + rt[1] * 0.95], [ax, y + 1.2, az]); cam.shot([ax + fw[0] * 0.65 + rt[0] * 0.8, y + 1.02, az + fw[1] * 0.65 + rt[1] * 0.8], [ax, y + 1.2, az], 7); }
-      await d.wait(1.6); await d.talk([['Sergeant', "The corporal's stripe. It was his. It's yours now, and so is everything that came with it."]]);
+      await d.wait(1.6); await d.talk([['Sergeant', "The corporal's stripe. It was his. It's yours now."]]);
       cam.shot(fr3(0.9 + dir[0] * 1.6 - perp[0] * 1.15, 1.7, -38.4 + dir[1] * 1.6 - perp[1] * 1.15), eye(P, 1.4)); cam.shot(fr3(0.9 + dir[0] * 1.5 - perp[0] * 1.1, 1.7, -38.4 + dir[1] * 1.5 - perp[1] * 1.1), eye(P, 1.45), 8); // past the sergeant's other shoulder, at him
       { const f = S.corin.face, cx = 3.7 + Math.sin(f) * 2.3 + Math.cos(f) * 0.9, cz = -42.9 + Math.cos(f) * 2.3 - Math.sin(f) * 0.9; cam.shot(fr3(cx, 1.25, cz), eye(S.corin, 1.0)); cam.shot(fr3(cx - Math.sin(f) * 0.2, 1.2, cz - Math.cos(f) * 0.2), eye(S.corin, 1.0), 6); } // the boy, by the trough, from in front of him
-      await d.talk([['Corin', "That was my brother's."], ['Sergeant', "And now it's his. You're his runner, same as you were your brother's."]]);
-      await d.wait(0.8); await d.talk([['Corin', "...Then I'll run."]]);
+      await d.talk([['Corin', "That was my brother's."], ['Sergeant', "And now it's his. You're his runner, same as you were your brother's."], ['Corin', "...Then I'll run."]]);
       cam.shot(fr3(6.6, 1.7, -32.8), fr3(2.0, 1.3, -36.4)); cam.shot(fr3(6.2, 1.65, -33.2), fr3(2.0, 1.3, -36.4), 8); // the four of them, and him
       await d.talk([
         ['Hale', "Corporal. ...That'll take some getting used to."],
-        ['Brann', "Not for me. I've called him worse."],
-        ['Sergeant', "Hale, Brann, Wren, and the boy. Find the caravan, find out what happened to it, and come back and tell me."],
-        ['Sergeant', "And don't go chasing anything into the deep desert. Five is not enough for that."],
+        ['Sergeant', "Hale, Brann, Wren, and the boy. Find the caravan and come back and tell me. Don't go chasing anything into the deep desert."],
       ]);
       await d.wait(0.6); ui.fade(1, 1.4); await d.wait(1.6); ui.hideDialogue();
       await d.chronicle('The old road', ['<em>A day out past the beacon.</em>'], TAP); ui.chronClose(); wash(); // the wash has its own music from here
@@ -1101,25 +1116,27 @@ stage('caravan', {
       S = squad([[...wa(2.4, -64.3), 0], [...wa(-1.4, -64.6), 0], [...wa(1.5, -66.2), 0], [...wa(-0.4, -66.5), 0]]); G.maxAtk = 2;
       take(); G.freezeAI = false; P.walk = { x: WASH.x + 0.5, z: WASH.z - 55, sp: 2.2 }; // they walk in; the camera watches them come
       cam.shot(wa3(4.2, 1.5, -46.5), wa3(0.4, 1.3, -61)); cam.shot(wa3(3.6, 1.7, -46.0), wa3(0.4, 1.4, -57), 7); ui.fade(0, 1.6); // out in front of them, as they come up the track
-      await d.wait(5.5); P.walk = null; P.face = 0; give(); ui.objective('Follow the road north'); L.marker(...wa(-2.5, -26));
-      // along the way they talk (each once, as he goes)
-      const talkAt = [[-50, [['Brann', 'Four days late. Could be a broken wheel. Could be a lame mule.', 4.5], ['Hale', 'Could be.', 2.2]]],
-        [-40, [['Corin', "Is 'Corporal' your name now?", 3.2], [CPL, 'No.', 1.8], ['Corin', "Then I'm still asking.", 2.6]]],
-        [-30, [['Wren', "Not a track on this road since the beacon. Nothing's come up it.", 4.5]]],
-        [-10, [['Corin', 'Why are we walking along the bottom of a ditch?', 3.5], ['Hale', "Because the road does, lad. There was a river here, once.", 4.2]]]];
+      await d.wait(5.5); P.walk = null; P.face = 0; give(); ui.objective('Follow the road north');
+      // (Owner, 21 Nov 2026: no beam of light on the way down: the track and the wash lead him, and the beam took his eye off the
+      // place. And less talk: someone walking quickly ran into a queue of lines, and the arrival waited for them.) Two short things
+      // are said on the way; reaching the bend cuts off whatever is being said.
+      const talkAt = [[-50, [['Brann', 'Four days late. Could be a broken wheel.', 3.2]]],
+        [-34, [['Corin', "Is 'Corporal' your name now?", 2.8], [CPL, 'No.', 1.4], ['Corin', "Then I'm still asking.", 2.2]]]];
       const chat = d.every(() => { for (const t of talkAt) if (!t.done && P.pos.z > WASH.z + t[0] && G.time > quiet) { t.done = true; say(t[1]); } });
-      await d.until(() => P.pos.z > WASH.z - 27); L.marker(...wa(5.0, 0.5)); ui.objective('Follow the wash');
-      await d.until(() => P.pos.z > WASH.z + 1.5); chat(); L.marker(null); ui.objective(''); await d.until(() => G.time > quiet);
+      await d.until(() => P.pos.z > WASH.z - 27); ui.objective('Follow the wash');
+      await d.until(() => P.pos.z > WASH.z + 1.5); chat(); hush(); ui.objective('');
       // the bend, and in it the caravan, stopped
       G.freezeAI = true; await glance(d, ...wa(7.5, 15.5), { from: wa3(3.4, 2.4, 2.5), y: 0.9, hold: 2.6 }); G.freezeAI = false;
-      say([['Hale', "There it is. ...Where are the beasts?", 3.8], [CPL, 'Wren, the casks. Brann, the wagons. Hale, find their tracks.', 4.2]]);
-      // ---- what is there to see: three things, each looked at by one of them, who goes to it as he comes near
+      say([['Hale', "There it is. ...Where are the beasts?", 3.0], [CPL, 'Wren, the casks. Brann, the wagons. Hale, find their tracks.', 3.6]]);
+      // ---- what is there to see: three things, each looked at by one of them, who goes to it as he comes near. (Owner, 21 Nov
+      // 2026: it took several times round to get all three. A find used to wait until nobody was speaking, so walking past one
+      // during a line missed it. Now it counts the moment he is near, from further off, and what is said about it waits its turn.)
       const finds = [
-        { at: CASKS, post: [8.8, 13.6], who: S.wren, lines: [['Wren', "Every cask stove in. They didn't drink it. They poured it out on the sand.", 5], [CPL, 'So nobody walks back.', 2.8]] },
-        { at: [8.1, 10.4], post: [8.6, 11.3], who: S.brann, lines: [['Brann', "Salt, cloth, oil, and not a sack opened. What kind of raider leaves the goods?", 5.5]] },
-        { at: [3.0, 27.0], post: [2.0, 27.9], who: S.hale, lines: [['Hale', 'All of them on foot, and the beasts led. North. Deeper in.', 4.5], ['Corin', 'We could follow them.', 2.8], [CPL, 'Not five of us.', 2.6]] },
+        { at: CASKS, r: 4.6, post: [8.8, 13.6], who: S.wren, lines: [['Wren', "Every cask stove in. They didn't drink it. They poured it out on the sand.", 4.2]] },
+        { at: [8.1, 10.4], r: 4.6, post: [8.6, 11.3], who: S.brann, lines: [['Brann', "Salt, cloth, oil, and not a sack opened. What kind of raider leaves the goods?", 4.4]] },
+        { at: [3.0, 27.0], r: 6.5, post: [2.0, 27.9], who: S.hale, lines: [['Hale', 'All of them on foot, and the beasts led. North. Deeper in.', 3.8]] },
       ];
-      let found = 0; ui.objective('Search the caravan (0/3)');
+      let found = 0, telling = 0, told = Promise.resolve(); ui.objective('Search the caravan (0/3)');
       // While he looks, so do they (owner, 19 Nov 2026: they trailed him round the wagons like dogs on a leash): each walks from
       // one thing to the next about the bend and stands looking at it, [x, z, what he looks at]. The one a find belongs to goes to it.
       const ROUNDS = [[S.hale, [[4.0, 6.6, 5.2, 6.1], [3.0, 12.6, 3.4, 15.2], [1.4, 22.5, -1, 30]]], [S.brann, [[9.8, 9.4, 6.2, 10.6], [14.8, 13.4, 12.4, 16.6], [10.2, 21.0, 7.5, 22.2]]],
@@ -1127,156 +1144,139 @@ stage('caravan', {
       const busy = new Set(); let nextT = 0; for (const [a] of ROUNDS) { a.postSp = 1.5; a.roamT = G.time + rnd(0, 2.5); }
       const roam = d.every(() => { if (G.time < nextT) return; nextT = G.time + 0.5;
         for (const [a, spots] of ROUNDS) { if (busy.has(a) || G.time < a.roamT) continue; const k = (a.roamK = ((a.roamK == null ? -1 : a.roamK) + 1) % spots.length), [x, z, lx, lz] = spots[k]; a.post = [...wa(x, z), Math.atan2(lx - x, lz - z)]; a.roamT = G.time + rnd(5.5, 9); } });
-      let seekT = G.time, marked = null; // nothing found for 40 s: the nearest thing not yet looked at is marked
+      let seekT = G.time, marked = null; // nothing found for 20 s: the nearest thing not yet looked at is marked
       const look = d.every(() => {
-        if (!marked && found < 3 && G.time - seekT > 40) { const far = (f) => Math.hypot(P.pos.x - WASH.x - f.at[0], P.pos.z - WASH.z - f.at[1]); marked = finds.filter((f) => !f.done).sort((a, b) => far(a) - far(b))[0]; L.marker(...wa(...marked.at)); }
-        for (const f of finds) if (!f.done && Math.hypot(P.pos.x - WASH.x - f.at[0], P.pos.z - WASH.z - f.at[1]) < 3.2 && G.time > quiet) {
+        const far = (f) => Math.hypot(P.pos.x - WASH.x - f.at[0], P.pos.z - WASH.z - f.at[1]);
+        if (!marked && found < 3 && G.time - seekT > 20) { marked = finds.filter((f) => !f.done).sort((a, b) => far(a) - far(b))[0]; L.marker(...wa(...marked.at)); }
+        for (const f of finds) if (!f.done && far(f) < f.r) {
           f.done = true; found++; seekT = G.time; if (marked) { marked = null; L.marker(null); } ui.objective(`Search the caravan (${found}/3)`); busy.add(f.who); f.who.postSp = 3.5; f.who.post = [...wa(...f.post), Math.atan2(f.at[0] - f.post[0], f.at[1] - f.post[1])];
-          lines(f.lines).then(() => { busy.delete(f.who); f.who.postSp = 1.5; f.who.roamT = G.time + 2; }, () => {});
+          telling++; told = told.then(async () => { await d.until(() => G.time > quiet); await lines(f.lines); }).then(() => { telling--; busy.delete(f.who); f.who.postSp = 1.5; f.who.roamT = G.time + 2; }, () => {});
         }
       });
-      await d.until(() => found === 3 && G.time > quiet); look(); roam(); for (const [a] of ROUNDS) { a.postSp = null; a.post = null; }
-      S.corin.post = [...wa(SIT[0] + bx * 1.2 - bz * 1.1, SIT[1] + bz * 1.2 + bx * 1.1), sitF + PI]; await d.wait(1.4); // the boy, by the second wagon, looking under it
+      await d.until(() => found === 3 && !telling); look(); roam(); for (const [a] of ROUNDS) { a.postSp = null; a.post = null; }
+      S.corin.post = [...wa(SIT[0] + bx * 1.2 - bz * 1.1, SIT[1] + bz * 1.2 + bx * 1.1), sitF + PI]; await d.wait(0.8); // the boy, by the second wagon, looking under it
       // under the second wagon: someone
       drover = new Extra(LOOKS.drover, ...wa(Bx + bx * 0.3, Bz + bz * 0.3), sitF); drover.unbound = true; drover.play(C(0.1, [0, PZ.crawl]), 0.01);
-      say([['Corin', "There's someone under that wagon!", 3.5]]); ui.objective('Look under the wagon'); L.marker(...wa(SIT[0] + bx * 0.6, SIT[1] + bz * 0.6));
-      await d.until(() => Math.hypot(P.pos.x - WASH.x - SIT[0], P.pos.z - WASH.z - SIT[1]) < 3.0);
-      await settled(d, 1); take(); G.freezeAI = true; ui.hideDialogue();
+      say([['Corin', "There's someone under that wagon!", 3.0]]); ui.objective('Look under the wagon'); L.marker(...wa(SIT[0] + bx * 0.6, SIT[1] + bz * 0.6));
+      await d.until(() => Math.hypot(P.pos.x - WASH.x - SIT[0], P.pos.z - WASH.z - SIT[1]) < 3.6);
+      await settled(d, 1); take(); G.freezeAI = true; hush();
       cam.shot(wa3(Bx + bx * 2.6 - bz * 0.4, 0.4, Bz + bz * 2.6 + bx * 0.4), wa3(Bx + bx * 0.3, 0.25, Bz + bz * 0.3)); cam.shot(wa3(Bx + bx * 2.4 - bz * 0.4, 0.38, Bz + bz * 2.4 + bx * 0.4), wa3(Bx + bx * 0.3, 0.25, Bz + bz * 0.3), 6); // low, under the bed
       await d.wait(0.6);
-      await d.talk([['Drover', "Don't— I've nothing, there's nothing left—"], ['Hale', "Easy. Easy, now. We're the Watch."]]);
+      await d.talk([['Drover', "Don't— I've nothing, there's nothing left—"], ['Hale', "Easy, now. We're the Watch."]]);
       ui.fade(1, 0.5); await d.wait(0.6);
       G.seenCaravan = 1; // (a retry starts from here)
-    } else {
+    } else if (lvl < 3) {
       ui.fade(1, 0); G.resetWorld({ site: 'wash', sky: 'day', look: 'corporal', player: [...wa(SIT[0] + bx * 1.9, SIT[1] + bz * 1.9), 0], corin: null }); G.maxAtk = 2; preloadMusic('vigil', 'gait'); wash(lvl >= 2);
       S = squad([[...wa(7.9, 16.6), 0], [...wa(8.6, 12.2), 0], [...wa(10.0, 18.6), 0], [...wa(SIT[0] + bx * 0.9 + bz * 1.0, SIT[1] + bz * 0.9 - bx * 1.0), 0]]);
       drover = new Extra(LOOKS.drover, ...wa(...SIT), sitF); take(); G.freezeAI = true;
+    } else { // (a retry once the narrows is won: at the rocks there, with the last of the way still to go)
+      ui.fade(1, 0); G.resetWorld({ site: 'wash', sky: 'day', look: 'corporal', player: [...wa(-5.2, -15.6), 0], corin: null }); G.maxAtk = 2; preloadMusic('vigil', 'gait'); wash(true);
+      S = squad([[...wa(-3.4, -12.6), 0], [...wa(-3.1, -16.2), 0], [...wa(-4.9, -11.2), 0], [...wa(...CPOST), PI / 2]]);
+      drover = new Extra(LOOKS.drover, ...wa(...POCKET), PI / 2); drover.unbound = true; drover.play(C(0.1, [0, PZ.sitUp]), 0.01); take(); G.freezeAI = true;
+      P.face = P.angleTo(drover); cam.shot(wa3(-2.4, 1.7, -18.6), wa3(-7.0, 0.9, -13.6)); ui.fade(0, 0.8); await d.wait(1.0); await d.talk([[CPL, 'Up. Not far now.']]);
     }
 
+    if (lvl < 3) {
     // ---- the drover, against the wagon's side: he knows him
     const H = [SIT[0] + bx * 1.9, SIT[1] + bz * 1.9], over = () => wa3(H[0] + bx * 0.9 - bz * 1.45, 2.0, H[1] + bz * 0.9 + bx * 1.45);
     drover.unbound = true; drover.place(...wa(...SIT), sitF); drover.play(C(0.1, [0, PZ.sitUp]), 0.01);
     P.place(...wa(...H), 0); P.face = P.angleTo(drover); P.state = 'loco'; P.stop(0.1);
     for (const [a, x, z] of [[S.hale, 7.9, 16.6], [S.brann, 8.6, 12.2], [S.wren, 10.0, 18.6], [S.corin, SIT[0] + bx * 0.9 + bz * 1.0, SIT[1] + bz * 0.9 - bx * 1.0]]) { a.rally(); a.post = null; a.postSp = null; a.place(...wa(x, z), 0); a.face = a.angleTo(drover); a.set('loco'); a.stop(0.1); }
     if (lvl < 2) {
-      if (first) {
+      if (first) { // (owner, 21 Nov 2026: still too much talking. What he says is cut to what the chapter needs: he knows him, who took them, the pale veils, the glass.)
         cam.shot(over(), eye(drover, 0.85)); cam.shot(wa3(H[0] + bx * 0.85 - bz * 1.35, 1.95, H[1] + bz * 0.85 + bx * 1.35), eye(drover, 0.85), 9); ui.fade(0, 0.7); await d.wait(0.9);
-        await d.talk([['Drover', "The Watch. ...They told us nobody would come out this far."], ['Drover', "Wait. I know you. ...You're the yard hand."]]);
+        await d.talk([['Drover', "The Watch. ...Wait. I know you. You're the yard hand."]]);
         cam.shot(wa3(SIT[0] - bz * 0.6 + bx * 0.25, 0.95, SIT[1] + bx * 0.6 + bz * 0.25), eye(P, 1.55)); cam.shot(wa3(SIT[0] - bz * 0.62 + bx * 0.3, 0.98, SIT[1] + bx * 0.62 + bz * 0.3), eye(P, 1.6), 6); // from beside him, up at the corporal
-        await d.wait(0.5); await d.talk([[CPL, 'I was.']]); await d.wait(0.5);
-        await d.talk([['Drover', "At the station on the old road. I saw what you did there. ...I still don't know what I saw."]]);
+        await d.wait(0.5); await d.talk([[CPL, 'I was. What happened here?']]);
         cam.shot(over(), eye(drover, 0.85)); cam.shot(wa3(H[0] + bx * 0.85 - bz * 1.35, 1.95, H[1] + bz * 0.85 + bx * 1.35), eye(drover, 0.85), 9);
         await d.talk([
-          [CPL, 'What happened here?'],
-          ['Drover', "They came before it was light. No shouting, no torches. They were just there, all round the wagons."],
-          ['Drover', "They took the drivers and the beasts, and broke the water, and walked everyone off north. I got under the wagon and lay there. Two days."],
-          ['Brann', 'Raiders?'],
-          ['Drover', "There were raiders. And others with them. Men in pale veils."],
-          ['Drover', "They never said a word. Not one, the whole time. Not to us, not to each other."],
-          ['Drover', "And after they'd walked everyone off over the dunes, I heard it. Like a cartload of glass going over. Out here, where there isn't a pane of it for a hundred miles."],
-          ['Wren', 'Whose are they?'],
-          ['Drover', "I've driven this road thirty years. I know every clan that trades on it. ...I never saw those before."],
+          ['Drover', "They came before it was light. Took the drivers and the beasts, broke the water, and walked everyone off north."],
+          ['Drover', "There were raiders. And others with them, in pale veils. Those never said a word. Not one."],
+          ['Drover', "And after, from over the dunes, I heard it. Like a cartload of glass going over."],
+          [CPL, 'Corin. Get him up, and stay with him. Whatever happens.'],
         ]);
-        await d.wait(0.6);
-        await d.talk([[CPL, 'Can you walk?'], ['Drover', 'If somebody lends me a shoulder.'], [CPL, 'Corin. Stay with him. Whatever happens.']]);
-        await d.wait(0.7); await d.talk([['Corin', '...Fine.']]);
-      } else { cam.shot(over(), eye(drover, 0.85)); ui.fade(0, 0.8); await d.wait(1.0); await d.talk([['Drover', "If somebody lends me a shoulder, I can walk."], [CPL, 'Corin. Stay with him.']]); }
+      } else { cam.shot(over(), eye(drover, 0.85)); ui.fade(0, 0.8); await d.wait(1.0); await d.talk([[CPL, 'Corin. Stay with him.']]); }
 
-      // ---- the raiders (owner, 19 Nov 2026: a hard first wave before the Veiled). They were waiting for whoever came looking: out of
-      // the sand all round the bend, throwers among them, and more as they fall. The boy stays over the drover, who is still sitting
-      // against the wagon. When enough are down, or they have been at it long enough, the rest break and run, as raiders do, and go
-      // back under the sand.
+      // ---- the raiders, one wave (owner, 21 Nov 2026: the bend is crowded and the camera has a hard time there, so not wave after
+      // wave; one, laid out: they get up in a ring all round the squad, three to a man, and each goes for the one nearest him, so
+      // the five fight five fights and not one heap). The boy stays over the drover. When only a few are left, the rest break and
+      // run, as raiders do, and go back under the sand.
       S.corin.post = [...wa(SIT[0] + bx * 1.15 + bz * 0.7, SIT[1] + bz * 1.15 - bx * 0.7), sitF];
       const offJ = javelins('Hale');
-      // (owner, 21 Nov 2026: they popped up on top of him, some behind rocks, and it led up to nothing.) Three waves, each from one
-      // side and clear of the rocks and wagons: up the tracks, then down the wash behind them, then their leader. When he falls, the rest run.
-      const w1 = rise([['raider', -2.6, 35.5, S.hale], ['raider', 2.6, 36.5], ['raider', 1.4, 39.5], ['skirmisher', -0.6, 41.5]]);
+      const w1 = surround(ring(7.5, 15.5, 15, 12.5, 5), ['raider', 'raider', 'runner', 'raider', 'skirmisher'], 3);
       G.freezeAI = true; wash(true); SFX.tele(); ui.say('Raider', "That's far enough, Watch! Leave the old man and walk home!", 3.6);
-      await glance(d, ...wa(1, 36), { from: wa3(4.5, 2.6, 22), hold: 1.9 });
-      give(); G.maxAtk = 2; for (const e of w1) e.cd = rnd(0.8, 2); ui.objective('Hold the bend');
-      const left = () => w1.filter((e) => !e.dead).length; let t0 = G.time;
-      await d.until(() => left() <= 1 || G.time - t0 > 45);
-      await d.wait(1.5); w1.push(...rise([['runner', 9.6, 4.6, S.corin], ['raider', 5, -2.2, S.brann], ['runner', 3.4, 1.4], ['raider', 11, 6.5], ['skirmisher', 2.5, -4.5]]));
-      say([['Brann', 'Behind us! More of them, down the wash!', 3.2]]); t0 = G.time;
-      await d.until(() => left() <= 1 || G.time - t0 > 50);
-      await d.until(() => G.time > quiet); await d.wait(1.2);
-      take(); G.freezeAI = true; const chief = G.spawn('chief', ...wa(0.6, 38), { rise: true }); chief.title = 'WAR LEADER'; w1.push(chief, ...rise([['bulwark', -2.6, 36], ['bulwark', 3.6, 36.5], ['skirmisher', 1, 42]]));
-      SFX.tele(); ui.say('War leader', 'Then you can lie down with him!', 3.2); quiet = G.time + 3.4;
-      await glance(d, ...wa(0.6, 37), { from: wa3(3.5, 2.4, 25), hold: 2.2 });
-      give(); G.boss = chief; G.maxAtk = 3; ui.objective('Bring down their leader'); t0 = G.time;
-      const rage = d.every(() => { if (chief.phase2 || chief.dead || chief.hp > chief.maxHp * 0.5) return; chief.phase2 = true; chief.flash = 0.8; chief.cd = Math.min(chief.cd, 0.6); SFX.tele(); });
-      await d.until(() => chief.dead || G.time - t0 > 150);
-      rage(); G.boss = null; G.maxAtk = 2; for (const e of w1) e.flee();
-      if (w1.some((e) => !e.dead)) say([['Hale', "He's down! Look at them run!", 3], ['Wren', "Back under the sand. They'll be back, and more of them.", 4], [CPL, "Then we don't wait for them.", 2.8]]);
+      await glance(d, ...wa(7.5, 15.5), { from: wa3(5.0, 10.5, 3.0), y: 0.4, hold: 2.8 }); // from high over the wash: the whole ring of them
+      give(); G.maxAtk = 2; for (const e of w1) e.cd = rnd(0.8, 2.5); ui.objective('Hold the bend');
+      const left = () => w1.filter((e) => !e.dead).length, t0 = G.time;
+      await d.until(() => left() <= 3 || G.time - t0 > 120);
+      for (const e of w1) e.flee();
+      if (left()) say([['Hale', "They're breaking! Look at them run!", 3]]);
       await d.until(() => !G.enemies.some((e) => !e.dead) && G.time > quiet);
       offJ(); rallyAll(); wash(true); ui.objective(''); await d.wait(0.6);
       G.seenCaravan = 2; // (a retry starts on the way back)
     } else { cam.shot(over(), eye(drover, 0.85)); ui.fade(0, 0.8); await d.wait(1.0); await d.talk([[CPL, 'On your feet. We go now.']]); }
 
     // ---- the way back. The drover walks (slowly, and he stops if the corporal gets too far ahead), with the boy at his side.
-    drover.unbound = false; drover.stop(0.3); give(); wash(true); ui.objective('Get the drover back to the picket'); L.marker(...wa(0, -46));
-    const PATH = [[9.4, 9.5], [6.0, 0], [2.0, -6], [-0.8, -12.5], [-2.6, -22], [-1.5, -32], [0.2, -44]]; let leg = 0, apart = false;
-    const lead = d.every(() => {
-      const far = P.dist(drover) > 12; if (far !== apart) { apart = far; ui.hint(far ? 'Stay with the drover' : ''); }
-      const f = drover.face, sx = Math.cos(f), sz = -Math.sin(f); S.corin.post = [drover.pos.x + sx * 1.1 - Math.sin(f) * 0.4, drover.pos.z + sz * 1.1 - Math.cos(f) * 0.4, f]; // at his right shoulder
-      if (!drover.to && leg < PATH.length && !far) { drover.go(...wa(...PATH[leg]), 1.7); leg++; }
-    });
-    await d.until(() => drover.pos.z < WASH.z - 8);
-    lead(); ui.hint(''); L.marker(null);
+    await escort([[9.4, 9.5], [6.0, 0], [2.0, -6], [-0.8, -12.5]], () => drover.pos.z < WASH.z - 8);
 
-    // ---- the narrows: the Veiled. They get up out of the sand ahead and behind and stand there. They say nothing, they don't run,
-    // and the first time one is cut down he lies still a moment and gets up again (TYPES.veiled, Enemy.fell).
-    const POCKET = [-8.2, -14.4], CPOST = [-6.6, -13.8];
+    // ---- the narrows, the second fight: the Veiled. They get up out of the sand all round, ahead and behind, and stand there.
+    // They say nothing, they don't run, and the first time one is cut down he lies still a moment and gets up again
+    // (TYPES.veiled, Enemy.fell). Two to a man.
     drover.go(...wa(...POCKET), 3.0, PI / 2); S.corin.post = [...wa(...CPOST), PI / 2]; // the boy takes him to the rocks off the west bank, and stands over him
     d.until(() => !drover.to).then(() => { drover.unbound = true; drover.play(C(0.1, [0, PZ.sitUp]), 0.25); }, () => {});
-    const veiled = rise([['veiled', -3.4, -27.5], ['veiled', 1.2, -28.5, S.corin], ['veiled', 8.4, 7.5], ['veiled', 4.6, 3.4, S.brann]]); for (const e of veiled) e.hold = true;
+    const veiled = surround(ring(-1.2, -13.5, 7, 12, 6), ['veiled'], 2); for (const e of veiled) e.hold = true;
     G.freezeAI = true; wash(true); await d.wait(1.0);
-    await glance(d, ...wa(-1.2, -27.8), { hold: 2.4, back: 7, h: 2.2, y: 1.5 }); // they stand, and say nothing
-    ui.say('Wren', "Corporal. Those, in white. ...They're just standing there.", 3.6); quiet = G.time + 4;
-    G.freezeAI = false; G.maxAtk = 3; ui.objective('Stand with Corin'); const t1 = G.time; ui.thought('...Their blades. Glass.', 4);
+    { const v = veiled.reduce((a, b) => (b.pos.z < a.pos.z ? b : a)); await glance(d, v.pos.x, v.pos.z, { hold: 2.4, back: 7, h: 2.2, y: 1.5 }); } // they stand, and say nothing
+    ui.say('Wren', "Corporal. In white, all round us. ...They're just standing there.", 3.4); quiet = G.time + 3.8;
+    G.freezeAI = false; G.maxAtk = 3; ui.objective('Stand with Corin'); ui.thought('...Their blades. Glass.', 4);
     d.wait(1.6).then(() => { for (const e of veiled) { e.hold = false; e.cd = rnd(0.3, 1.0); } }, () => {});
-    let more = false, told = false;
-    const offU = G.on((k, o) => { if (k === 'rising' && !told && veiled.includes(o.enemy)) { told = true; say([['Brann', "That one's getting up! I saw him go down!", 3.8]]); } });
-    const standing = () => veiled.filter((e) => !e.dead || e.downed).length; // (one lying still is not finished with)
-    const fight = d.every(() => {
-      if (!more && G.time > quiet && G.time - t1 > 10 && veiled.filter((e) => !e.dead).length <= 1) { // two more, out of the sand at the rocks where the boy is
-        more = true; veiled.push(...rise([['veiled', -4.6, -9.0, S.corin], ['veiled', -2.4, -17.6, S.corin]]));
-        say([['Brann', 'Two more! On the boy!', 3]]); ui.objective('Get to Corin');
-      }
-    });
-    await d.until(() => more && standing() === 0);
-    fight(); await d.until(() => G.time > quiet); await d.wait(1.4);
-    // (owner, 21 Nov 2026: it led up to nothing.) One more gets up alone in the way home: taller, harder. When he falls for good his glass blade breaks, and they have a piece of it to look at.
-    take(); G.freezeAI = true; const tall = G.spawn('paleblade', ...wa(-1.6, -24.5), { rise: true }); veiled.push(tall); G.boss = tall;
-    await glance(d, ...wa(-1.6, -24.5), { hold: 2.6, back: 5.5, h: 1.9, y: 1.5 });
-    give(); G.boss = tall; G.maxAtk = 2; ui.objective('Cut him down');
-    await d.until(() => tall.dead && !tall.downed);
-    { const p = tall.pos.clone(); p.y += 0.5; FX.sparks.emit(p, 30, 5, 0x9ff0e0, 0.9); FX.grit.emit(p, 24, 3.5, 0xbff5ea, 1.1); SFX.shatter(); G.shake = Math.max(G.shake, 0.25); } // the glass goes as he does
-    offU(); G.boss = null; await d.wait(1.6); rallyAll(); await settled(d);
+    let seen = false;
+    const offU = G.on((k, o) => { if (k === 'rising' && !seen && veiled.includes(o.enemy)) { seen = true; say([['Brann', "That one's getting up! I saw him go down!", 3.4]]); } });
+    await d.until(() => veiled.every((e) => e.dead && !e.downed)); // (one lying still is not finished with)
+    offU(); G.maxAtk = 2; await d.wait(1.2); rallyAll(); await settled(d);
+    G.seenCaravan = 3; // (a retry starts from the rocks here)
+    } else give();
 
-    // ---- after: at the rocks
-    take(); G.freezeAI = true; ui.fade(1, 0.5); await d.wait(0.6); // (wherever the fight ended, they would be standing in the shot)
-    drover.unbound = true; drover.place(...wa(...POCKET), PI / 2); drover.play(C(0.1, [0, PZ.sitUp]), 0.01);
-    P.place(...wa(-5.2, -15.6), 0); P.face = P.angleTo(drover); P.state = 'loco'; P.stop(0.1);
-    for (const [a, x, z] of [[S.corin, -6.9, -13.1], [S.hale, -3.4, -12.6], [S.brann, -3.1, -16.2], [S.wren, -4.9, -11.2]]) { a.rally(); a.place(...wa(x, z), 0); a.face = a.angleTo(drover); a.post = [...wa(x, z), a.face]; a.set('loco'); a.stop(0.1); }
+    // ---- on, to where the track comes down off the plain
+    await escort([[-3.0, -14.5], [-2.6, -22], [-1.5, -32], [-0.8, -39.5]], () => drover.pos.z < WASH.z - 38);
+
+    // ---- the last fight, out on the open plain (owner, 21 Nov 2026: a third wave near where they came in, and no giant: he did
+    // not care for the Pale Blade). Both kinds together, as the drover said they came: a full ring on open ground. When the last
+    // of the Veiled is down for good his glass blade breaks, and the raiders who are left run.
+    drover.go(...wa(...END), 3.0, PI / 2); S.corin.post = [...wa(END[0] + 1.5, END[1] + 0.7), PI / 2];
+    d.until(() => !drover.to).then(() => { drover.unbound = true; drover.play(C(0.1, [0, PZ.sitUp]), 0.25); }, () => {});
+    const offJ2 = javelins('Hale');
+    const last = surround(ring(-0.3, -47.5, 12, 10.5, 7), ['veiled', 'raider', 'raider', 'skirmisher', 'veiled', 'raider'], 3), pale = last.filter((e) => e.kind === 'veiled');
+    G.freezeAI = true; await d.wait(0.6); ui.say('Hale', 'All round us! Both kinds!', 3); quiet = G.time + 3.4;
+    await glance(d, ...wa(-0.3, -47.5), { from: wa3(1.5, 10, -31.5), y: 0.4, hold: 2.6 });
+    G.freezeAI = false; G.maxAtk = 3; ui.objective('Break them'); for (const e of last) e.cd = rnd(0.6, 2.2);
+    let fallen = null; const tally = d.every(() => { for (const e of pale) if (e.dead && !e.downed && !e.counted) { e.counted = true; fallen = e; } });
+    await d.until(() => pale.every((e) => e.counted));
+    tally(); { const p = fallen.pos.clone(); p.y += 0.5; FX.sparks.emit(p, 30, 5, 0x9ff0e0, 0.9); FX.grit.emit(p, 24, 3.5, 0xbff5ea, 1.1); SFX.shatter(); G.shake = Math.max(G.shake, 0.25); } // the glass goes as he does
+    for (const e of last) e.flee(); G.maxAtk = 2;
+    await d.until(() => !G.enemies.some((e) => !e.dead));
+    offJ2(); ui.objective(''); await d.wait(1.4); rallyAll(); await settled(d);
+
+    // ---- after: by the rock at the head of the track
+    take(); G.freezeAI = true; hush(); ui.fade(1, 0.5); await d.wait(0.6); // (wherever the fight ended, they would be standing in the shot)
+    const [ex, ez] = END, e3 = (x, y, z) => wa3(ex + x, y, ez + z);
+    drover.unbound = true; drover.place(...wa(ex, ez), PI / 2); drover.play(C(0.1, [0, PZ.sitUp]), 0.01);
+    P.place(...wa(ex + 3.0, ez - 1.2), 0); P.face = P.angleTo(drover); P.state = 'loco'; P.stop(0.1);
+    for (const [a, x, z] of [[S.corin, 1.3, 1.3], [S.hale, 4.9, 2.4], [S.brann, 5.0, 0.3], [S.wren, 3.3, 3.6]]) { a.rally(); a.place(...wa(ex + x, ez + z), 0); a.face = a.angleTo(drover); a.post = [...wa(ex + x, ez + z), a.face]; a.set('loco'); a.stop(0.1); }
     S.corin.face = S.corin.angleTo(P); S.corin.post[2] = S.corin.face;
-    cam.shot(wa3(-2.4, 1.7, -18.6), wa3(-7.0, 0.9, -13.6)); cam.shot(wa3(-2.6, 1.6, -18.0), wa3(-7.0, 0.9, -13.6), 9); ui.fade(0, 0.7); await d.wait(0.9);
+    cam.shot(e3(5.8, 1.7, -4.2), e3(1.2, 0.9, 0.8)); cam.shot(e3(5.6, 1.6, -3.6), e3(1.2, 0.9, 0.8), 9); ui.fade(0, 0.7); await d.wait(0.9);
     wash(true);
     await d.talk([
-      ['Wren', "Not a sound out of them. Not when they came, not when they fell. Not when they got up again."],
-      ['Hale', "The raiders ran when it went against them. Raiders always run. Those never even looked like it."],
+      ['Hale', "The raiders ran. Raiders always run. The ones in white never even looked like it."],
       ['Brann', "I put one down. I know I did. He got up."],
-      ['Wren', "And their swords. The tall one's broke when he fell. ...Corporal, this isn't steel. It's glass."],
-      ['Brann', 'Glass. Who goes to war with glass?'],
+      ['Wren', "And this. His sword broke when he fell. ...Corporal, it isn't steel. It's glass."],
     ]);
-    cam.shot(wa3(-7.6, 1.5, -12.0), eye(P, 1.55)); cam.shot(wa3(-7.4, 1.5, -12.3), eye(P, 1.55), 7);
-    await d.wait(1.4); await d.talk([[CPL, "...Put it down, Wren. Don't carry it home."]]);
-    await d.wait(1.0);
-    cam.shot(wa3(-6.6, 0.95, -15.4), eye(S.corin, 1.2)); cam.shot(wa3(-6.5, 0.95, -15.2), eye(S.corin, 1.2), 6); // from beside the drover, up at the boy
-    await d.talk([['Drover', "Your boy stood over me the whole time. Never took a step back."]]);
-    await d.wait(0.6);
-    await d.talk([['Corin', "He's not hurt. I didn't let them near him."]]);
-    cam.shot(wa3(-7.6, 1.5, -12.0), eye(P, 1.55)); cam.shot(wa3(-7.5, 1.5, -12.2), eye(P, 1.55), 6); // past the boy, at the corporal
+    cam.shot(e3(0.6, 1.5, 2.4), eye(P, 1.55)); cam.shot(e3(0.8, 1.5, 2.1), eye(P, 1.55), 7);
+    await d.wait(1.2); await d.talk([[CPL, "...Put it down, Wren. Don't carry it home."]]);
+    await d.wait(0.8);
+    cam.shot(e3(1.6, 0.95, -1.0), eye(S.corin, 1.2)); cam.shot(e3(1.7, 0.95, -0.8), eye(S.corin, 1.2), 6); // from beside the drover, up at the boy
+    await d.talk([['Drover', "Your boy stood over me the whole time. Never took a step back."], ['Corin', "He's not hurt. I didn't let them near him."]]);
+    cam.shot(e3(0.6, 1.5, 2.4), eye(P, 1.55)); cam.shot(e3(0.7, 1.5, 2.2), eye(P, 1.55), 6); // past the boy, at the corporal
     await d.wait(0.7); await d.talk([[CPL, 'I saw.']]);
     await d.wait(0.9); await d.talk([['Corin', "You've seen it before. The glass."]]);
     await d.wait(1.2); await d.talk([[CPL, "We're going home. Now."]]);
