@@ -922,7 +922,7 @@ stage('beacon', {
       ['Corporal', 'I saw. What do they call you, soldier?'],
     ]);
     await d.wait(1.0);
-    await d.talk([[ME, 'Yard hand.'], ['Corporal', "That's a job, soldier, not a name."], [ME, "It's the one I've got."], ['Brann', "The clerk wrote something else on the roll, Corporal. None of us can read it."], ['Corporal', "Then I'll tell the captain it was the Third Company, and he can work out which one of you."]]);
+    await d.talk([[ME, 'Yard hand.'], ['Corporal', "That's a job, soldier, not a name."], [ME, "It's the one I've got."], ['Corporal', "Then I'll tell the captain it was the Third Company, and he can work out which one of you."]]);
     cam.shot(fr3(17.6, 1.2, 43.0), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z]); cam.shot(fr3(17.4, 1.25, 42.8), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z], 5);
     await d.talk([['Corin', "You can tell the captain from a bed. You've bled through it again."], ['Corporal', "Help me up, runner. ...Slowly. It's a long walk to the well."]]);
     await d.wait(0.6); ui.fade(1, 1.8); await d.wait(2.0); P.inv = 0;
@@ -941,10 +941,10 @@ stage('picket', {
     const toFire = (x, z) => Math.atan2(FIRE[0] - x, FIRE[1] - z);
     let quiet = 0; // one bystander speaks at a time, and a scene waits for the line to finish
     const company = (lines) => {
-      const who = [['HALE', { hair: 0x4a3424 }, 1.0, 4.9, -37.4], ['BRANN', { skin: 0xb98a66, hair: 0x1e1814 }, 0.96, 7.9, -39.5], ['WREN', { skin: 0xc4926c, hair: 0x2a1c14 }, 0.98, 6.3, -41.0]];
+      const who = [['HALE', { hair: 0x4a3424 }, 1.0, 7.4, -33.4], ['BRANN', { skin: 0xb98a66, hair: 0x1e1814 }, 0.96, 8.7, -38.7], ['WREN', { skin: 0xc4926c, hair: 0x2a1c14 }, 0.98, 7.4, -42.6]] // (owner, 21 Nov 2026) spread about the fire, well off his way to the trough: talking to them is his choice;
       // lines[i] = [what they say, how long it stays, what he says back] (owner, 16 Nov 2026: no blank stares; he answers his own people)
       const folk = who.map(([name, o, scale, x, z], i) => ({ e: new Extra({ ...OFF, ...o }, ...fr(x, z), toFire(x, z), { scale, name }), who: name[0] + name.slice(1).toLowerCase(), line: lines[i][0], dur: lines[i][1], reply: lines[i][2] }));
-      const stop = d.every(() => { if (!P.controlEnabled || G.talking) return; for (const f of folk) if (!f.said && P.dist(f.e) < 3.0 && G.time > quiet) {
+      const stop = d.every(() => { if (!P.controlEnabled || G.talking) return; for (const f of folk) if (!f.said && P.dist(f.e) < 2.5 && G.time > quiet) {
         f.said = true; f.e.watch = P; ui.say(f.who, f.line, f.dur); quiet = G.time + f.dur + 0.3;
         if (f.reply) { const rd = 1.4 + f.reply.length * 0.05; quiet += rd; d.wait(f.dur).then(() => { if (!G.talking) ui.say(ME, f.reply, rd); }, () => {}); } } });
       return stop;
@@ -953,7 +953,7 @@ stage('picket', {
     const give = () => { G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; };
 
     // ---- the night
-    ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'ranker', player: [...fr(2.6, -28.5), PI], corin: null }); G.carry = null; G.freezeAI = true; take();
+    ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'ranker', player: [...fr(3.6, -23.5), PI], corin: null }); G.carry = null; G.freezeAI = true; take();
     playMusic('watch', { cross: 3, fade: 3 }); // (owner, Nov 2026) "A Brother's Final Watch" from the walk in to the corporal, through his death and the morning; loops. ("Only the Wind Remains" was dropped, owner's call.)
     const corp = new Extra({ ...OFF, hair: 0x8a8680 }, ...fr(...loc(0, 0)), 0.4); corp.unbound = true; corp.play(C(0.1, [0, PZ.sit]), 0.01); // against the trough, facing the fire
     const boy = new Extra(BOY, ...fr(...loc(0.95, 0.25)), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.unbound = true; boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneelBy]), 0.01);
@@ -1073,12 +1073,14 @@ stage('caravan', {
       await d.talk([
         ['Sergeant', "The salt caravan should have come up the old road four days ago. It hasn't, and nobody's seen it."],
         ['Sergeant', "Somebody has to go out and look. It's further than the beacon, and nobody's been out that way since the spring."],
-        ['Sergeant', "That's you. ...Here."],
+        ['Sergeant', "That's you. ...Give me your arm."],
       ]);
+      P.wear('corporal'); SFX.cue && SFX.cue(); // (owner, 21 Nov 2026: it wasn't clear what he was given) the stripe, close, on his sword arm
+      { const f = P.face, fw = [Math.sin(f), Math.cos(f)], rt = [-Math.cos(f), Math.sin(f)], ax = P.pos.x + rt[0] * 0.3, az = P.pos.z + rt[1] * 0.3, y = L.height(P.pos.x, P.pos.z);
+        cam.shot([ax + fw[0] * 0.75 + rt[0] * 0.95, y + 1.0, az + fw[1] * 0.75 + rt[1] * 0.95], [ax, y + 1.2, az]); cam.shot([ax + fw[0] * 0.65 + rt[0] * 0.8, y + 1.02, az + fw[1] * 0.65 + rt[1] * 0.8], [ax, y + 1.2, az], 7); }
+      await d.wait(1.6); await d.talk([['Sergeant', "The corporal's stripe. It was his. It's yours now, and so is everything that came with it."]]);
       cam.shot(fr3(0.9 + dir[0] * 1.6 - perp[0] * 1.15, 1.7, -38.4 + dir[1] * 1.6 - perp[1] * 1.15), eye(P, 1.4)); cam.shot(fr3(0.9 + dir[0] * 1.5 - perp[0] * 1.1, 1.7, -38.4 + dir[1] * 1.5 - perp[1] * 1.1), eye(P, 1.45), 8); // past the sergeant's other shoulder, at him
-      await d.talk([['Sergeant', "It was his. Corporal of the well picket. It's yours now, and so is everything that came with it."]]);
       { const f = S.corin.face, cx = 3.7 + Math.sin(f) * 2.3 + Math.cos(f) * 0.9, cz = -42.9 + Math.cos(f) * 2.3 - Math.sin(f) * 0.9; cam.shot(fr3(cx, 1.25, cz), eye(S.corin, 1.0)); cam.shot(fr3(cx - Math.sin(f) * 0.2, 1.2, cz - Math.cos(f) * 0.2), eye(S.corin, 1.0), 6); } // the boy, by the trough, from in front of him
-      P.wear('corporal'); // (the stripe, on his arm when the camera comes back to him)
       await d.talk([['Corin', "That was my brother's."], ['Sergeant', "And now it's his. You're his runner, same as you were your brother's."]]);
       await d.wait(0.8); await d.talk([['Corin', "...Then I'll run."]]);
       cam.shot(fr3(6.6, 1.7, -32.8), fr3(2.0, 1.3, -36.4)); cam.shot(fr3(6.2, 1.65, -33.2), fr3(2.0, 1.3, -36.4), 8); // the four of them, and him
@@ -1168,6 +1170,7 @@ stage('caravan', {
           ['Brann', 'Raiders?'],
           ['Drover', "There were raiders. And others with them. Men in pale veils."],
           ['Drover', "They never said a word. Not one, the whole time. Not to us, not to each other."],
+          ['Drover', "And after they'd walked everyone off over the dunes, I heard it. Like a cartload of glass going over. Out here, where there isn't a pane of it for a hundred miles."],
           ['Wren', 'Whose are they?'],
           ['Drover', "I've driven this road thirty years. I know every clan that trades on it. ...I never saw those before."],
         ]);
@@ -1182,21 +1185,26 @@ stage('caravan', {
       // back under the sand.
       S.corin.post = [...wa(SIT[0] + bx * 1.15 + bz * 0.7, SIT[1] + bz * 1.15 - bx * 0.7), sitF];
       const offJ = javelins('Hale');
-      const w1 = rise([['raider', -1.0, 33, S.hale], ['raider', 15, 21.5], ['runner', 9, 3, S.corin], ['raider', 6, 0.5, S.brann], ['bulwark', 2, 36], ['skirmisher', 0.5, 38.5], ['skirmisher', 16.5, 23]]);
+      // (owner, 21 Nov 2026: they popped up on top of him, some behind rocks, and it led up to nothing.) Three waves, each from one
+      // side and clear of the rocks and wagons: up the tracks, then down the wash behind them, then their leader. When he falls, the rest run.
+      const w1 = rise([['raider', -2.6, 35.5, S.hale], ['raider', 2.6, 36.5], ['raider', 1.4, 39.5], ['skirmisher', -0.6, 41.5]]);
       G.freezeAI = true; actOne(true); SFX.tele(); ui.say('Raider', "That's far enough, Watch! Leave the old man and walk home!", 3.6);
-      await glance(d, ...wa(1, 34), { from: wa3(4.5, 2.6, 22), hold: 1.9 });
+      await glance(d, ...wa(1, 36), { from: wa3(4.5, 2.6, 22), hold: 1.9 });
       give(); G.maxAtk = 2; for (const e of w1) e.cd = rnd(0.8, 2); ui.objective('Hold the bend');
-      const SEQ = ['raider', 'skirmisher', 'runner', 'raider', 'bulwark', 'skirmisher', 'runner', 'raider'], SPOTS = [[-1.5, 34], [2.5, 37.5], [16, 20.5], [15.5, 13.5], [8, 1.5], [4, -1.5], [-0.5, 28.5]];
-      let down = 0, n = 0, spawnT = 3; const t0 = G.time;
-      const offK = G.on((k, o) => { if (k === 'kill' && w1.includes(o.enemy)) down++; });
-      const more1 = d.every((dt) => {
-        spawnT -= dt; if (spawnT > 0 || n >= SEQ.length || w1.filter((e) => !e.dead).length >= 6) return;
-        spawnT = rnd(2.2, 3.6); const [x, z] = SPOTS[(Math.random() * SPOTS.length) | 0], e = G.spawn(SEQ[n++], ...wa(x + rnd(-1, 1), z + rnd(-1, 1)), { rise: true });
-        if (Math.random() < 0.3) e.mark = S.corin; w1.push(e);
-      });
-      await d.until(() => down >= 9 || G.time - t0 > 80 || w1.every((e) => e.dead));
-      more1(); offK(); for (const e of w1) e.flee();
-      if (w1.some((e) => !e.dead)) say([['Hale', "They're breaking! Look at them run!", 3], ['Wren', "Back under the sand. They'll be back, and more of them.", 4], [CPL, "Then we don't wait for them.", 2.8]]);
+      const left = () => w1.filter((e) => !e.dead).length; let t0 = G.time;
+      await d.until(() => left() <= 1 || G.time - t0 > 45);
+      await d.wait(1.5); w1.push(...rise([['runner', 9.6, 4.6, S.corin], ['raider', 5, -2.2, S.brann], ['runner', 3.4, 1.4], ['raider', 11, 6.5], ['skirmisher', 2.5, -4.5]]));
+      say([['Brann', 'Behind us! More of them, down the wash!', 3.2]]); t0 = G.time;
+      await d.until(() => left() <= 1 || G.time - t0 > 50);
+      await d.until(() => G.time > quiet); await d.wait(1.2);
+      take(); G.freezeAI = true; const chief = G.spawn('chief', ...wa(0.6, 38), { rise: true }); chief.title = 'WAR LEADER'; w1.push(chief, ...rise([['bulwark', -2.6, 36], ['bulwark', 3.6, 36.5], ['skirmisher', 1, 42]]));
+      SFX.tele(); ui.say('War leader', 'Then you can lie down with him!', 3.2); quiet = G.time + 3.4;
+      await glance(d, ...wa(0.6, 37), { from: wa3(3.5, 2.4, 25), hold: 2.2 });
+      give(); G.boss = chief; G.maxAtk = 3; ui.objective('Bring down their leader'); t0 = G.time;
+      const rage = d.every(() => { if (chief.phase2 || chief.dead || chief.hp > chief.maxHp * 0.5) return; chief.phase2 = true; chief.flash = 0.8; chief.cd = Math.min(chief.cd, 0.6); SFX.tele(); });
+      await d.until(() => chief.dead || G.time - t0 > 150);
+      rage(); G.boss = null; G.maxAtk = 2; for (const e of w1) e.flee();
+      if (w1.some((e) => !e.dead)) say([['Hale', "He's down! Look at them run!", 3], ['Wren', "Back under the sand. They'll be back, and more of them.", 4], [CPL, "Then we don't wait for them.", 2.8]]);
       await d.until(() => !G.enemies.some((e) => !e.dead) && G.time > quiet);
       offJ(); rallyAll(); actOne(); ui.objective(''); await d.wait(0.6);
       G.seenCaravan = 2; // (a retry starts on the way back)
@@ -1222,7 +1230,7 @@ stage('caravan', {
     G.freezeAI = true; actOne(true); await d.wait(1.0);
     await glance(d, ...wa(-1.2, -27.8), { hold: 2.4, back: 7, h: 2.2, y: 1.5 }); // they stand, and say nothing
     ui.say('Wren', "Corporal. Those, in white. ...They're just standing there.", 3.6); quiet = G.time + 4;
-    G.freezeAI = false; G.maxAtk = 3; ui.objective('Stand with Corin'); const t1 = G.time;
+    G.freezeAI = false; G.maxAtk = 3; ui.objective('Stand with Corin'); const t1 = G.time; ui.thought('...Their blades. Glass.', 4);
     d.wait(1.6).then(() => { for (const e of veiled) { e.hold = false; e.cd = rnd(0.3, 1.0); } }, () => {});
     let more = false, told = false;
     const offU = G.on((k, o) => { if (k === 'rising' && !told && veiled.includes(o.enemy)) { told = true; say([['Brann', "That one's getting up! I saw him go down!", 3.8]]); } });
@@ -1234,7 +1242,14 @@ stage('caravan', {
       }
     });
     await d.until(() => more && standing() === 0);
-    fight(); offU(); G.maxAtk = 2; await d.wait(0.9); rallyAll(); await settled(d);
+    fight(); await d.until(() => G.time > quiet); await d.wait(1.4);
+    // (owner, 21 Nov 2026: it led up to nothing.) One more gets up alone in the way home: taller, harder. When he falls for good his glass blade breaks, and they have a piece of it to look at.
+    take(); G.freezeAI = true; const tall = G.spawn('paleblade', ...wa(-1.6, -24.5), { rise: true }); veiled.push(tall); G.boss = tall;
+    await glance(d, ...wa(-1.6, -24.5), { hold: 2.6, back: 5.5, h: 1.9, y: 1.5 });
+    give(); G.boss = tall; G.maxAtk = 2; ui.objective('Cut him down');
+    await d.until(() => tall.dead && !tall.downed);
+    { const p = tall.pos.clone(); p.y += 0.5; FX.sparks.emit(p, 30, 5, 0x9ff0e0, 0.9); FX.grit.emit(p, 24, 3.5, 0xbff5ea, 1.1); SFX.shatter(); G.shake = Math.max(G.shake, 0.25); } // the glass goes as he does
+    offU(); G.boss = null; await d.wait(1.6); rallyAll(); await settled(d);
 
     // ---- after: at the rocks
     take(); G.freezeAI = true; ui.fade(1, 0.5); await d.wait(0.6); // (wherever the fight ended, they would be standing in the shot)
@@ -1248,7 +1263,11 @@ stage('caravan', {
       ['Wren', "Not a sound out of them. Not when they came, not when they fell. Not when they got up again."],
       ['Hale', "The raiders ran when it went against them. Raiders always run. Those never even looked like it."],
       ['Brann', "I put one down. I know I did. He got up."],
+      ['Wren', "And their swords. The tall one's broke when he fell. ...Corporal, this isn't steel. It's glass."],
+      ['Brann', 'Glass. Who goes to war with glass?'],
     ]);
+    cam.shot(wa3(-7.6, 1.5, -12.0), eye(P, 1.55)); cam.shot(wa3(-7.4, 1.5, -12.3), eye(P, 1.55), 7);
+    await d.wait(1.4); await d.talk([[CPL, "...Put it down, Wren. Don't carry it home."]]);
     await d.wait(1.0);
     cam.shot(wa3(-6.6, 0.95, -15.4), eye(S.corin, 1.2)); cam.shot(wa3(-6.5, 0.95, -15.2), eye(S.corin, 1.2), 6); // from beside the drover, up at the boy
     await d.talk([['Drover', "Your boy stood over me the whole time. Never took a step back."]]);
@@ -1256,7 +1275,8 @@ stage('caravan', {
     await d.talk([['Corin', "He's not hurt. I didn't let them near him."]]);
     cam.shot(wa3(-7.6, 1.5, -12.0), eye(P, 1.55)); cam.shot(wa3(-7.5, 1.5, -12.2), eye(P, 1.55), 6); // past the boy, at the corporal
     await d.wait(0.7); await d.talk([[CPL, 'I saw.']]);
-    await d.wait(0.9); await d.talk([[CPL, "We're going home. Now."]]);
+    await d.wait(0.9); await d.talk([['Corin', "You've seen it before. The glass."]]);
+    await d.wait(1.2); await d.talk([[CPL, "We're going home. Now."]]);
     await d.wait(0.6); ui.fade(1, 1.8); await d.wait(2.0);
   },
 });

@@ -150,6 +150,7 @@ export const SFX = {
   hit: () => { if (!take('hit', 0.85)) noise(0.11, 0.5, 2400, 400, 'bandpass', 0.7); tone(120, 0.13, 'triangle', 0.3, 48); }, // the recorded cut, over a low thump for weight
   big: () => { if (!take('big', 1.0, 0.92)) noise(0.2, 0.6, 1800, 200, 'bandpass', 0.6); tone(90, 0.25, 'triangle', 0.45, 35); },
   clang: () => { if (!take('clang', 0.8)) { steel(410, 0.09, 0.16); noise(0.09, 0.3, 900, 300, 'bandpass', 0.8); } },
+  shatter: () => { noise(0.55, 0.2, 9000, 3200, 'highpass', 0.9); steel(2300, 0.09, 0.5); steel(3400, 0.07, 0.38); steel(1650, 0.07, 0.7); }, // a glass blade breaking (synthesized, unheard)
   parry: () => { if (!take('parry', 1.0, 1.06)) { steel(560, 0.13, 0.32); noise(0.28, 0.16, 6000, 2200, 'bandpass', 1.2); } tone(140, 0.16, 'triangle', 0.22, 70); },
   roll: () => noise(0.26, 0.14, 250, 800, 'bandpass', 0.8),
   // The captain is struck: a dull blow to the body and a shiver of mail. No pitched tone (owner, Nov 2026: the old falling sawtooth sounded like an 8-bit game).

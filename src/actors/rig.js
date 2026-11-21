@@ -101,7 +101,7 @@ export function buildHumanoid(o) {
   const mEye = new T.MeshBasicMaterial({ color: o.eye || 0x08080c });
   const PLN = !!o.plain, bare = PLN || o.helm === 'open' || o.helm === 'none' || o.helm === 'wrap', mSkin = bare ? M(o.skin || 0xd9a77e) : null, mHair = bare ? M(o.hair || 0x7a5228) : null;
   // The Usurper's glass (crown, growths, blade): unlit and just bright enough to bloom. The blade has its own material because blood tints it.
-  const glass = () => new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) }), mGl = o.glass ? glass() : null, mBlade = o.glass ? glass() : mS;
+  const glass = () => new T.MeshBasicMaterial({ color: new T.Color(0.3, 0.82, 0.74) }), mGl = o.glass ? glass() : null, mBlade = o.glass || o.edge === 'glass' ? glass() : mS; // edge: 'glass' is the blade alone (the Veiled)
   const root = new T.Group(), J = {};
   const hips = (J.hips = joint(root, 0, HIP, 0));
   mk(rbox(0.33, 0.18, 0.22, 0.06), mU, hips, 0, -0.03, 0);

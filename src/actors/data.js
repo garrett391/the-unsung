@@ -58,7 +58,7 @@ export const LOOKS = {
   // over the face from under the eyes, a long robe and a short mantle, and the eyes painted round with a dark band. (The faint
   // violet in the eyes is a hint for later, nothing more.)
   veiled: { ...PLAIN, armor: 0xcbc1ac, trim: 0x6a6050, under: 0xbdb39c, dark: 0x3a3230, steel: 0xb8bcc4, rim: 0x40382c, wrap: 0xd9d1bf, veil: 0xe4ddcd, paint: 0x1a1628, eye: 0xc9b6ff,
-    skin: 0x8a5a3c, hair: 0x1a1614, robe: 1, mantle: 0xc4baa4, sash: 0x2c2640, blade: 1.12, pads: 0.5 },
+    skin: 0x8a5a3c, hair: 0x1a1614, robe: 1, mantle: 0xc4baa4, sash: 0x2c2640, blade: 1.12, pads: 0.5, edge: 'glass' }, // (owner, 21 Nov 2026) their blades are glass: the first hint of whose they are
   // Corin a season after the beacon (the excursions): the same jack, hat and neckcloth, and now a short sword and a buckler
   lad: { ...WAYGUARD, armor: 0x2a3560, under: 0x26305a, scarf: 0xb0283c, beard: undefined, hair: 0x6a4a2a, skin: 0xc99872, shield: 1, blade: 0.8 },
   carter: { ...PLAIN, armor: 0x6f7446, under: 0xa89878, helm: 'none', hat: 0x6a5a3a, hair: 0x5a4028, skin: 0xb9855f, sash: 0x7a4a2a, weapon: 'none', pads: 0.45 }, // the restored forecourt's carter: not the drover (he recurs)
@@ -110,6 +110,9 @@ export const TYPES = {
   // cut that runs on into the thrust more often.
   veiled: { name: 'VEILED', hp: 74, speed: 4.6, poise: 2, scale: 1.04, silent: true, fearless: true, again: 2.6, close: 0.3, press: 0.5, tele: 0xd8ccff, look: LOOKS.veiled,
     moves: [{ style: 'slash', wind: 0.5, rec: 0.6, dmg: 14, range: 2.45, lunge: 7.5, chain: 0.6, then: 1 }, { style: 'thrust', wind: 0.32, rec: 0.75, dmg: 12, range: 2.75, lunge: 10, follow: true }] },
+  // The last of the Veiled in the narrows (owner, 21 Nov 2026: the fight needed an end): taller, harder, and the same glass in his hand.
+  paleblade: { name: 'THE PALE BLADE', hp: 170, speed: 4.4, poise: 4, scale: 1.2, heavy: true, silent: true, fearless: true, again: 3.2, close: 0.3, press: 0.45, tele: 0xd8ccff, trail: 0x8fd8cc, look: { ...LOOKS.veiled, blade: 1.2 },
+    moves: [{ style: 'slash', wind: 0.48, rec: 0.6, dmg: 16, range: 2.8, lunge: 8, chain: 0.7, then: 1 }, { style: 'thrust', wind: 0.3, rec: 0.7, dmg: 14, range: 3.1, lunge: 10.5, follow: true, chain: 0.35, then: 2 }, { style: 'over', wind: 0.7, rec: 1.0, dmg: 20, range: 3.0, lunge: 6, follow: true }] },
   // Leads the raid on the waystation: a raider's cut that can run on into an overhead with a shockwave.
   chief: { name: 'RAID LEADER', hp: 220, speed: 3.1, poise: 4, scale: 1.16, heavy: true,
     look: { ...HELMED, armor: 0x4a302a, trim: 0xb9853a, eye: 0xffb24a, horns: 1, cape: 0x5a2420, skirt: 0x5a2420, blade: 1.05, lames: 1 },

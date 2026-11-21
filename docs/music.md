@@ -83,6 +83,18 @@ Tracks are named in `TRACKS` in `src/core/audio.js`; one plays at a time. A new 
 
 For new tracks (in-game music, stingers for the lesson, Corin's fall, dawn), keep the same palette and key so they sit together.
 
+## The lost caravan (prompts written 21 Nov 2026; tracks not yet made)
+
+Owner: the Act I pair ("Beneath the Flagstones", "The Weight of Granite") is carrying the patrol, the beacon and the caravan, and is getting repetitive. Two prompts for tracks of the caravan's own. When the files exist: trim the silence so they loop, add them to `TRACKS` in `audio.js`, and play them in the `caravan` stage in place of `actOne()` (searching the wash) and `actOne(true)` (the Veiled in the narrows).
+
+1. The wash, searching (replaces "Beneath the Flagstones" in the caravan):
+
+> Instrumental, no vocals, no choir. A slow, uneasy desert piece for searching an abandoned caravan at midday. Sparse and dry: a lone low oud or nylon guitar picking a hesitant minor figure, long pauses between phrases, a bowed cello drone far underneath, soft frame drum struck only now and then like a slow heartbeat. High, faint glassy harmonics (bowed glass or a glass harmonica, very quiet) that drift in and out and never resolve. Melancholy and watchful rather than frightening; no melody that swells, no percussion build. About 70 bpm, D minor, 90 seconds, ends as quietly as it starts so it can loop.
+
+2. The Veiled (replaces "The Weight of Granite" for the fight in the narrows):
+
+> Instrumental, no vocals, no choir. Cold, relentless combat music for silent enemies who do not shout or run. Low strings in a driving ostinato, heavy frame drums and a deep tom on an uneven pulse (7/8 or a limping 4/4), no brass fanfare, no heroics. Over it a brittle, glassy lead: struck glass, celesta or high bowed metal playing a short falling figure that repeats like something that will not stop. Tension without triumph, melancholy underneath the drive. About 120 bpm, D minor to match the piece above, 90 seconds, steady intensity start to finish with no intro and no fade so it can loop.
+
 ## Sound effects
 
 In use (Nov 2026): **20 Sword Sound Effects (Attacks and Clashes)** by StarNinjas, CC0, credit appreciated: https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes
