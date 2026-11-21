@@ -964,7 +964,7 @@ stage('picket', {
     let stop = company([["He's been asking for you. ...The sergeant says he won't see the morning.", 5, "Then I won't keep him waiting."], ["Go on. I'll keep you a place by the fire.", 3.5, 'Thanks.'], ["I got the beacon lit. It didn't do him any good.", 4, 'It did the rest of us.']]);
     cam.shot(fr3(-1.5, 2.4, -33.5), fr3(4.6, 1.0, -39.6)); cam.shot(fr3(-0.6, 2.0, -34.6), fr3(4.6, 1.0, -39.8), 8); ui.fade(0, 2.6); // the picket by firelight, from the dark
     await d.wait(4.2); give();
-    ui.objective('Go to the corporal'); L.marker(...fr(...loc(0.1, 1.6)));
+    ui.objective('Go to the corporal'); // (owner, 21 Nov 2026: no beam: the firelight and the trough show where he lies)
     await d.until(() => P.dist(corp) < 2.5 && G.time > quiet);
     stop(); await settled(d, 1); take();
     await stroll(d, ...fr(...loc(0.3, 2.0)), 1.8, 5); await turnTo(d, P, P.angleTo(corp), 0.4);
@@ -974,9 +974,7 @@ stage('picket', {
       ['Corporal', "There he is. ...Closer. I can't raise my voice any more."],
       ['Corin', "You're not to talk. The sergeant said."],
       ['Corporal', 'The sergeant says a lot of things.'],
-      ['Corporal', 'I told you everyone under that rock was walking home, soldier. ...I was out by one.'],
-      [ME, "Then I didn't hold it well enough."],
-      ['Corporal', 'You held it fine. A javelin found me the day before you ever got there.'],
+      ['Corporal', 'I need you to do something for me, soldier. Before I go.'],
     ]);
     cam.shot(c3(1.7, 2.1, 1.0), eye(boy, 0.85)); cam.shot(c3(1.6, 1.9, 0.95), eye(boy, 0.85), 6); // the boy
     await d.talk([
@@ -1006,8 +1004,8 @@ stage('picket', {
     await d.talk([
       ['Sergeant', "We lost him before the light came. We've put him under the palms."],
       ['Sergeant', "The boy's yours now."],
-      [ME, "I don't need anyone."],
-      ['Sergeant', "No. He needs a soldier, and you're the one his brother picked. You don't want him, and he doesn't want you. Out here that's as good a start as anybody gets."],
+      [ME, "I don't know what I can give him."],
+      ['Sergeant', "Nobody does, the first time. You're the one his brother picked. He doesn't want you yet, and he'll make sure you know it. Out here that's as good a start as anybody gets."],
       ['Sergeant', "The boy went out past the stakes. Up the rise, I'd guess, where he can see the beacon. Go and find him."],
     ]);
     give(); ui.objective('Find Corin');
@@ -1020,7 +1018,7 @@ stage('picket', {
     await d.wait(0.9);
     await d.talk([['Corin', "...What do I call you? 'Yard hand'? That's what you told him."], [ME, "It's what I was."], ['Corin', "That's not a name."]]);
     await d.wait(1.4); kid.watch = P; kid.lookP = -0.12; // he turns round, at last (and has to look up at him)
-    await d.talk([[ME, "It's the one I've got."], ['Corin', "Fine. Then I'll keep asking until you've got a better one."]]);
+    await d.talk([[ME, "It's the one I've got."], ['Corin', "...Then I'll ask again tomorrow."]]);
     await d.wait(0.8); ui.fade(1, 1.8); await d.wait(2.0);
   },
 });
