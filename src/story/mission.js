@@ -1016,9 +1016,10 @@ stage('picket', {
     await d.wait(1.2);
     await d.talk([['Corin', "He said you'd keep me alive. He didn't say I had to like it."], [ME, "You don't have to."]]);
     await d.wait(0.9);
-    await d.talk([['Corin', "...What do I call you? 'Yard hand'? That's what you told him."], [ME, "It's what I was."], ['Corin', "That's not a name."]]);
+    // (owner, 21 Nov 2026: no asking his name; it forced the nameless hero. He pushes back, and gives a little, on his own terms.)
+    await d.talk([['Corin', "...He was better than you. With a sword. With everything."], [ME, "He probably was."]]);
     await d.wait(1.4); kid.watch = P; kid.lookP = -0.12; // he turns round, at last (and has to look up at him)
-    await d.talk([[ME, "It's the one I've got."], ['Corin', "...Then I'll ask again tomorrow."]]);
+    await d.talk([['Corin', "I fetch the water at sunrise. If you want any, be up."]]);
     await d.wait(0.8); ui.fade(1, 1.8); await d.wait(2.0);
   },
 });
@@ -1117,8 +1118,7 @@ stage('caravan', {
       // (Owner, 21 Nov 2026: no beam of light on the way down: the track and the wash lead him, and the beam took his eye off the
       // place. And less talk: someone walking quickly ran into a queue of lines, and the arrival waited for them.) Two short things
       // are said on the way; reaching the bend cuts off whatever is being said.
-      const talkAt = [[-50, [['Brann', 'Four days late. Could be a broken wheel.', 3.2]]],
-        [-34, [['Corin', "Is 'Corporal' your name now?", 2.8], [CPL, 'No.', 1.4], ['Corin', "Then I'm still asking.", 2.2]]]];
+      const talkAt = [[-50, [['Brann', 'Four days late. Could be a broken wheel.', 3.2], ['Corin', "Or it could be nothing good.", 2.4]]]];
       const chat = d.every(() => { for (const t of talkAt) if (!t.done && P.pos.z > WASH.z + t[0] && G.time > quiet) { t.done = true; say(t[1]); } });
       await d.until(() => P.pos.z > WASH.z - 27); ui.objective('Follow the wash');
       await d.until(() => P.pos.z > WASH.z + 1.5); chat(); hush(); ui.objective('');
@@ -1150,13 +1150,17 @@ stage('caravan', {
           telling++; told = told.then(async () => { await d.until(() => G.time > quiet); await lines(f.lines); }).then(() => { telling--; busy.delete(f.who); f.who.postSp = 1.5; f.who.roamT = G.time + 2; }, () => {});
         }
       });
-      await d.until(() => found === 3 && !telling); look(); roam(); for (const [a] of ROUNDS) { a.postSp = null; a.post = null; }
-      S.corin.post = [...wa(SIT[0] + bx * 1.2 - bz * 1.1, SIT[1] + bz * 1.2 + bx * 1.1), sitF + PI]; await d.wait(0.8); // the boy, by the second wagon, looking under it
+      await d.until(() => found === 3 && !telling); look();
+      busy.add(S.corin); S.corin.postSp = 3.5; S.corin.post = [...wa(SIT[0] + bx * 1.2 - bz * 1.1, SIT[1] + bz * 1.2 + bx * 1.1), sitF + PI]; await d.wait(0.8); // the boy, by the second wagon, looking under it
+      // (owner, 21 Nov 2026: at the boy's shout the rest dropped what they were doing and fell in behind the corporal.) Hale and Brann
+      // come over to the wagon, one after the other; Wren goes on looking about the bend.
+      const toWagon = (a, x, z, t) => d.wait(t).then(() => { busy.add(a); a.postSp = 2.4; a.post = [...wa(x, z), Math.atan2(Bx - x, Bz - z)]; }, () => {});
+      toWagon(S.hale, 7.9, 16.6, 1.2); toWagon(S.brann, 8.6, 12.2, 2.6);
       // under the second wagon: someone
       drover = new Extra(LOOKS.drover, ...wa(Bx + bx * 0.3, Bz + bz * 0.3), sitF); drover.unbound = true; drover.play(C(0.1, [0, PZ.crawl]), 0.01);
       say([['Corin', "There's someone under that wagon!", 3.0]]); ui.objective('Look under the wagon'); L.marker(...wa(SIT[0] + bx * 0.6, SIT[1] + bz * 0.6));
       await d.until(() => Math.hypot(P.pos.x - WASH.x - SIT[0], P.pos.z - WASH.z - SIT[1]) < 3.6);
-      await settled(d, 1); take(); G.freezeAI = true; hush();
+      await settled(d, 1); take(); G.freezeAI = true; hush(); roam(); for (const [a] of ROUNDS) { a.postSp = null; a.post = null; }
       cam.shot(wa3(Bx + bx * 2.6 - bz * 0.4, 0.4, Bz + bz * 2.6 + bx * 0.4), wa3(Bx + bx * 0.3, 0.25, Bz + bz * 0.3)); cam.shot(wa3(Bx + bx * 2.4 - bz * 0.4, 0.38, Bz + bz * 2.4 + bx * 0.4), wa3(Bx + bx * 0.3, 0.25, Bz + bz * 0.3), 6); // low, under the bed
       await d.wait(0.6);
       await d.talk([['Drover', "Don't— I've nothing, there's nothing left—"], ['Hale', "Easy, now. We're the Watch."]]);
