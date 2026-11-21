@@ -184,7 +184,7 @@ if (at('caravan')) { // the stripe at the picket, the old road, the stopped cara
   log('raiders', await play(60, { tap: true, until: "G.enemies.length>0&&G.cinematic" })); await play(1.6); await shot('1i-raiders'); // they were waiting at the caravan
   await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('1i2-raiders-fight');
   log('they break', await play(300, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.state==='flee')||/back to the picket/.test(document.getElementById('obj').textContent)" })); await play(3.5); await shot('1j-they-break'); // and go back under the sand
-  log('the way back', await play(60, { until: obj('/back to the picket/') })); await play(1.0); await shot('1j2-the-way-back');
+  log('the way back', await play(60, { tap: true, until: obj('/back to the picket/') })); await play(1.0); await shot('1j2-the-way-back');
   if (await page.evaluate(() => G.player.pos.z > -120 + 18)) await walkW([[1.4, 23], [3.0, 17.5]], 'false'); // (the fight may end up the wash, behind the overturned wagon: the bot does not steer round things)
   await walkW([[3.4, 12.5], [8.6, 7.5]], 'G.enemies.length>0');
   for (let k = 0; k < 160 && !(await page.evaluate("G.enemies.length>0")); k++) { const p = await page.evaluate(() => [G.extras[0].pos.x, G.extras[0].pos.z]); await play(0.6, { bot: true, god: true, to: p, until: `G.enemies.length>0||Math.hypot(G.player.pos.x-(${p[0]}),G.player.pos.z-(${p[1]}))<3` }); await play(0.4, { until: "G.enemies.length>0" }); }

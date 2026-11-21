@@ -1078,8 +1078,7 @@ stage('caravan', {
       ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'morning', look: 'ranker', player: [...fr(2.2, -36.0), 0], corin: null }); G.carry = null;
       take(); G.freezeAI = true; G.maxAtk = 2; preloadMusic('vigil', 'gait');
       await d.chronicle('A season on', [
-        'They buried the corporal under the palms by the well. The season turned, and the raids along the line did not let up.',
-        'The boy went on carrying water, to the yard hand now. Every morning he asked his name, and every morning he got the same answer.',
+        'The season turned, and the raids along the line grew worse.',
         'Then a caravan due in on the old road from the deep desert did not come.',
         '<em>The well picket.</em>',
       ], TAP); ui.chronClose();
@@ -1211,6 +1210,9 @@ stage('caravan', {
       if (left()) say([['Hale', "They're breaking! Look at them run!", 3]]);
       await d.until(() => !G.enemies.some((e) => !e.dead) && G.time > quiet);
       offJ(); rallyAll(); wash(true); ui.objective(''); await d.wait(0.6);
+      // (owner, 21 Nov 2026: the drover just started walking.) The corporal says they go, before anyone moves.
+      await settled(d, 1); take(); G.freezeAI = true; cam.shot(over(), eye(drover, 0.85)); cam.shot(wa3(H[0] + bx * 0.85 - bz * 1.35, 1.95, H[1] + bz * 0.85 + bx * 1.35), eye(drover, 0.85), 7);
+      await d.talk([[CPL, "That's enough. Corin, get him on his feet. We're taking him back to the picket."], ['Drover', "...I'll keep up. Don't wait for me."]]);
       G.seenCaravan = 2; // (a retry starts on the way back)
     } else { cam.shot(over(), eye(drover, 0.85)); ui.fade(0, 0.8); await d.wait(1.0); await d.talk([[CPL, 'On your feet. We go now.']]); }
 
