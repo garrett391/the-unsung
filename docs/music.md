@@ -83,9 +83,9 @@ Tracks are named in `TRACKS` in `src/core/audio.js`; one plays at a time. A new 
 
 For new tracks (in-game music, stingers for the lesson, Corin's fall, dawn), keep the same palette and key so they sit together.
 
-## The lost caravan (prompts written 21 Nov 2026; tracks not yet made)
+## The lost caravan (prompts written 21 Nov 2026; both tracks made by the owner with Gemini the same day)
 
-Owner: the Act I pair ("Beneath the Flagstones", "The Weight of Granite") is carrying the patrol, the beacon and the caravan, and is getting repetitive. Two prompts for tracks of the caravan's own. When the files exist: trim the silence so they loop, add them to `TRACKS` in `audio.js`, and play them in the `caravan` stage in place of `actOne()` (searching the wash) and `actOne(true)` (the Veiled in the narrows).
+Owner: the Act I pair ("Beneath the Flagstones", "The Weight of Granite") is carrying the patrol, the beacon and the caravan, and is getting repetitive. Two prompts for tracks of the caravan's own. As made: "The Unceasing Gait" (`gait`, 89.45 s, looped) answers the first and plays from the old road card through the search, the way back and the after-scene; "Midday Vigil" (`vigil`, 89.04 s, looped; the faster one) answers the second and plays from the Veiled getting up through the Pale Blade. The owner doesn't like "Midday Vigil" much: it is a placeholder. The raiders at the bend keep "The Weight of Granite", and the picket's scene before the road keeps "Beneath the Flagstones". Each had about 2.1 s of silence at the end, cut so it loops (with a 60 ms fade against a click), re-encoded at 128 kbps; loudness already matched the others (about -13 and -12 LUFS). `wash()` in `mission.js` switches between them.
 
 1. The wash, searching (replaces "Beneath the Flagstones" in the caravan):
 

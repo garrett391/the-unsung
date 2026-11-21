@@ -45,7 +45,7 @@ function makeContext() {
 // a source started while it is still suspended stutters as the context wakes. One track plays
 // at a time; asking for another fades the current one out first, and the new one fades in after it.
 const BASE = import.meta.env.BASE_URL, MUSIC_VOL = 0.55;
-export const TRACKS = { title: 'music/title.mp3', blade: 'music/blade.mp3', sealed: 'music/sealed.mp3', flagstones: 'music/flagstones.mp3', granite: 'music/granite.mp3', well: 'music/well.mp3', hinges: 'music/hinges.mp3', measure: 'music/measure.mp3', wind: 'music/wind.mp3', watch: 'music/watch.mp3' };
+export const TRACKS = { title: 'music/title.mp3', blade: 'music/blade.mp3', sealed: 'music/sealed.mp3', flagstones: 'music/flagstones.mp3', granite: 'music/granite.mp3', well: 'music/well.mp3', hinges: 'music/hinges.mp3', measure: 'music/measure.mp3', wind: 'music/wind.mp3', watch: 'music/watch.mp3', gait: 'music/gait.mp3', vigil: 'music/vigil.mp3' };
 const bufs = new Map(); // name -> AudioBuffer, or the promise of one
 let mus = null, want = null, quietAt = 0; // quietAt: when the last track faded out will be silent
 function loadTrack(name) {
