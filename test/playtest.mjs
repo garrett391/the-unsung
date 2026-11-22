@@ -8,7 +8,7 @@ import { extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..'), dist = join(root, 'dist'), shots = join(root, 'test/shots');
-const phone = process.argv[2] === 'phone', ORDER = ['forecourt', 'halls', 'door', 'ascent', 'road', 'waystation', 'muster', 'patrol', 'beacon', 'picket', 'caravan', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
+const phone = process.argv[2] === 'phone', ORDER = ['forecourt', 'halls', 'door', 'ascent', 'road', 'waystation', 'muster', 'patrol', 'beacon', 'picket', 'caravan', 'tracks', 'intro', 'spar', 'raid', 'fallback', 'hold', 'vessa', 'dawn'], only = process.env.FROM ? ORDER.indexOf(process.env.FROM) : 0, at = (n) => only <= ORDER.indexOf(n); // FROM=raid starts at that stage
 const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg' };
 const server = http.createServer(async (q, s) => {
   try { const f = join(dist, q.url === '/' ? 'index.html' : q.url.split('?')[0]), d = await readFile(f); s.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); s.end(d); }
@@ -53,7 +53,7 @@ const play = (sec, o = {}) => page.evaluate(async ({ sec, o }) => {
 const stageIs = (n) => `G.STAGES[G.stage].name==='${n}'`;
 const log = (label, r) => console.log(label.padEnd(18), JSON.stringify(r));
 
-await page.evaluate(([from, real]) => { G.manual = true; /* the game's own frame loop stops stepping: only play() advances it, so nothing happens during a screenshot */ G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['halls', 'waystation', 'muster', 'patrol', 'beacon', 'picket', 'caravan'].includes(ORDER[only])]);
+await page.evaluate(([from, real]) => { G.manual = true; /* the game's own frame loop stops stepping: only play() advances it, so nothing happens during a screenshot */ G.auto = !real; if (from) { document.getElementById('title').style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; G.running = true; G.player.setVisible(true); G.runFrom(from); } else G.begin(); }, [only, ['halls', 'waystation', 'muster', 'patrol', 'beacon', 'picket', 'caravan', 'tracks'].includes(ORDER[only])]);
 if (!only) {
   await play(0.3); await page.evaluate(() => { G.auto = false; }); // past the opening cards, then real timing through the prologue so the shots catch it
   await play(3.4); await page.waitForTimeout(2500); await shot('0000a-forecourt'); /* the fade is a CSS transition, on the real clock */ await play(30, { until: "G.player.controlEnabled" }); await play(0.3); await shot('0000b-forecourt');
@@ -197,10 +197,36 @@ if (at('caravan')) { // the stripe at the picket, the old road, the stopped cara
   await play(20, { until: "G.player.controlEnabled" }); await play(8, { bot: true, god: true }); await shot('1n3-last-fight');
   log('cleared', await play(500, { bot: true, god: true, heavy: true, until: "G.talking" })); await play(1.0); await shot('1o-after');
   await play(30, { tap: true, until: dtxt('/not hurt/') }); await play(0.8); await shot('1p-not-hurt');
+  log('to the tracks', await play(60, { tap: true, until: stageIs('tracks') }));
+}
+if (process.env.TO === 'caravan') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); } // TO=caravan stops after the excursion
+// The hollow (the tracks north): the picket at night, the drivers turned to glass, the door, the Veiled, and the sergeant.
+const walkH = async (pts, until) => { let r; for (const [x, z] of pts) { r = await play(25, { bot: true, god: true, to: [300 + x, 200 + z], until: `(${until})||Math.hypot(G.player.pos.x-(${300 + x}),G.player.pos.z-(${200 + z}))<1.3` }); if (await page.evaluate(until)) break; } return r; };
+if (at('tracks')) {
+  await play(60, { tap: true, until: "G.talking" }); await play(1.0); await page.waitForTimeout(2500); await shot('2a-night');
+  await play(30, { tap: true, until: dtxt('/what you told me/') }); await play(0.8); await shot('2b-told');
+  await play(30, { tap: true, until: dtxt('/where he goes/') }); await play(0.8); await shot('2b2-runner');
+  log('the deep desert', await play(90, { tap: true, until: "G.level.site==='hollow'" })); await play(2.6); await page.waitForTimeout(1500); await shot('2c-the-tracks');
+  await play(20, { until: "G.player.controlEnabled" }); await play(0.5); await shot('2c2-sets-out');
+  log('the crest', await walkH([[0.3, -52], [0.2, -42], [0, -39]], "G.cinematic")); await play(20, { until: "G.cinematic" }); await play(1.8); await shot('2d-the-first');
+  await play(20, { until: "G.player.controlEnabled" }); await play(0.5);
+  log('the rim', await walkH([[-0.8, -35], [-0.4, -30], [0, -25]], "G.cinematic")); await play(20, { until: "G.cinematic" }); await play(2.0); await shot('2e-the-hollow');
+  await play(20, { until: "G.player.controlEnabled" }); await play(0.5); await shot('2e2-rim');
+  log('down', await walkH([[-0.2, -20], [0.6, -15.5], [0.6, -12], [0, -9], [-0.8, -6.3], [-1, -3.5], [0, -1], [0, 1]], "G.cinematic")); await play(40, { until: "G.talking" }); await page.waitForTimeout(1200); await shot('2f-the-door');
+  await play(30, { tap: true, until: dtxt('/seen one/') }); await play(0.8); await shot('2f2-seen-one');
+  log('the veiled', await play(60, { tap: true, until: "G.enemies.length>0" })); await play(2.2); await shot('2g-veiled');
+  await play(20, { until: "G.player.controlEnabled" }); await play(8, { bot: true, god: true }); await shot('2h-fight');
+  log('cleared', await play(700, { bot: true, god: true, heavy: true, until: "G.cinematic" })); await play(40, { until: "G.talking" }); await play(0.8); await shot('2i-the-last');
+  await play(30, { tap: true, until: "!G.talking&&G.extras.length>1&&G.extras[1].clip&&!G.extras[1].dead" }); await play(1.2); await shot('2j-gets-up');
+  await play(30, { until: "G.hitstop>0||G.slow>0" }); await play(0.25); await shot('2k-run-through');
+  await play(30, { tap: true, until: dtxt('/just cold/') }); await play(0.8); await shot('2l-cold');
+  await play(30, { tap: true, until: dtxt('/There you are/') }); await play(0.8); await shot('2m-the-glass');
+  await play(30, { tap: true, until: dtxt('/Sergeant!/') }); await play(0.8); await shot('2n-glass');
+  await play(30, { tap: true, until: dtxt('/Break it/') }); await play(0.8); await shot('2o-break-it');
   log('to the camp', await play(60, { tap: true, until: stageIs('intro') }));
   await page.evaluate(() => { G.auto = true; });
 }
-if (process.env.TO === 'caravan') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); } // TO=caravan stops after the excursion
+if (process.env.TO === 'tracks') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); }
 if (process.env.TO === 'beacon') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); } // TO=beacon stops after the frontier
 if (at('spar')) {
   log('intro', await play(6)); await shot('01-spar-start');

@@ -58,7 +58,7 @@ const reached = loadReached();
 const writeSave = (k) => { reached.add(STAGES[k].name); try { localStorage.setItem(SAVE, STAGES[k].name); localStorage.setItem(REACHED, JSON.stringify([...reached])); } catch (_) { /* storage blocked: play on without saving */ } if (G.drawChapters) G.drawChapters(); };
 G.finish = () => { if (G.auto) return; try { localStorage.removeItem(SAVE); } catch (_) { /* storage blocked */ } }; // chapters reached are kept
 const LESSONS = { taughtStrike: 'forecourt', taughtDoor: 'halls', taughtWay: 'waystation' }; // which chapter teaches what
-const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', patrol: 'the patrol', beacon: 'the beacon', picket: 'the well picket', caravan: 'the lost caravan', spar: 'the ruins', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
+const LABEL = { forecourt: 'the forecourt', halls: 'the halls', door: 'the Glass Door', waystation: 'the waystation', muster: 'the muster', patrol: 'the patrol', beacon: 'the beacon', picket: 'the well picket', caravan: 'the lost caravan', tracks: 'the tracks north', spar: 'the ruins', raid: 'the raid', hold: 'the Narrows', vessa: 'Vessa' };
 
 // Play the stages in order starting at i. Retrying a checkpoint calls this again.
 G.runFrom = async (i) => {
@@ -156,10 +156,10 @@ function leave(from) {
 $('tplay').addEventListener('click', () => leave(0));
 // Replaying a chapter plays it as if for the first time: the cutscenes and lessons that a retry skips are shown again.
 // (Its own lessons, that is: runFrom marks the earlier chapters' as learned. Picking the Glass Door used to teach lock, strike and shield over again.)
-const fresh = () => { G.seenHalls = G.seenWay = G.seenFront = G.seenJav = G.seenCaravan = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
+const fresh = () => { G.seenHalls = G.seenWay = G.seenFront = G.seenJav = G.seenCaravan = G.seenTracks = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
 // The list is grouped by act, numbered, and quiet: rows of text, not a column of boxed buttons. A chapter not yet reached
 // shows no name (some are spoilers); the one being played is marked.
-const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The Western Watch', ['patrol', 'beacon', 'picket', 'caravan']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
+const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The Western Watch', ['patrol', 'beacon', 'picket', 'caravan', 'tracks']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 const CHAPTERS = STAGES.map((s, k) => [s, k]).filter(([s]) => s.checkpoint);
 const chapName = (s) => { const l = LABEL[s.name] || s.name; return l[0].toUpperCase() + l.slice(1); };
 // (A chapter that opens on cards keeps whatever is playing under them: STAGES[k].cards.)

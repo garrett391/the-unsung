@@ -9,6 +9,7 @@ import { HALLS } from '../world/halls.js';
 import { FORE } from '../world/forecourt.js';
 import { FRONT } from '../world/front.js';
 import { WASH, WAGONS, CASKS, WAREA } from '../world/wash.js';
+import { HOLLOW, HAREA, HDOOR, glassMan } from '../world/hollow.js';
 import { PZ, C, P as pose, eClip } from '../actors/anim.js';
 import { FX, shock, clearBlood, blood } from '../gfx/fx.js';
 import { coarse, opts } from '../core/input.js';
@@ -18,7 +19,7 @@ import { Extra } from '../actors/extra.js';
 import { LOOKS, TYPES } from '../actors/data.js';
 
 // The campaign, as a list of stages: the prologue (the forecourt, the halls, the Glass Door, the walk back up, the road,
-// the waystation, the muster), then Act I: the frontier (patrol, beacon, picket), the lost caravan, and the first night at the ruins. Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
+// the waystation, the muster), then Act I: the frontier (patrol, beacon, picket), the lost caravan, the tracks north, and the first night at the ruins. Stage names are what saves store, so don't rename a checkpoint. A stage's run() is its script. setup() puts
 // the world in the state the stage expects and is only used when starting there
 // (first load, or retrying from a checkpoint).
 export const STAGES = [];
@@ -1005,7 +1006,7 @@ stage('picket', {
       ['Sergeant', "We lost him before the light came. We've put him under the palms."],
       ['Sergeant', "The boy's yours now."],
       [ME, "I don't know what I can give him."],
-      ['Sergeant', "Nobody does, the first time. You're the one his brother picked. He doesn't want you yet, and he'll make sure you know it. Out here that's as good a start as anybody gets."],
+      ['Sergeant', "He isn't asking you for anything. You're the one his brother picked. He doesn't want you yet, and he'll make sure you know it. Out here that's as good a start as anybody gets."],
       ['Sergeant', "The boy went out past the stakes. Up the rise, I'd guess, where he can see the beacon. Go and find him."],
     ]);
     give(); ui.objective('Find Corin');
@@ -1080,7 +1081,7 @@ stage('caravan', {
       take(); G.freezeAI = true; G.maxAtk = 2; preloadMusic('vigil', 'gait');
       await d.chronicle('A season on', [
         'The season turned, and the raids along the line grew worse.',
-        'Then a caravan due in on the old road from the deep desert did not come.',
+        'Then the salt caravan from the deep desert never arrived.',
         '<em>The well picket.</em>',
       ], TAP); ui.chronClose();
       wash(); forgetMusic(); preloadMusic('vigil', 'gait');
@@ -1205,7 +1206,7 @@ stage('caravan', {
       S.corin.post = [...wa(SIT[0] + bx * 1.15 + bz * 0.7, SIT[1] + bz * 1.15 - bx * 0.7), sitF];
       const offJ = javelins('Hale');
       const w1 = surround(ring(7.5, 15.5, 15, 12.5, 5), ['raider', 'raider', 'runner', 'raider', 'skirmisher'], 3);
-      G.freezeAI = true; wash(true); SFX.tele(); ui.say('Raider', "That's far enough, Watch! Leave the old man and walk home!", 3.6);
+      G.freezeAI = true; wash(true); SFX.tele(); ui.say('Corin', 'Corporal! In the sand! All round us!', 3.0); // (owner, 22 Nov 2026: the raiders say nothing; one of his own shouts it)
       await glance(d, ...wa(7.5, 15.5), { from: wa3(5.0, 10.5, 3.0), y: 0.4, hold: 2.8 }); // from high over the wash: the whole ring of them
       give(); G.maxAtk = 2; for (const e of w1) e.cd = rnd(0.8, 2.5); ui.objective('Hold the bend');
       const left = () => w1.filter((e) => !e.dead).length, t0 = G.time;
@@ -1288,6 +1289,157 @@ stage('caravan', {
   },
 });
 
+// The tracks north (owner, 22 Nov 2026: he knows the glass, thinks his nightmare is coming back, and has to go and look; by
+// the end he has seen it and knows whose it is; and someone dies). He goes back out along the drivers' tracks, and the
+// sergeant, who will not send five again, comes with them. A new site, 'hollow' (world/hollow.js): the drivers stand in it,
+// turned to glass, before a door of glass with no wall. The Veiled get up among them. When it is over one of them gets up
+// once more behind the corporal, and the sergeant takes the blade meant for him. Dying, with the glass going up through him,
+// he speaks in a voice that is not his: the Usurper's, who says again what he said at the sealing. All lines are drafts.
+const ho = (x, z) => [HOLLOW.x + x, HOLLOW.z + z], ho3 = (x, y, z) => [HOLLOW.x + x, y + G.level.height(HOLLOW.x + x, HOLLOW.z + z), HOLLOW.z + z];
+const deep = (k) => playMusic(k, { cross: 3, fade: 4, over: true }); // the chapter's music: the picket's track, then the sealing's, with the caravan's for the fight
+stage('tracks', {
+  checkpoint: true, cards: true,
+  async run(d) {
+    const P = G.player, L = G.level, lvl = G.seenTracks || 0; let quiet = 0, gen = 0, S;
+    const take = () => { P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); ui.objective(''); ui.hint(''); L.marker(null); ui.hideDialogue(); };
+    const give = () => { G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; G.freezeAI = false; };
+    const eye = (c, h = 1.5) => [c.pos.x, L.height(c.pos.x, c.pos.z) + h, c.pos.z];
+    const lines = async (list) => { const g = gen; for (const [who, text, dur] of list) { if (G.talking || g !== gen) return; ui.say(who, text, dur); quiet = G.time + dur + 0.4; await d.wait(dur + 0.4); } };
+    const say = (list) => { lines(list).catch(() => {}); };
+    const hush = () => { gen++; quiet = 0; ui.hideDialogue(); };
+    const SGT = TYPES.sergeant.look, SSC = TYPES.sergeant.scale;
+    const five = (at) => { const s = squad(at); s.sgt = G.enlist({ soldier: true, name: 'SERGEANT', look: SGT, scale: SSC, slot: [0, 2.1], at: at[4] }); s.sgt.hp = s.sgt.maxHp = 170; return s; };
+    const who = () => [P, S.hale, S.brann, S.wren, S.corin, S.sgt];
+    const clearAt = (x, z) => HAREA.some((c) => Math.hypot(x - c.x, z - c.z) < c.r - 1.4) && !OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + 1.2) && !who().some((c) => Math.hypot(c.pos.x - x, c.pos.z - z) < 3.5);
+    const ring = (cx, cz, n, r1, r0) => { const out = [], a0 = rnd(0, PI * 2);
+      for (let i = 0; i < n; i++) { const a = a0 + (i / n) * PI * 2; for (let r = r1; r >= r0; r -= 0.6) { const [x, z] = ho(cx + Math.sin(a) * r, cz + Math.cos(a) * r); if (clearAt(x, z) && !out.some((p) => Math.hypot(p[0] - x, p[1] - z) < 1.8)) { out.push([x, z]); break; } } }
+      return out; };
+    // where everyone stands before the door: the corporal nearest it, among the ones who kneel
+    const MARKS = { hale: [-4.3, -3.2], brann: [3.9, -3.0], wren: [1.4, -4.2], corin: [-2.4, -0.7], sgt: [1.3, 0.3] }, HERE = [0, 2.9], [DX, DZ] = HDOOR;
+    const toMarks = () => { P.place(...ho(...HERE), 0); P.state = 'loco'; P.stop(0.1);
+      for (const k in MARKS) { const a = S[k]; a.rally(); a.place(...ho(...MARKS[k]), 0); a.face = Math.atan2(DX - MARKS[k][0], DZ - MARKS[k][1]); a.post = [...ho(...MARKS[k]), a.face]; a.set('loco'); a.stop(0.1); } };
+
+    if (!lvl) {
+      // ---- the well picket, the night they came in: he can't sleep
+      ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'corporal', player: [...fr(5.0, -30.6), 0], corin: null }); G.carry = null; L.front.light(true);
+      take(); G.freezeAI = true; preloadMusic('watch', 'sealed', 'gait');
+      await d.chronicle('The tracks north', [
+        'They brought the drover in. The sergeant sent word of the pale veils up the line, and that should have been the end of it.',
+        'The corporal did not sleep. He had seen glass like that before, in a war that never happened.',
+        '<em>The well picket, before light.</em>',
+      ], TAP); ui.chronClose();
+      deep('watch'); forgetMusic(); preloadMusic('sealed', 'gait');
+      const sgt = new Extra(SGT, ...fr(2.6, -36.4), 0, { scale: SSC }), kid = new Extra(LOOKS.lad, ...fr(7.4, -37.0), 0, { scale: 0.86 }); kid.watch = P;
+      cam.shot(fr3(9.6, 1.5, -25.2), fr3(4.6, 1.3, -31.4)); cam.shot(fr3(9.0, 1.6, -25.8), fr3(4.6, 1.3, -31.4), 9); ui.fade(0, 2.4); // him, alone at the stakes, looking north; the picket's fire behind
+      await d.wait(2.6); ui.thought('...It was shut. I shut it.', 4); sgt.go(...fr(4.1, -32.2), 1.5, 0.6); await d.wait(3.6); sgt.watch = P;
+      await turnTo(d, P, P.angleTo(sgt), 0.5);
+      cam.shot(fr3(7.1, 1.75, -29.9), eye(sgt, 1.5)); cam.shot(fr3(6.9, 1.75, -30.0), eye(sgt, 1.5), 8); // past his shoulder, at the sergeant
+      await d.talk([['Sergeant', "You haven't been to bed."], [CPL, "I'm going back out. To where those tracks go."], ['Sergeant', 'I told you not to go chasing anything into the deep desert.']]);
+      cam.shot(fr3(4.7, 1.7, -34.4), eye(P, 1.5)); cam.shot(fr3(4.8, 1.7, -34.2), eye(P, 1.5), 7); // and back at him
+      await d.talk([[CPL, 'I know what you told me.']]); await d.wait(0.9);
+      cam.shot(fr3(7.1, 1.75, -29.9), eye(sgt, 1.5)); cam.shot(fr3(6.9, 1.75, -30.0), eye(sgt, 1.5), 8);
+      await d.talk([['Sergeant', "...It's that sword Wren found. You know something about it, and you won't say what."], ['Sergeant', "Fine. Then I'm coming. I sent five out and got five back, and I don't trust my luck twice."]]);
+      kid.go(...fr(6.3, -33.0), 2.6); await d.wait(1.2);
+      cam.shot(fr3(3.4, 1.5, -30.4), eye(kid, 1.25)); cam.shot(fr3(3.5, 1.5, -30.6), eye(kid, 1.25), 6);
+      await d.talk([['Corin', "I'm his runner. I run where he goes."], ['Sergeant', '...Wake the others.']]);
+      await d.wait(0.4); ui.fade(1, 1.4); await d.wait(1.6); ui.hideDialogue();
+      await d.chronicle('The deep desert', ['<em>Two days north of the old road.</em>'], TAP); ui.chronClose();
+
+      // ---- the tracks, over the crest
+      G.resetWorld({ site: 'hollow', look: 'corporal', player: [...ho(0.3, -63), 0], corin: null }); G.maxAtk = 2;
+      S = five([[...ho(2.2, -64.4), 0], [...ho(-1.6, -64.6), 0], [...ho(1.4, -66.0), 0], [...ho(-0.6, -66.4), 0], [...ho(0.2, -65.2), 0]]);
+      take(); G.freezeAI = false; P.walk = { x: HOLLOW.x + 0.3, z: HOLLOW.z - 56, sp: 2.2 };
+      cam.shot(ho3(3.8, 1.5, -48.5), ho3(0.3, 1.3, -61)); cam.shot(ho3(3.3, 1.7, -48.0), ho3(0.3, 1.4, -57), 7); ui.fade(0, 1.6);
+      await d.wait(5.0); P.walk = null; P.face = 0; give(); ui.objective('Follow the tracks');
+      d.wait(2.5).then(() => say([['Hale', 'Two days, and no water. Nobody walks that.', 3.2], ['Sergeant', "They weren't walking. They were being walked.", 3.4]]), () => {});
+      // the first of the drivers, on the crest: he had turned round
+      await d.until(() => P.pos.z > HOLLOW.z - 40.5); hush(); G.freezeAI = true; deep('sealed');
+      await glance(d, ...ho(1.3, -33), { from: ho3(-1.6, 1.5, -37.6), y: 1.1, hold: 3.0 }); G.freezeAI = false;
+      say([['Hale', "Who'd stand a statue out here?", 2.6], ['Wren', "It isn't one. Look at his face. That's a driver. It's halfway up him.", 4.2], ['Sergeant', 'Nobody touches him.', 2.4]]);
+      d.wait(10.4).then(() => { if (!G.cinematic) ui.thought('...No. Not out here.', 4); }, () => {});
+      // the hollow, from its rim
+      await d.until(() => P.pos.z > HOLLOW.z - 26.5); hush(); G.freezeAI = true;
+      await glance(d, ...ho(0, 1.5), { from: ho3(5.5, 5.2, -29), y: 1.0, hold: 3.6 }); G.freezeAI = false;
+      ui.objective('Go down into the hollow');
+      say([['Brann', "That's all of them. Every one.", 3.0], ['Corin', "What's that at the bottom?", 2.6]]);
+      await d.until(() => Math.hypot(P.pos.x - HOLLOW.x, P.pos.z - HOLLOW.z - 1.5) < 4.2); hush();
+      await settled(d, 1); take(); G.freezeAI = true; ui.fade(1, 0.5); await d.wait(0.6);
+      G.seenTracks = 1; // (a retry starts before the door)
+    } else {
+      ui.fade(1, 0); G.resetWorld({ site: 'hollow', look: 'corporal', player: [...ho(...HERE), 0], corin: null }); G.maxAtk = 2; preloadMusic('sealed', 'gait'); deep('sealed');
+      S = five([0, 0, 0, 0, 0].map(() => [...ho(0, -4), 0])); take(); G.freezeAI = true;
+    }
+
+    // ---- before the door
+    toMarks();
+    cam.shot(ho3(-2.6, 2.3, -4.4), ho3(DX, 1.9, DZ)); cam.shot(ho3(-2.2, 2.1, -3.4), ho3(DX, 1.9, DZ), 10); ui.fade(0, 0.8); await d.wait(1.2);
+    if (!lvl) {
+      ui.thought('...A door.', 3); await d.wait(2.8);
+      await d.talk([['Corin', "It's a door. Who builds a door with no wall?"]]);
+      cam.shot(ho3(1.5, 1.5, 5.0), eye(P, 1.55)); cam.shot(ho3(1.3, 1.5, 5.1), eye(P, 1.55), 8); // from beside the door, at him
+      await d.talk([['Sergeant', "You've seen one of these before."], [CPL, '...A bigger one. I thought it was shut.']]);
+      await d.wait(0.5);
+    }
+    // ---- the Veiled, among the glass: all round, two to a man
+    const pts = ring(0, -1.5, 10, 13.5, 6.5), fs = who(), cnt = fs.map(() => 0);
+    const veiled = pts.map(([x, z]) => { const e = G.spawn('veiled', x, z, { rise: true }); let b = 0, bd = 1e9; fs.forEach((w, k) => { const l = Math.hypot(w.pos.x - x, w.pos.z - z); if (cnt[k] < 2 && l < bd) { bd = l; b = k; } }); cnt[b]++; if (b) e.mark = fs[b]; e.hold = true; return e; });
+    deep('gait'); await d.wait(0.8);
+    { const v = veiled.reduce((a, b) => (b.pos.z < a.pos.z ? b : a)); cam.shot([v.pos.x + 2.4, v.pos.y + 1.7, v.pos.z - 4.6], [v.pos.x, v.pos.y + 1.4, v.pos.z + 2], 0.8); await d.wait(2.6); }
+    for (const k in MARKS) S[k].post = null;
+    give(); G.maxAtk = 3; ui.objective('Stand together'); say([['Sergeant', 'Backs together! Nobody stands alone!', 3.2]]);
+    d.wait(1.2).then(() => { for (const e of veiled) { e.hold = false; e.cd = rnd(0.3, 1.2); } }, () => {});
+    await d.until(() => veiled.every((e) => e.dead && !e.downed));
+    G.maxAtk = 2; ui.objective(''); await d.wait(1.6); rallyAll(); await settled(d);
+
+    // ---- one of them gets up once more
+    take(); G.freezeAI = true; hush(); ui.fade(1, 0.5); await d.wait(0.6); deep('sealed');
+    toMarks(); for (const e of G.enemies) if (Math.hypot(e.pos.x - HOLLOW.x, e.pos.z - HOLLOW.z - 1) < 4.5) e.setVisible(false); // (none lying on the marks)
+    { const k = G.allies.indexOf(S.sgt); if (k >= 0) G.allies.splice(k, 1); S.sgt.dispose(); }
+    const sg = new Extra(SGT, ...ho(...MARKS.sgt), 0, { scale: SSC }); sg.face = sg.angleTo(P); sg.watch = P;
+    const V = new Extra(LOOKS.veiled, ...ho(-1.5, -2.2), 0.3, { scale: TYPES.veiled.scale }); V.dead = true; V.play(C(0.1, [0, PZ.prone]), 0.01);
+    cam.shot(ho3(-5.0, 2.0, -1.6), ho3(0.2, 1.4, 4.6)); cam.shot(ho3(-4.6, 1.9, -1.2), ho3(0.2, 1.4, 4.6), 9); ui.fade(0, 0.8); await d.wait(1.4);
+    await d.talk([['Hale', "That's the last of them. ...Somebody tell me that's the last of them."], ['Sergeant', 'Corporal. Come away from it.']]);
+    await d.wait(1.0);
+    cam.shot(ho3(-3.2, 0.45, -4.4), ho3(-0.6, 1.0, 1.4)); cam.shot(ho3(-3.0, 0.5, -4.0), ho3(-0.6, 1.0, 1.4), 5); // from the sand behind the dead one: his back, and the door
+    await d.wait(0.9); SFX.tele(); V.dead = false; V.play(C(1.4, [0, PZ.prone], [0.55, PZ.kneel], [1.1, PZ.rise3, 'i'], [1.4, PZ.guard]), 0.2);
+    { const p = V.pos.clone(); p.y += 0.3; FX.sparks.emit(p, 14, 2.2, 0x9ff0e0, 0.9, { up: 1.2 }); }
+    await d.wait(1.5); ui.say('Corin', 'Corporal! Behind you!', 2.0);
+    V.stop(0.1); V.go(...ho(-0.75, 0.75), 4.4); sg.watch = null; sg.go(...ho(-0.3, 1.85), 5.2);
+    { const t0 = G.time; await d.until(() => (!V.to && !sg.to) || G.time - t0 > 1.3); } V.to = sg.to = null; V.vel.set(0, 0, 0); sg.vel.set(0, 0, 0);
+    sg.face = sg.angleTo(V); V.face = V.angleTo(sg);
+    cam.shot(ho3(-3.3, 1.35, 2.9), ho3(-0.5, 1.15, 1.35)); cam.shot(ho3(-3.1, 1.35, 2.8), ho3(-0.5, 1.15, 1.35), 4); // side on: the two of them, the corporal just beyond
+    V.play(eClip('thrust', 0.2, 2.2), 0.05); SFX.swing(0.5); await d.wait(0.31);
+    { const dir = new T.Vector3(sg.pos.x - V.pos.x, 0, sg.pos.z - V.pos.z).normalize(), hp = sg.pos.clone().setY(sg.pos.y + 1.2); SFX.hit(); blood(hp, dir, 2, true); G.hitstop = Math.max(G.hitstop, 0.16); G.slow = Math.max(G.slow, 0.9); G.shake = Math.max(G.shake, 0.3); sg.flash = 0.35; }
+    sg.play(CL.hit, 0.05); P.state = 'cine'; turnTo(d, P, P.angleTo(sg), 0.35).catch(() => {});
+    await d.wait(0.75);
+    sg.play(eClip('slash', 0.28, 1.0), 0.08); SFX.swing(0.6); await d.wait(0.4); // run through, he cuts it down himself
+    SFX.hit(); SFX.shatter(); G.hitstop = Math.max(G.hitstop, 0.1); G.shake = Math.max(G.shake, 0.25);
+    { const p = V.pos.clone(); p.y += 1.1; FX.sparks.emit(p, 26, 5, 0x9ff0e0, 0.9); FX.grit.emit(p, 20, 3.5, 0xbff5ea, 1.1); } // the blade breaks off in him
+    V.lie(C(0.8, [0, PZ.hit], [0.8, PZ.prone, 'i'])); await d.wait(1.1);
+    turnTo(d, sg, sg.angleTo(P), 0.6).catch(() => {}); sg.play(C(1.0, [0.35, PZ.d1], [1.0, pose({ spine: [0.2], chest: [0.05], neck: [0.12] }, PZ.kneel)]), 0.3); // to his knees, but upright: he is still looking at him await d.wait(1.0);
+    P.play(C(0.7, [0.7, PZ.kneelBy]), 0.3);
+    { const f = sg.face, la = sg.lookP; sg.dress({ ...SGT, glass: 1, wound: 1 }); sg.face = f; sg.lookP = la; } // the glass is in the wound, and climbing
+    const close = () => { cam.shot(ho3(2.3, 1.0, 3.0), eye(sg, 0.9)); cam.shot(ho3(2.15, 1.0, 2.9), eye(sg, 0.9), 9); }; close(); // from the side, between two who kneel: the pair of them, his face to us
+    sg.lookP = -0.15; await d.wait(0.9);
+    await d.talk([['Sergeant', "...Huh. Right through. It doesn't even hurt. It's just cold."], ['Sergeant', "Don't. I can feel it going up. ...Get them home, Corporal. That's all the job ever is."]]);
+    await d.wait(1.1); SFX.tele(); sg.dress({ ...SGT, glass: 1, wound: 1, eye: 0x3fd0bc, rim: 0x3c8f84 }); sg.lookP = -0.4; // the eyes light, and the head comes up
+    { const p = sg.pos.clone(); p.y += 0.9; FX.sparks.emit(p, 18, 1.6, 0x9ff0e0, 1.4, { grav: -1.2, up: 0.8 }); }
+    cam.shot(ho3(0.32, 1.72, 3.1), eye(sg, 1.0)); cam.shot(ho3(0.28, 1.66, 3.0), eye(sg, 1.0), 12); // from over the corporal's head, down into the lifted face await d.wait(1.2);
+    await d.talk([['The glass', '...There you are.'], ['The glass', "A yard hand. A corporal. You do keep starting again, don't you?"], ['The glass', 'I told you only you would remember. I never said that I would forget.']]);
+    ui.thought('...Him.', 3); await d.wait(2.4);
+    // and he is glass, like the rest
+    { const p = sg.pos.clone(); p.y += 0.8; FX.sparks.emit(p, 40, 4, 0x9ff0e0, 1.0); SFX.shatter(); G.shake = Math.max(G.shake, 0.15);
+      const st = glassMan({ ...SGT, glass: 1 }, pose({ spine: [0.2], chest: [0.05], neck: [-0.2] }, PZ.kneel), SSC); st.position.set(sg.pos.x, sg.pos.y, sg.pos.z); st.rotation.y = sg.face; L.hollow.temp.add(st); sg.setVisible(false); }
+    P.state = 'loco'; P.stop(0.7); await d.wait(1.6);
+    cam.shot(ho3(4.2, 1.6, -0.8), ho3(-0.4, 1.0, 2.2)); cam.shot(ho3(3.9, 1.6, -0.6), ho3(-0.4, 1.0, 2.2), 10);
+    S.corin.post = [...ho(-1.5, 1.0), S.corin.angleTo(sg)]; S.corin.postSp = 2.6; G.freezeAI = false; for (const e of G.enemies) e.hold = true;
+    await d.talk([['Corin', 'Sergeant? ...Sergeant!'], ['Wren', "Don't touch him. He's gone. He's like the rest of them now."], ['Brann', "That wasn't his voice. Corporal, who was he talking to?"], ['Corin', 'He was talking to you.']]);
+    cam.shot(ho3(-2.4, 1.5, 0.9), eye(P, 1.55)); cam.shot(ho3(-2.2, 1.5, 1.1), eye(P, 1.55), 8); await d.wait(1.5);
+    await d.talk([[CPL, 'Break it. The door. Every piece of it.'], [CPL, 'Then we carry him home.']]);
+    await d.wait(0.5); ui.fade(1, 1.6); await d.wait(1.9); SFX.shatter(); L.hollow.door.visible = false; await d.wait(1.6);
+  },
+});
+
 stage('intro', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ player: [0.6, 12.5, PI], corin: [RING.x, RING.z - 1.5, 0, 'guard'], spar: true }); // behind a black screen: the camp, and the captain in his guard armour
@@ -1296,7 +1448,7 @@ stage('intro', {
     await d.chronicle('The seasons after', [
       'He stayed with the Third Company through that season and the ones after it. In time they gave him the captain\'s red, because he was the one who kept people alive.',
       'The boy from the beacon grew into his squire, and into the one soldier in the company who would not leave him alone.',
-      'The drivers of the lost caravan were never found, and nobody on the line could say whose the pale veils were.',
+      'The roll says the sergeant was killed by raiders. The five who saw the door in the sand told nobody, and he said least of all.',
       'The raids out of the dunes came oftener, and better led.',
       '<em>The first night at the ruins.</em>',
     ], TAP);
