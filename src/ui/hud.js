@@ -75,13 +75,13 @@ export const ui = {
   showLine(who, text, dur) {
     const d = $('dlg'), bar = $('dtime'), wait = dur == null;
     clearTimeout(ui._say); ui.thought(''); $('dmore').style.visibility = wait ? 'visible' : 'hidden'; d.classList.toggle('say', !wait); d.classList.toggle('wait', wait); d.style.display = 'block';
-    bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; if (!wait) { void bar.offsetWidth; bar.style.transition = `transform ${dur}s linear`; bar.style.transform = 'scaleX(0)'; } $('hint').style.visibility = 'hidden'; $('dwho').textContent = who || ''; const el = $('dtxt'); el.textContent = '';
+    bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; if (!wait) { void bar.offsetWidth; bar.style.transition = `transform ${dur}s linear`; bar.style.transform = 'scaleX(0)'; } $('hint').style.visibility = 'hidden'; $('dwho').textContent = who || ''; G.speaker = (who || '').toUpperCase(); const el = $('dtxt'); el.textContent = '';
     clearInterval(typing); let i = 0; ui.lineDone = false;
     typing = setInterval(() => { i += 2; el.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(typing); ui.lineDone = true; } }, 22);
     ui._full = text;
   },
   completeLine() { clearInterval(typing); $('dtxt').textContent = ui._full; ui.lineDone = true; },
-  hideDialogue() { clearTimeout(ui._say); $('dlg').style.display = 'none'; $('hint').style.visibility = 'visible'; clearInterval(typing); },
+  hideDialogue() { G.speaker = ''; clearTimeout(ui._say); $('dlg').style.display = 'none'; $('hint').style.visibility = 'visible'; clearInterval(typing); },
   // chronicle: full-screen text between scenes. Every entry is laid out up front and
   // revealed in turn, so nothing on the page moves as new lines appear.
   chronOpen(head, lines, tap) {

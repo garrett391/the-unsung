@@ -778,9 +778,19 @@ const rallyAll = () => { for (const a of G.allies) a.rally(); };
 // navy under a leather jack and an iron hat, and a crimson neckcloth (the colour of the crest he wears later), so he is not one more steel figure.
 const BOY = LOOKS.boy, BOY_SCALE = 0.8;
 const OFF = { ...LINE, shield: undefined, weapon: 'none' }; // one of the line off duty, arms laid by
-// Sitting on a log by the fire: thighs level, shins down, forearms on the knees, leaning in to the warmth. The hips are put at
-// the same height whatever the figure's scale (the logs are 0.43 m high).
-const SEAT = (scale = 1) => pose({ pos: [0, 0.53 / scale - 0.9, -0.04], spine: [0.3], chest: [0.08], neck: [-0.16], thL: [-1.5, 0.1, 0.14], knL: [1.5], anL: [0.05], thR: [-1.44, -0.1, -0.14], knR: [1.42], anR: [0.05], shL: [-0.62, 0, 0.18], elL: [-1.15], shR: [-0.6, 0, -0.18], elR: [-1.2], haR: [0.3] });
+// Sitting on a log by the fire. The hips are put at the same height whatever the figure's scale (the logs are 0.43 m high).
+// Each sits his own way (owner, 22 Nov 2026: all of them square on the log with their arms bent read as dolls):
+//   lean   forearms on the knees, leaning in to the warmth, feet apart
+//   back   leaning back on his hands on the log behind him, one leg out toward the fire
+//   clasp  hunched, hands clasped between his knees (the drover: cold, and older)
+//   hug    knees drawn up, arms round them (the boy)
+const SEATS = {
+  lean: { spine: [0.32, 0.08, 0], chest: [0.08], neck: [-0.16], thL: [-1.5, 0.18, 0.2], knL: [1.45], anL: [0.05], thR: [-1.42, -0.12, -0.12], knR: [1.25], anR: [-0.1], shL: [-0.62, 0, 0.2], elL: [-1.2], shR: [-0.5, 0, -0.16], elR: [-1.05], haR: [0.3] },
+  back: { spine: [-0.16, -0.1, 0], chest: [-0.04], neck: [0.12], thL: [-1.22, 0.2, 0.18], knL: [0.45], anL: [-0.25], thR: [-1.55, -0.1, -0.16], knR: [1.6], anR: [0.05], shL: [0.42, 0, 0.32], elL: [-0.2], shR: [0.4, 0, -0.32], elR: [-0.2], haR: [0.5] },
+  clasp: { spine: [0.42, 0, 0], chest: [0.14], neck: [-0.3], thL: [-1.48, 0.1, 0.06], knL: [1.65], anL: [0.15], thR: [-1.48, -0.1, -0.06], knR: [1.62], anR: [0.15], shL: [-0.7, 0, -0.32], elL: [-0.85], shR: [-0.7, 0, 0.32], elR: [-0.85], haR: [0.2] },
+  hug: { spine: [0.28, 0, 0], chest: [0.1], neck: [-0.25], thL: [-1.85, 0.06, 0.1], knL: [2.25], anL: [0.35], thR: [-1.82, -0.06, -0.1], knR: [2.2], anR: [0.35], shL: [-0.95, 0, -0.28], elL: [-1.0], shR: [-0.95, 0, 0.28], elR: [-1.0], haR: [0.3] },
+};
+const SEAT = (scale = 1, kind = 'lean') => pose({ pos: [0, 0.53 / scale - 0.9, -0.04], ...SEATS[kind] });
 // What he goes by on the frontier (owner, 16 Nov 2026: he answers his own people; asked his name, he gives his old job). His speaker label too, until he is made captain.
 const ME = 'Yard hand';
 // The first javelin on the frontier: one of the line shouts it (once, unless the chapter is picked again). Returns the unsubscribe.
@@ -1332,13 +1342,16 @@ stage('tracks', {
       deep('well'); forgetMusic(); preloadMusic('sealed', 'gait');
       const FIRE = [6.4, -38.2], toFire = (x, z) => Math.atan2(FIRE[0] - x, FIRE[1] - z);
       // on the two logs (each lies across the fire's line), and Wren on her knees on the far side of it
-      const sit = (look, x, z, scale, name) => { const e = new Extra(look, ...fr(x, z), toFire(x, z), { scale, name }); e.unbound = true; e.play(C(0.1, [0, SEAT(scale)]), 0.01); return e; };
+      // each sits his own way (SEATS), not quite square to the fire, and breathes and shifts while the scene plays (Extra.live)
+      const sit = (look, x, z, scale, name, kind, turn, seed) => { const e = new Extra(look, ...fr(x, z), toFire(x, z) + turn, { scale, name }); e.unbound = true; e.play(C(0.1, [0, SEAT(scale, kind)]), 0.01); e.live = { k: 1, seed }; return e; };
       const fire = {
-        hale: sit({ ...OFF, hair: 0x4a3424 }, 7.96, -37.2, 1.0, 'HALE'), brann: sit({ ...OFF, skin: 0xb98a66, hair: 0x1e1814 }, 8.24, -38.0, 0.96, 'BRANN'),
-        drover: sit(LOOKS.drover, 5.98, -36.32, 1.0, 'DROVER'), corin: sit({ ...LOOKS.lad, shield: undefined, weapon: 'none' }, 5.22, -36.68, 0.86, 'CORIN'),
+        hale: sit({ ...OFF, hair: 0x4a3424 }, 7.96, -37.2, 1.0, 'HALE', 'lean', 0.18, 1.3), brann: sit({ ...OFF, skin: 0xb98a66, hair: 0x1e1814 }, 8.24, -38.0, 0.96, 'BRANN', 'back', -0.22, 4.1),
+        drover: sit(LOOKS.drover, 5.98, -36.32, 1.0, 'DROVER', 'clasp', 0.12, 2.7), corin: sit({ ...LOOKS.lad, shield: undefined, weapon: 'none' }, 5.22, -36.68, 0.86, 'CORIN', 'hug', -0.15, 6.2),
         wren: new Extra({ ...OFF, skin: 0xc4926c, hair: 0x2a1c14 }, ...fr(6.5, -40.0), toFire(6.5, -40.0), { scale: 0.98, name: 'WREN' }),
       };
-      fire.wren.unbound = true; fire.wren.play(C(0.1, [0, PZ.kneelBy]), 0.01); fire.wren.lookP = -0.1; // (her chin up: under the brim of the helm a bowed head hides the face)
+      // Wren on her knees, turning the piece of glass over in her hands in front of her
+      fire.wren.unbound = true; fire.wren.play(C(0.1, [0, pose({ spine: [0.2], neck: [0.1], shL: [-0.75, 0, -0.3], elL: [-1.15], shR: [-0.75, 0, 0.3], elR: [-1.15], haR: [0.6] }, PZ.kneelBy)]), 0.01); fire.wren.live = { k: 0.8, seed: 3.4 };
+      fire.wren.lookP = -0.1; // (her chin up: under the brim of the helm a bowed head hides the face)
       const at = (e, who) => { e.lookY = clamp(wrap(e.angleTo(who) - e.face), -0.9, 0.9); }; // a seated one turns his head, not his body
       cam.shot(fr3(7.6, 2.3, -45.2), fr3(5.0, 1.0, -35.2)); cam.shot(fr3(7.2, 2.1, -44.6), fr3(4.8, 1.0, -35.0), 9); ui.fade(0, 2.4); // the fire, and him out at the stakes beyond it
       await d.wait(3.4); give(); ui.objective('Go to the fire');
@@ -1357,14 +1370,14 @@ stage('tracks', {
         ['Drover', "The raiders were clan people. I could tell you whose by their wraps. I've sold salt to their fathers."],
         ['Drover', "The ones in white, I can't tell you anything. No clan dresses like that. And no clan I ever traded with went into a fight without a sound."],
       ]);
-      cam.shot(fr3(5.95, 1.55, -36.95), fr3(8.1, 1.0, -37.65)); cam.shot(fr3(6.05, 1.5, -37.0), fr3(8.1, 1.0, -37.65), 8); // the far log, from the near one's end, north of the flames
+      cam.shot(fr3(4.9, 2.1, -39.2), fr3(8.1, 0.9, -37.6)); cam.shot(fr3(5.0, 2.05, -39.1), fr3(8.1, 0.9, -37.6), 8); // the far log, over the flames
       at(fire.hale, fire.brann); at(fire.brann, fire.hale);
       await d.talk([['Hale', "Raiders run when it goes against them. Those never even looked like it."], ['Brann', 'And they get up.']]);
       // the boy
       at(fire.hale, fire.corin); at(fire.brann, fire.corin);
       cam.shot(fr3(5.4, 1.2, -38.75), eye(fire.drover, 1.05)); cam.shot(fr3(5.5, 1.18, -38.6), eye(fire.drover, 1.05), 8);
       await d.talk([['Drover', 'Your boy, though. Two of those came at him by the rocks, and he never took a step off me.']]);
-      cam.shot(fr3(5.95, 1.55, -36.95), fr3(8.1, 1.0, -37.65)); cam.shot(fr3(6.05, 1.5, -37.0), fr3(8.1, 1.0, -37.65), 8);
+      cam.shot(fr3(4.9, 2.1, -39.2), fr3(8.1, 0.9, -37.6)); cam.shot(fr3(5.0, 2.05, -39.1), fr3(8.1, 0.9, -37.6), 8);
       await d.talk([['Hale', "I saw it. I thought we'd be carrying him home."], ['Brann', "His brother was the same. Wouldn't shift for anybody."]]);
       at(fire.corin, P);
       cam.shot(fr3(4.3, 1.5, -38.0), eye(fire.corin, 1.0)); cam.shot(fr3(4.4, 1.45, -37.95), eye(fire.corin, 1.0), 7); // Corin, from beside the corporal
@@ -1398,7 +1411,7 @@ stage('tracks', {
       // ---- before light: he hasn't slept
       P.place(...fr(5.0, -30.6), 0); P.state = 'loco'; P.stop(0.1);
       await d.chronicle('The well picket', ['<em>Before light.</em>'], TAP); ui.chronClose();
-      const sgt = new Extra(SGT, ...fr(2.6, -36.4), 0, { scale: SSC }), kid = sit({ ...LOOKS.lad, shield: undefined, weapon: 'none' }, 5.22, -36.68, 0.86); at(kid, P); // the boy is awake too, at the fire, watching him
+      const sgt = new Extra(SGT, ...fr(2.6, -36.4), 0, { scale: SSC }), kid = sit({ ...LOOKS.lad, shield: undefined, weapon: 'none' }, 5.22, -36.68, 0.86, '', 'hug', -0.15, 6.2); at(kid, P); // the boy is awake too, at the fire, watching him
       cam.shot(fr3(9.6, 1.5, -25.2), fr3(4.6, 1.3, -31.4)); cam.shot(fr3(9.0, 1.6, -25.8), fr3(4.6, 1.3, -31.4), 9); ui.fade(0, 2.4); // him, alone at the stakes, looking north; the picket's fire behind
       await d.wait(2.6); ui.thought('...It was shut. I shut it.', 4); sgt.go(...fr(4.1, -32.2), 1.5, 0.6); await d.wait(3.6); sgt.watch = P;
       await turnTo(d, P, P.angleTo(sgt), 0.5);
