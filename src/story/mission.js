@@ -769,8 +769,8 @@ stage('muster', {
 const fr = (x, z) => [FRONT.x + x, FRONT.z + z], fr3 = (x, y, z) => [FRONT.x + x, y + G.level.height(FRONT.x + x, FRONT.z + z), FRONT.z + z]; // (fr3: y is above the ground at that point)
 const LINE = { ...LOOKS.soldier, eye: undefined };
 const file = (at) => [ // the two who go with him: each has his own place behind the captain's shoulder
-  G.enlist({ soldier: true, name: 'HALE', look: { ...LINE, hair: 0x4a3424 }, scale: 1.0, slot: [1.9, 1.3], at: at[0] }),
-  G.enlist({ soldier: true, name: 'BRANN', look: { ...LINE, skin: 0xb98a66, hair: 0x1e1814 }, scale: 0.96, slot: [-1.9, 1.6], at: at[1] })];
+  G.enlist({ soldier: true, name: 'HALE', look: { ...LINE, hair: 0x4a3424 }, scale: 1.0, slot: [3.4, 1.8], at: at[0] }),
+  G.enlist({ soldier: true, name: 'BRANN', look: { ...LINE, skin: 0xb98a66, hair: 0x1e1814 }, scale: 0.96, slot: [-3.6, 3.0], at: at[1] })];
 // Raiders getting up out of the sand at these points; `marks` sets some of them on the soldiers instead of on him.
 const ambush = (list, marks = []) => list.map(([kind, x, z], i) => { const e = G.spawn(kind, ...fr(x, z), { rise: true }); if (marks[i]) e.mark = marks[i]; return e; });
 const rallyAll = () => { for (const a of G.allies) a.rally(); };
@@ -1040,7 +1040,7 @@ const WREN = { ...LINE, skin: 0xc4926c, hair: 0x2a1c14 };
 // the four who go with him: each with his own place behind the corporal's shoulder. Corin a season on: a short sword and a buckler now, and still small for the line.
 const squad = (at) => {
   const mk = (name, look, scale, slot, i) => G.enlist({ soldier: true, name, look, scale, slot, at: at[i] });
-  const S = { hale: mk('HALE', { ...LINE, hair: 0x4a3424 }, 1.0, [1.9, 1.3], 0), brann: mk('BRANN', { ...LINE, skin: 0xb98a66, hair: 0x1e1814 }, 0.96, [-1.9, 1.6], 1), wren: mk('WREN', WREN, 0.98, [1.0, 3.2], 2), corin: mk('CORIN', LOOKS.lad, 0.86, [-0.9, 3.5], 3) };
+  const S = { hale: mk('HALE', { ...LINE, hair: 0x4a3424 }, 1.0, [4.2, 2.6], 0), brann: mk('BRANN', { ...LINE, skin: 0xb98a66, hair: 0x1e1814 }, 0.96, [-4.0, 3.4], 1), wren: mk('WREN', WREN, 0.98, [0.9, 6.2], 2), corin: mk('CORIN', LOOKS.lad, 0.86, [-1.6, 1.5], 3) };
   S.corin.hp = S.corin.maxHp = 150; return S;
 };
 stage('caravan', {
@@ -1217,7 +1217,7 @@ stage('caravan', {
       offJ(); rallyAll(); wash(true); ui.objective(''); await d.wait(0.6);
       // (owner, 21 Nov 2026: the drover just started walking.) The corporal says they go, before anyone moves.
       await settled(d, 1); take(); G.freezeAI = true; cam.shot(over(), eye(drover, 0.85)); cam.shot(wa3(H[0] + bx * 0.85 - bz * 1.35, 1.95, H[1] + bz * 0.85 + bx * 1.35), eye(drover, 0.85), 7);
-      await d.talk([[CPL, "That's enough. Corin, get him on his feet. We're taking him back to the picket."], ['Drover', "...I'll keep up. Don't wait for me."]]);
+      await d.talk([[CPL, "That's enough. Corin, get him on his feet. We're taking him back to the picket."], ['Drover', "...I'm slow on my feet. Don't leave me out here."]]);
       G.seenCaravan = 2; // (a retry starts on the way back)
     } else { cam.shot(over(), eye(drover, 0.85)); ui.fade(0, 0.8); await d.wait(1.0); await d.talk([[CPL, 'On your feet. We go now.']]); }
 
@@ -1235,10 +1235,14 @@ stage('caravan', {
     ui.say('Wren', "Corporal. In white, all round us. ...They're just standing there.", 3.4); quiet = G.time + 3.8;
     G.freezeAI = false; G.maxAtk = 3; ui.objective('Stand with Corin'); ui.thought('...Their blades. Glass.', 4);
     d.wait(1.6).then(() => { for (const e of veiled) { e.hold = false; e.cd = rnd(0.3, 1.0); } }, () => {});
-    let seen = false;
-    const offU = G.on((k, o) => { if (k === 'rising' && !seen && veiled.includes(o.enemy)) { seen = true; say([['Brann', "That one's getting up! I saw him go down!", 3.4]]); } });
     await d.until(() => veiled.every((e) => e.dead && !e.downed)); // (one lying still is not finished with)
-    offU(); G.maxAtk = 2; await d.wait(1.2); rallyAll(); await settled(d);
+    G.maxAtk = 2; await d.wait(1.2); rallyAll(); await settled(d);
+    // (owner, 22 Nov 2026: what they saw is said once the fight is over, as lines to read, not in passing mid-fight)
+    hush(); await d.talk([
+      ['Brann', "Corporal, I cut one of them down. I know I did. He lay there, and then he got up."],
+      ['Wren', "They all do it. Once. The second time, they stay down."],
+      [CPL, 'Then we put them down twice.'],
+    ]);
     G.seenCaravan = 3; // (a retry starts from the rocks here)
     } else give();
 
@@ -1273,7 +1277,6 @@ stage('caravan', {
     wash(true);
     await d.talk([
       ['Hale', "The raiders ran. Raiders always run. The ones in white never even looked like it."],
-      ['Brann', "I put one down. I know I did. He got up."],
       ['Wren', "And this. His sword broke when he fell. ...Corporal, it isn't steel. It's glass."],
     ]);
     cam.shot(e3(0.6, 1.5, 2.4), eye(P, 1.55)); cam.shot(e3(0.8, 1.5, 2.1), eye(P, 1.55), 7);
@@ -1296,7 +1299,7 @@ stage('caravan', {
 // once more behind the corporal, and the sergeant takes the blade meant for him. Dying, with the glass going up through him,
 // he speaks in a voice that is not his: the Usurper's, who says again what he said at the sealing. All lines are drafts.
 const ho = (x, z) => [HOLLOW.x + x, HOLLOW.z + z], ho3 = (x, y, z) => [HOLLOW.x + x, y + G.level.height(HOLLOW.x + x, HOLLOW.z + z), HOLLOW.z + z];
-const deep = (k) => playMusic(k, { cross: 3, fade: 4, over: true }); // the chapter's music: the picket's track, then the sealing's, with the caravan's for the fight
+const deep = (k) => playMusic(k, { cross: 3, fade: 4, over: true }); // the chapter's music: the waystation's theme at the picket (owner, 22 Nov 2026: not the corporal's), then the sealing's, with the caravan's for the fight
 stage('tracks', {
   checkpoint: true, cards: true,
   async run(d) {
@@ -1308,7 +1311,7 @@ stage('tracks', {
     const say = (list) => { lines(list).catch(() => {}); };
     const hush = () => { gen++; quiet = 0; ui.hideDialogue(); };
     const SGT = TYPES.sergeant.look, SSC = TYPES.sergeant.scale;
-    const five = (at) => { const s = squad(at); s.sgt = G.enlist({ soldier: true, name: 'SERGEANT', look: SGT, scale: SSC, slot: [0, 2.1], at: at[4] }); s.sgt.hp = s.sgt.maxHp = 170; return s; };
+    const five = (at) => { const s = squad(at); s.sgt = G.enlist({ soldier: true, name: 'SERGEANT', look: SGT, scale: SSC, slot: [2.0, -0.2], at: at[4] }); s.sgt.hp = s.sgt.maxHp = 170; return s; };
     const who = () => [P, S.hale, S.brann, S.wren, S.corin, S.sgt];
     const clearAt = (x, z) => HAREA.some((c) => Math.hypot(x - c.x, z - c.z) < c.r - 1.4) && !OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + 1.2) && !who().some((c) => Math.hypot(c.pos.x - x, c.pos.z - z) < 3.5);
     const ring = (cx, cz, n, r1, r0) => { const out = [], a0 = rnd(0, PI * 2);
@@ -1322,26 +1325,29 @@ stage('tracks', {
     if (!lvl) {
       // ---- the well picket, the night they came in: he can't sleep
       ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'corporal', player: [...fr(5.0, -30.6), 0], corin: null }); G.carry = null; L.front.light(true);
-      take(); G.freezeAI = true; preloadMusic('watch', 'sealed', 'gait');
+      take(); G.freezeAI = true; preloadMusic('well', 'sealed', 'gait');
       await d.chronicle('The tracks north', [
         'They brought the drover in. The sergeant sent word of the pale veils up the line, and that should have been the end of it.',
         'The corporal did not sleep. He had seen glass like that before, in a war that never happened.',
         '<em>The well picket, before light.</em>',
       ], TAP); ui.chronClose();
-      deep('watch'); forgetMusic(); preloadMusic('sealed', 'gait');
+      deep('well'); forgetMusic(); preloadMusic('sealed', 'gait');
       const sgt = new Extra(SGT, ...fr(2.6, -36.4), 0, { scale: SSC }), kid = new Extra(LOOKS.lad, ...fr(7.4, -37.0), 0, { scale: 0.86 }); kid.watch = P;
       cam.shot(fr3(9.6, 1.5, -25.2), fr3(4.6, 1.3, -31.4)); cam.shot(fr3(9.0, 1.6, -25.8), fr3(4.6, 1.3, -31.4), 9); ui.fade(0, 2.4); // him, alone at the stakes, looking north; the picket's fire behind
       await d.wait(2.6); ui.thought('...It was shut. I shut it.', 4); sgt.go(...fr(4.1, -32.2), 1.5, 0.6); await d.wait(3.6); sgt.watch = P;
       await turnTo(d, P, P.angleTo(sgt), 0.5);
       cam.shot(fr3(7.1, 1.75, -29.9), eye(sgt, 1.5)); cam.shot(fr3(6.9, 1.75, -30.0), eye(sgt, 1.5), 8); // past his shoulder, at the sergeant
-      await d.talk([['Sergeant', "You haven't been to bed."], [CPL, "I'm going back out. To where those tracks go."], ['Sergeant', 'I told you not to go chasing anything into the deep desert.']]);
+      await d.talk([['Sergeant', "You haven't been to bed."], [CPL, "I'm going back out. To where those tracks go."], ['Sergeant', 'On your own, into the deep desert, against my order. The Watch has a word for that, Corporal.']]);
       cam.shot(fr3(4.7, 1.7, -34.4), eye(P, 1.5)); cam.shot(fr3(4.8, 1.7, -34.2), eye(P, 1.5), 7); // and back at him
       await d.talk([[CPL, 'I know what you told me.']]); await d.wait(0.9);
       cam.shot(fr3(7.1, 1.75, -29.9), eye(sgt, 1.5)); cam.shot(fr3(6.9, 1.75, -30.0), eye(sgt, 1.5), 8);
-      await d.talk([['Sergeant', "...It's that sword Wren found. You know something about it, and you won't say what."], ['Sergeant', "Fine. Then I'm coming. I sent five out and got five back, and I don't trust my luck twice."]]);
-      kid.go(...fr(6.3, -33.0), 2.6); await d.wait(1.2);
-      cam.shot(fr3(3.4, 1.5, -30.4), eye(kid, 1.25)); cam.shot(fr3(3.5, 1.5, -30.6), eye(kid, 1.25), 6);
-      await d.talk([['Corin', "I'm his runner. I run where he goes."], ['Sergeant', '...Wake the others.']]);
+      // (owner, 22 Nov 2026: he doesn't give way; he has his own reason, and he takes it over)
+      await d.talk([
+        ['Sergeant', "...It's that sword Wren found. You know what it is, and you won't say."],
+        ['Sergeant', "Twelve drivers were walked off north. If any of them are still breathing, it's now or never. And I can't get men out of the company on a feeling."],
+        ['Sergeant', "So it isn't your errand. It's mine. All five of you, at first light, and out there you take my orders."],
+        ['Sergeant', 'Wake the others.'],
+      ]);
       await d.wait(0.4); ui.fade(1, 1.4); await d.wait(1.6); ui.hideDialogue();
       await d.chronicle('The deep desert', ['<em>Two days north of the old road.</em>'], TAP); ui.chronClose();
 

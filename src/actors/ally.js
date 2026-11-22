@@ -18,7 +18,7 @@ const LINE = { dmg: 7, knock: 2, poise: 0.5, quiet: true };
 // partner who reports what the player did to him, in battle a fighter at the captain's shoulder.
 // With `soldier` it is one of the line (G.enlist in main.js; kept in G.allies until the world is reset):
 //   look, scale, name   who he is
-//   slot: [back, side]  where he falls in behind the captain when there is nobody to fight
+//   slot: [side, back]  where he walks near the captain when there is nobody to fight (side: + is his left)
 //   post = [x, z]       or a place he holds instead, fighting whoever comes within reach of it
 // A soldier can be marked by an enemy (Enemy.mark), which then fights him and not the captain. He stops most
 // blows; enough of them put him on one knee (`out`) until a script calls rally(), or until he has been down 14 s with
@@ -94,10 +94,22 @@ export class Ally extends Char {
       if (this.state === 'loco') {
         if (!foe) { // fall in behind the captain (each soldier in his own place), or stand at his post
           this.foe = null;
-          const tx = this.post ? this.post[0] : P_.pos.x - Math.cos(P_.face) * this.slot[0] - Math.sin(P_.face) * this.slot[1], tz = this.post ? this.post[1] : P_.pos.z + Math.sin(P_.face) * this.slot[0] - Math.cos(P_.face) * this.slot[1];
-          const dx = tx - this.pos.x, dz = tz - this.pos.z, d = Math.hypot(dx, dz), sp = d > 1 ? Math.min(this.post && this.postSp ? this.postSp : 6.2, d * 2.2) : 0; // postSp: walk to the post (looking about a place), don't run
-          if (d > 1 && this.soldier) this.head(tx, tz, sp, dt, f);
-          else { if (d > 1) this.turnTo(Math.atan2(dx, dz), 8, dt); else if (this.post && this.post[2] != null) this.turnTo(this.post[2], 4, dt); this.vel.x = damp(this.vel.x, f.x * sp, 6, dt); this.vel.z = damp(this.vel.z, f.z * sp, 6, dt); }
+          // Open order, not a fan club (owner, 22 Nov 2026: they bunched close behind him and swung round with every turn he made).
+          // A soldier's place is kept relative to the way the captain is going, which he follows slowly, not to where he faces;
+          // he stands where he is until he has fallen well out of it (each one a little sooner or later than the next), then walks
+          // back into it at about the captain's pace, and runs only when he has been left far behind.
+          const pv = Math.hypot(P_.vel.x, P_.vel.z); if (this.hd == null) this.hd = P_.face;
+          if (pv > 0.8) this.hd = wrap(this.hd + wrap(Math.atan2(P_.vel.x, P_.vel.z) - this.hd) * (1 - Math.exp(-1.3 * dt)));
+          const h = this.soldier && !this.post ? this.hd : P_.face;
+          const tx = this.post ? this.post[0] : P_.pos.x - Math.cos(h) * this.slot[0] - Math.sin(h) * this.slot[1], tz = this.post ? this.post[1] : P_.pos.z + Math.sin(h) * this.slot[0] - Math.cos(h) * this.slot[1];
+          const dx = tx - this.pos.x, dz = tz - this.pos.z, d = Math.hypot(dx, dz);
+          if (this.slack == null) this.slack = rnd(2.0, 3.4);
+          let sp;
+          if (this.soldier && !this.post) { this.tailing = this.tailing ? d > 0.7 : d > this.slack; sp = !this.tailing ? 0 : d > 8 ? 6.2 : Math.min(Math.max(2.0, pv * 1.08 + 0.3), d * 1.6); }
+          else sp = d > 1 ? Math.min(this.post && this.postSp ? this.postSp : 6.2, d * 2.2) : 0; // postSp: walk to the post (looking about a place), don't run
+          if (sp > 0 && this.soldier) this.head(tx, tz, sp, dt, f);
+          else { if (d > 1 && sp > 0) this.turnTo(Math.atan2(dx, dz), 8, dt); else if (this.post && this.post[2] != null) this.turnTo(this.post[2], 4, dt); else if (this.soldier) this.turnTo(this.hd, 2.5, dt); this.vel.x = damp(this.vel.x, f.x * sp, 6, dt); this.vel.z = damp(this.vel.z, f.z * sp, 6, dt); }
+          this.walkSp = sp;
         } else {
           const d = this.dist(foe), want = 2.0 + foe.radius; if (this.soldier) this.foe = foe;
           const sp = d > want + 0.3 ? 4.6 : d < want - 0.5 ? -1.5 : 0;
@@ -120,7 +132,7 @@ export class Ally extends Char {
         if (this.st >= 0.3 && this.state === 'strike') { this.trailOn = false; this.set('recover'); }
       } else if (this.state === 'recover') { brake(8); if (this.st >= 0.6) { this.set('loco'); this.stop(0.2); this.cd = this.mode === 'attack' ? rnd(1.3, 1.9) : this.soldier ? rnd(1.6, 3.0) : rnd(0.8, 1.8); } }
     }
-    this.gait = this.post && this.postSp && !this.foe ? 2.4 : 1; // a walk takes real steps (Char.setLoco)
+    this.gait = !this.foe && ((this.post && this.postSp) || (this.soldier && !this.post && this.walkSp > 0 && this.walkSp < 3)) ? 2.4 : 1; // a walk takes real steps (Char.setLoco)
     this.setLoco(4.6, dt);
   }
 }
