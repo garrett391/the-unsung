@@ -1425,9 +1425,10 @@ stage('tracks', {
         ['Sergeant', "...It's that sword Wren found. You know what it is, and you won't say."],
         ['Sergeant', "Twelve drivers were walked off north. If any of them are still breathing, it's now or never. And I can't get men out of the company on a feeling."],
         ['Sergeant', "So it isn't your errand. It's mine. All five of you, at first light, and out there you take my orders."],
-        ['Sergeant', 'Wake the others.'],
+        ['Sergeant', 'Corin. Wake the others.'], // (owner, 22 Nov 2026: the boy is up at the fire in plain sight; he's the runner, so the order is his)
       ]);
-      await d.wait(0.4); ui.fade(1, 1.4); await d.wait(1.6); ui.hideDialogue();
+      kid.live = null; kid.lookY = 0; kid.stop(0.5); kid.go(...fr(9.4, -41.2), 2.2); // he gets up off the log and goes
+      await d.wait(1.2); ui.fade(1, 1.4); await d.wait(1.6); ui.hideDialogue();
       await d.chronicle('The deep desert', ['<em>Two days north of the old road.</em>'], TAP); ui.chronClose();
 
       // ---- the tracks, over the crest
