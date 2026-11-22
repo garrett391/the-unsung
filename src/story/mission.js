@@ -1424,7 +1424,7 @@ stage('tracks', {
     await d.talk([['Sergeant', "...Huh. Right through. It doesn't even hurt. It's just cold."], ['Sergeant', "Don't. I can feel it going up. ...Get them home, Corporal. That's all the job ever is."]]);
     await d.wait(1.1); SFX.tele(); sg.dress({ ...SGT, glass: 1, wound: 1, eye: 0x3fd0bc, rim: 0x3c8f84 }); sg.lookP = -0.4; // the eyes light, and the head comes up
     { const p = sg.pos.clone(); p.y += 0.9; FX.sparks.emit(p, 18, 1.6, 0x9ff0e0, 1.4, { grav: -1.2, up: 0.8 }); }
-    cam.shot(ho3(0.32, 1.72, 3.1), eye(sg, 1.0)); cam.shot(ho3(0.28, 1.66, 3.0), eye(sg, 1.0), 12); // from over the corporal's head, down into the lifted face await d.wait(1.2);
+    cam.shot(ho3(-1.45, 1.0, 2.9), eye(sg, 1.0)); cam.shot(ho3(-1.35, 1.0, 2.85), eye(sg, 1.0), 12); // close, from his open side (the shield is on the other): the lifted face await d.wait(1.2);
     await d.talk([['The glass', '...There you are.'], ['The glass', "A yard hand. A corporal. You do keep starting again, don't you?"], ['The glass', 'I told you only you would remember. I never said that I would forget.']]);
     ui.thought('...Him.', 3); await d.wait(2.4);
     // and he is glass, like the rest
