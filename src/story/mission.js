@@ -1388,7 +1388,7 @@ stage('tracks', {
       await d.talk([['Corin', "He knows. Look at him. ...You've seen it before."]]);
       cam.shot(fr3(5.55, 1.05, -37.5), eye(P, 1.55)); cam.shot(fr3(5.5, 1.05, -37.55), eye(P, 1.6), 6);
       await d.wait(1.4);
-      await d.talk([[CPL, 'Put it in the fire, Wren.'], ['Wren', "It's glass, Corporal. It won't burn."], [CPL, '...Then bury it. Deep.']]);
+      await d.talk([[CPL, '...Break it, Wren.']]); // (owner, 22 Nov 2026: just that; the fire and the burying meant nothing)
       // he goes out to the stakes, and they watch him go
       cam.shot(fr3(8.6, 1.4, -40.4), fr3(4.0, 1.2, -35.0)); cam.shot(fr3(8.4, 1.45, -40.2), fr3(3.6, 1.3, -33.5), 7);
       P.walk = { x: FRONT.x + 3.4, z: FRONT.z - 32.6, sp: 1.6 }; const follow = d.every(() => { for (const k in fire) at(fire[k], P); });

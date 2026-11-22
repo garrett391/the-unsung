@@ -212,7 +212,7 @@ if (at('tracks')) {
   await play(30, { tap: true, until: dtxt('/^I saw/') }); await play(0.8); await shot('2a5-i-saw');
   await play(30, { tap: true, until: dtxt('/right through/') }); await play(0.8); await shot('2a6-wren');
   await play(30, { tap: true, until: dtxt('/seen it before/') }); await play(0.8); await shot('2a7-seen-it');
-  await play(30, { tap: true, until: dtxt('/bury it/') }); await play(0.8); await shot('2a8-bury-it');
+  await play(30, { tap: true, until: dtxt('/Break it, Wren/') }); await play(0.8); await shot('2a8-break-it');
   await play(60, { tap: true, until: dtxt('/been to bed/') }); await play(1.0); await page.waitForTimeout(2500); await shot('2a-night');
   await play(30, { tap: true, until: dtxt('/what you told me/') }); await play(0.8); await shot('2b-told');
   await play(30, { tap: true, until: dtxt('/my orders/') }); await play(0.8); await shot('2b2-my-orders');
