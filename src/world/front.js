@@ -208,7 +208,7 @@ export function buildFront(scene, kit) {
     for (let i = 0; i < 5; i++) put(new T.CylinderGeometry(0.07, 0.08, 1.0, 6), mWoodD, fx + Math.sin(i * 1.26) * 0.25, fy + 0.16, fz + Math.cos(i * 1.26) * 0.25, i * 1.26, 1.2);
     { const co = new T.Mesh(new T.SphereGeometry(0.4, 10, 6), mCoal); co.scale.y = 0.2; co.position.set(fx, fy + 0.08, fz); g.add(co); }
     kit.fire(FRONT.x + fx, fy + 0.12, FRONT.z + fz, 1.2); block(fx, fz, 0.7);
-    for (const [x, z, ry] of [[8.1, -37.6, 0.3], [5.6, -36.5, 1.9]]) { put(new T.CylinderGeometry(0.2, 0.23, 1.7, 10), mWood, x, on(x, z) + 0.2, z, ry, 0, PI / 2); block(x, z, 0.5); }
+    for (const [x, z, ry] of [[8.1, -37.6, 1.23], [5.6, -36.5, -0.44]]) { /* each log lies across the fire's line, so whoever sits on it faces the fire (the campfire in 'tracks') */ put(new T.CylinderGeometry(0.2, 0.23, 1.7, 10), mWood, x, on(x, z) + 0.2, z, ry, 0, PI / 2); block(x, z, 0.5); }
     for (let k = 0; k < 13; k++) { const x = -9 + k * 1.5, z = -33.2 + Math.sin(k * 1.3) * 0.5; if (Math.abs(x - 2.5) < 2.4) continue; /* the way out */ put(new T.CylinderGeometry(0.02, 0.08, 2.0, 5), mWood, x, on(x, z) + 0.6, z, Q(-0.2, 0.2), 0.95); }
     const bx = 3.2, bz = -47.6, by = on(bx, bz); put(new T.CylinderGeometry(0.05, 0.06, 4.6, 8), mWood, bx, by + 2.3, bz); block(bx, bz, 0.3);
     const b = new T.Group(); b.position.set(bx, by + 4.4, bz + 0.08); g.add(b); b.add(new T.Mesh(new T.BoxGeometry(1.2, 0.08, 0.08), mWood)); const cl = new T.Mesh(new T.PlaneGeometry(1.0, 2.6, 1, 6), mBanner); cl.position.y = -1.32; cl.castShadow = true; b.add(cl); banners.push(b);

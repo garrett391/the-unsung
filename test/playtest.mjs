@@ -190,20 +190,30 @@ if (at('caravan')) { // the stripe at the picket, the old road, the stopped cara
   for (let k = 0; k < 160 && !(await page.evaluate("G.enemies.length>0")); k++) { const p = await page.evaluate(() => [G.extras[0].pos.x, G.extras[0].pos.z]); await play(0.6, { bot: true, god: true, to: p, until: `G.enemies.length>0||Math.hypot(G.player.pos.x-(${p[0]}),G.player.pos.z-(${p[1]}))<3` }); await play(0.4, { until: "G.enemies.length>0" }); }
   await play(20, { until: "G.cinematic" }); await play(2.2); await shot('1k-the-veiled'); // in the narrows: they get up and stand there
   await play(20, { until: "G.player.controlEnabled" }); await play(6, { bot: true, god: true }); await shot('1l-fight');
+  if (!(await page.evaluate(() => { const v = G.extras[0]; return !!v.clip && !v.to; }))) errors.push('the drover is not sitting through the fight (narrows)'); // (owner, 22 Nov 2026: he used to walk aside and stand)
   log('getting up', await play(200, { bot: true, god: true, heavy: true, until: "G.enemies.some(e=>e.state==='rising')" })); await play(0.9, { bot: true, god: true }); await shot('1m-getting-up');
   log('narrows won', await play(400, { bot: true, god: true, heavy: true, tap: true, until: obj('/back to the picket/') })); await play(1.0); await shot('1n-on-again');
   for (let k = 0; k < 200 && !(await page.evaluate("G.cinematic")); k++) { const p = await page.evaluate(() => [G.extras[0].pos.x, G.extras[0].pos.z]); await play(0.6, { bot: true, god: true, to: p, until: `G.cinematic||Math.hypot(G.player.pos.x-(${p[0]}),G.player.pos.z-(${p[1]}))<3` }); await play(0.4, { until: "G.cinematic" }); }
   await play(2.0); await shot('1n2-last-wave'); // out on the plain: both kinds, all round
   await play(20, { until: "G.player.controlEnabled" }); await play(8, { bot: true, god: true }); await shot('1n3-last-fight');
+  if (!(await page.evaluate(() => { const v = G.extras[0]; return !!v.clip && !v.to; }))) errors.push('the drover is not sitting through the fight (plain)'); // (owner, 22 Nov 2026: he used to walk aside and stand)
   log('cleared', await play(500, { bot: true, god: true, heavy: true, until: "G.talking" })); await play(1.0); await shot('1o-after');
-  await play(30, { tap: true, until: dtxt('/not hurt/') }); await play(0.8); await shot('1p-not-hurt');
   log('to the tracks', await play(60, { tap: true, until: stageIs('tracks') }));
 }
 if (process.env.TO === 'caravan') { console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no page errors'); await browser.close(); server.close(); process.exit(errors.length ? 1 : 0); } // TO=caravan stops after the excursion
 // The hollow (the tracks north): the picket at night, the drivers turned to glass, the door, the Veiled, and the sergeant.
 const walkH = async (pts, until) => { let r; for (const [x, z] of pts) { r = await play(25, { bot: true, god: true, to: [300 + x, 200 + z], until: `(${until})||Math.hypot(G.player.pos.x-(${300 + x}),G.player.pos.z-(${200 + z}))<1.3` }); if (await page.evaluate(until)) break; } return r; };
 if (at('tracks')) {
-  await play(60, { tap: true, until: "G.talking" }); await play(1.0); await page.waitForTimeout(2500); await shot('2a-night');
+  await play(60, { tap: true, until: "G.player.controlEnabled" }); await play(0.5); await shot('2a0-the-fire'); // the night they came in: the fire, and what they make of the caravan
+  log('to the fire', await walk([[3.4, -35.0], [4.4, -37.6]], "G.cinematic")); await play(30, { until: "G.talking" }); await play(0.8); await shot('2a1-at-the-fire');
+  await play(30, { tap: true, until: dtxt('/without a sound/') }); await play(0.8); await shot('2a2-drover');
+  await play(30, { tap: true, until: dtxt('/they get up/') }); await play(0.8); await shot('2a3-far-log');
+  await play(30, { tap: true, until: dtxt('/So I stayed/') }); await play(0.8); await shot('2a4-corin');
+  await play(30, { tap: true, until: dtxt('/^I saw/') }); await play(0.8); await shot('2a5-i-saw');
+  await play(30, { tap: true, until: dtxt('/right through/') }); await play(0.8); await shot('2a6-wren');
+  await play(30, { tap: true, until: dtxt('/seen it before/') }); await play(0.8); await shot('2a7-seen-it');
+  await play(30, { tap: true, until: dtxt('/bury it/') }); await play(0.8); await shot('2a8-bury-it');
+  await play(60, { tap: true, until: dtxt('/been to bed/') }); await play(1.0); await page.waitForTimeout(2500); await shot('2a-night');
   await play(30, { tap: true, until: dtxt('/what you told me/') }); await play(0.8); await shot('2b-told');
   await play(30, { tap: true, until: dtxt('/my orders/') }); await play(0.8); await shot('2b2-my-orders');
   log('the deep desert', await play(90, { tap: true, until: "G.level.site==='hollow'" })); await play(2.6); await page.waitForTimeout(1500); await shot('2c-the-tracks');
