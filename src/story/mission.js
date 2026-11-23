@@ -921,10 +921,8 @@ stage('beacon', {
       ['Corporal', "It's burning. The company will have seen it."],
       ['Corporal', "Everyone under this rock is walking home. An hour ago I couldn't have said that."],
       ['Hale', 'That was him, Corporal. We just tried to keep up.'],
-      ['Corporal', 'I saw. What do they call you, soldier?'],
+      ['Corporal', "I saw. I'll be telling the captain about you, soldier."],
     ]);
-    await d.wait(1.0);
-    await d.talk([[ME, 'Yard hand.'], ['Corporal', "That's a job, soldier, not a name."], [ME, "It's the one I've got."], ['Corporal', "Then I'll tell the captain it was the Third Company, and he can work out which one of you."]]);
     cam.shot(fr3(17.6, 1.2, 43.0), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z]); cam.shot(fr3(17.4, 1.25, 42.8), [boy.pos.x, boy.pos.y + 1.0, boy.pos.z], 5);
     await d.talk([['Corin', "You can tell the captain from a bed. You've bled through it again."], ['Corporal', "Help me up, runner. ...Slowly. It's a long walk to the well."]]);
     await d.wait(0.6); ui.fade(1, 1.8); await d.wait(2.0); P.inv = 0;
