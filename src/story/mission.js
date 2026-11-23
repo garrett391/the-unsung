@@ -781,7 +781,7 @@ const SEATS = {
 const SEAT = (scale = 1, kind = 'lean') => pose({ pos: [0, 0.53 / scale - 0.9, -0.04], ...SEATS[kind] });
 // What he goes by on the frontier (owner, 16 Nov 2026: he answers his own people; asked his name, he gives his old job). His speaker label too, until he is made captain.
 const ME = 'Yard hand';
-// The first javelin on the frontier: one of the line shouts it (once, unless the chapter is picked again). Returns the unsubscribe.
+// The first javelin on the frontier: one of the line shouts it, in the patrol only (owner, 23 Nov 2026: it was shouted again in later chapters). Returns the unsubscribe.
 const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.seenJav = true; ui.say(who, 'Javelins! Shields up, or get out of the way!', 3.5); } });
 stage('patrol', {
   checkpoint: true, cards: true, // it opens on the Act I cards: main.js leaves the music playing under them
@@ -857,7 +857,7 @@ stage('beacon', {
     // Corin (story, 16 Nov 2026): the corporal's kid brother and his runner, a boy, on his knees beside him. Nobody's target.
     const boy = new Extra(BOY, ...fr(19.5, 44.7), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneelBy]), 0.01);
     G.spawn('raider', ...fr(11.5, 39.5)).mark = p1; G.spawn('raider', ...fr(14, 36.5)).mark = p1; G.spawn('raider', ...fr(21, 35.5)).mark = wren; G.spawn('bulwark', ...fr(24, 38.5)).mark = wren; G.spawn('runner', ...fr(9, 44));
-    G.spawn('raider', ...fr(4, 38)); G.spawn('runner', ...fr(26, 34)); G.spawn('skirmisher', ...fr(8, 52)); G.spawn('skirmisher', ...fr(31, 37)); const offJ = javelins('Hale');
+    G.spawn('raider', ...fr(4, 38)); G.spawn('runner', ...fr(26, 34)); G.spawn('skirmisher', ...fr(8, 52)); G.spawn('skirmisher', ...fr(31, 37));
     await settled(d, 1); ui.say('Hale', "There, under the rock! They're still standing.", 4);
     await glance(d, ...foot, { from: fr3(1.5, 2.6, 34.5), y: 1.6, hold: 2.4 });
     ui.objective('Reach the patrol under the beacon');
@@ -907,7 +907,7 @@ stage('beacon', {
       }
     });
     await d.until(() => H.progress >= 1);
-    stop(); offJ(); ui.holdBar(false); G.hold = null; ui.hint(''); ui.objective('');
+    stop(); ui.holdBar(false); G.hold = null; ui.hint(''); ui.objective('');
     // It burns. Out in the dunes they see it too, and break off; and the company, to the south, will have seen it.
     await settled(d, 1); P.controlEnabled = false; P.lock = null; P.calm = true; P.inv = 1e6; G.cinematic = true; ui.cinematic(true);
     L.front.light(true); SFX.flame(); SFX.boom(); G.shake = 0.2; for (const e of G.enemies) e.flee(); actOne(); preloadMusic('watch'); // the picket's track, for the night that follows
@@ -1209,7 +1209,6 @@ stage('caravan', {
       // the five fight five fights and not one heap). The boy stays over the drover. When only a few are left, the rest break and
       // run, as raiders do, and go back under the sand.
       S.corin.post = [...wa(SIT[0] + bx * 1.15 + bz * 0.7, SIT[1] + bz * 1.15 - bx * 0.7), sitF];
-      const offJ = javelins('Hale');
       const w1 = surround(ring(7.5, 15.5, 15, 12.5, 5), ['raider', 'raider', 'runner', 'raider', 'skirmisher'], 3);
       G.freezeAI = true; wash(true); SFX.tele(); ui.say('Corin', 'Corporal! In the sand! All round us!', 3.0); // (owner, 22 Nov 2026: the raiders say nothing; one of his own shouts it)
       await glance(d, ...wa(7.5, 15.5), { from: wa3(5.0, 10.5, 3.0), y: 0.4, hold: 2.8 }); // from high over the wash: the whole ring of them
@@ -1219,7 +1218,7 @@ stage('caravan', {
       for (const e of w1) e.flee();
       if (left()) say([['Hale', "They're breaking! Look at them run!", 3]]);
       await d.until(() => !G.enemies.some((e) => !e.dead) && G.time > quiet);
-      offJ(); rallyAll(); wash(true); ui.objective(''); await d.wait(0.6);
+      rallyAll(); wash(true); ui.objective(''); await d.wait(0.6);
       // (owner, 21 Nov 2026: the drover just started walking.) The corporal says they go, before anyone moves.
       await settled(d, 1); take(); G.freezeAI = true; cam.shot(over(), eye(drover, 0.85)); cam.shot(wa3(H[0] + bx * 0.85 - bz * 1.35, 1.95, H[1] + bz * 0.85 + bx * 1.35), eye(drover, 0.85), 7);
       await d.talk([[CPL, "That's enough. Corin, get him on his feet. We're taking him back to the picket."], ['Drover', "...I'm slow on my feet. Don't leave me out here."]]);
@@ -1257,7 +1256,6 @@ stage('caravan', {
     // not care for the Pale Blade). Both kinds together, as the drover said they came: a full ring on open ground. When the last
     // of the Veiled is down for good his glass blade breaks, and the raiders who are left run.
     sitDown(...END, PI / 2); S.corin.post = [...wa(END[0] + 1.5, END[1] + 0.7), PI / 2];
-    const offJ2 = javelins('Hale');
     const last = surround(ring(-0.3, -47.5, 12, 10.5, 7), ['veiled', 'raider', 'raider', 'skirmisher', 'veiled', 'raider'], 3), pale = last.filter((e) => e.kind === 'veiled');
     G.freezeAI = true; await d.wait(0.6); ui.say('Hale', 'All round us! Both kinds!', 3); quiet = G.time + 3.4;
     await glance(d, ...wa(-0.3, -47.5), { from: wa3(1.5, 10, -31.5), y: 0.4, hold: 2.6 });
@@ -1267,7 +1265,7 @@ stage('caravan', {
     tally(); { const p = fallen.pos.clone(); p.y += 0.5; FX.sparks.emit(p, 30, 5, 0x9ff0e0, 0.9); FX.grit.emit(p, 24, 3.5, 0xbff5ea, 1.1); SFX.shatter(); G.shake = Math.max(G.shake, 0.25); } // the glass goes as he does
     for (const e of last) e.flee(); G.maxAtk = 2;
     await d.until(() => !G.enemies.some((e) => !e.dead));
-    offJ2(); ui.objective(''); await d.wait(1.4); rallyAll(); await settled(d);
+    ui.objective(''); await d.wait(1.4); rallyAll(); await settled(d);
 
     // ---- after: by the rock at the head of the track
     take(); G.freezeAI = true; hush(); ui.fade(1, 0.5); await d.wait(0.6); // (wherever the fight ended, they would be standing in the shot)
