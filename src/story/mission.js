@@ -198,8 +198,7 @@ stage('halls', {
 // Prologue: the climax nobody saw. The Glass Door dressing turns the end of the Narrows into
 // the vault. It opens on the end of the fight with a few cards of footing (owner's note: don't
 // spell the theme out): the Usurper is cornered and already beaten (TYPES.usurper), and all that
-// is left is to put him behind the glass. The first round is a short tutorial (owner, Nov 2026:
-// lock on, strike, shield, and no more); after he gets up again there are no hints, only the fight.
+// is left is to put him behind the glass. No hints here: the forecourt and the halls teach the basics.
 // Two things are shown (docs/story.md, The Usurper and the Glass Door; the second is now also said, as the Door shuts): he can't
 // be killed (the captain cuts him down, takes it for the end and walks away; the vault shakes and
 // he gets up), and the seal takes the years he took in with him (the vault runs backwards: the
@@ -211,7 +210,7 @@ stage('door', {
     ui.fade(1, 0); G.resetWorld({ player: [0, -17, PI], corin: null, gate: 'door' }); // behind a black screen: he has come down the stair from the halls
     const P = G.player; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; G.freezeAI = true; G.maxAtk = 1;
     preloadMusic('blade', 'sealed');
-    const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.hp = U.maxHp * 0.75; // some of the fight is behind them; enough is left to learn on
+    const U = G.spawn('usurper', 0.3, -23.2, { spare: true }); U.hp = U.maxHp * 0.75; // some of the fight is behind them
     // (Owner, Nov 2026.) He is not alone when the captain comes off the stair: the last of the many who tried is on her knees
     // before him, and he cuts her down. Then he turns to the one who is left. (She lies where she fell through the fight, and the sealing takes her with the rest.)
     const last = new Extra({ ...LOOKS.knight, weapon: undefined }, -1.0, -22.0, 0); last.face = last.angleTo(U); U.face = U.angleTo(last); last.play(C(0.1, [0, PZ.kneel]), 0.01);
@@ -226,19 +225,8 @@ stage('door', {
     await d.wait(2.0);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.boss = U; U.cd = 2.0; ui.objective('Defeat the Usurper');
     let wall = VAULT; const keep = d.every(() => { if (P.pos.z > wall) P.pos.z = wall; if (U.pos.z > VAULT + 1) U.pos.z = VAULT + 1; });
-    // The first round teaches the three basics, once (not again on a retry). He is cornered and
-    // spent, and only stands there while the player finds the lock and lands a few blows; then
-    // he comes on, and the shield is taught against real swings. Any lesson ends early if he is beaten.
+    // No lessons here (owner, Nov 2026): lock, strike and the shield are taught in the forecourt and the halls, and one tutorial is enough.
     const beaten = () => U.hp <= 1;
-    if (!G.taughtDoor) {
-      let n = 0, hp = U.hp; const hits = d.every(() => { if (U.hp < hp) n++; hp = U.hp; });
-      ui.hint('Lock on to the Usurper with {k}'); await d.until(() => P.lock === U || n >= 3 || beaten()); // three blows without the lock: he has the idea, and the Usurper stops standing for it
-      if (n < 3) { n = 0; ui.hint('Strike: {l}. Tap up to three times for a combo.'); await d.until(() => n >= 3 || beaten()); }
-      hits();
-      n = 0; const off = G.on((k, e) => { if (k === 'struck' && (e.result === 'block' || e.result === 'parry')) n++; });
-      G.freezeAI = false; U.cd = 1.2; ui.hint(beaten() ? '' : 'Hold {b} to raise your shield when he swings');
-      await d.until(() => n >= 2 || beaten()); off(); ui.hint(''); G.taughtDoor = true;
-    }
     G.freezeAI = false;
     await d.until(beaten);
 
@@ -606,23 +594,23 @@ stage('waystation', {
     { const t0 = G.time; await d.until(() => off.fixed || G.time - t0 > 8); }
     const onOfficer = (dur) => { cam.shot(wy3(1.5, 1.55, 5.4), [off.pos.x, 1.5, off.pos.z]); cam.shot(wy3(1.3, 1.55, 5.8), [off.pos.x, 1.5, off.pos.z], dur); };
     onOfficer(5);
-    await d.talk([['Officer', 'Hold.'], ['Officer', 'The third station this month. ...Who did this?']]);
+    await d.talk([['Lieutenant', 'Hold.'], ['Lieutenant', 'The third station this month. ...Who did this?']]);
     drover.place(...wy(0.4, -11), 0); drover.setVisible(true); drover.go(...wy(2.6, -0.6), 2.6); drover.watch = off;
     cam.shot(wy3(-0.6, 1.6, 5.6), wy3(1.4, 1.4, 0.6)); cam.shot(wy3(-0.5, 1.6, 5.2), wy3(1.4, 1.4, 0.6), 5);
     await d.talk([['Drover', 'Him. The yard hand.'], ['Drover', "He took the dead man's sword, and then... I don't know what I saw."]]);
     // (Owner, Nov 2026: he is not invited, he is taken. The column came after the fighting and saw none of it: a dead
     // guard, the gate, and a stranger holding the guard's sword. Two stations have been opened from the inside.)
     onOfficer(5);
-    await d.talk([['Officer', 'What I see is a dead guard, his gate, and a stranger holding his sword.'], ['Officer', 'Two stations this month were opened from the inside.']]);
+    await d.talk([['Lieutenant', 'What I see is a dead guard, his gate, and a stranger holding his sword.'], ['Lieutenant', 'Two stations this month were opened from the inside.']]);
     s1.go(P.pos.x - 1.3, P.pos.z + 0.9, 2.0); s2.go(P.pos.x + 1.3, P.pos.z + 0.9, 2.0); s1.watch = P; s2.watch = P; // the two soldiers close in on either side of him
     cam.shot(wy3(-3.2, 2.2, 0.2), [P.pos.x, 1.3, P.pos.z + 1]); cam.shot(wy3(-3.0, 2.0, 0.6), [P.pos.x, 1.3, P.pos.z + 1], 5);
     { const t0 = G.time; await d.until(() => (s1.fixed && s2.fixed) || G.time - t0 > 5); } await d.wait(0.4); // let them reach him
-    await d.talk([['Officer', 'Put it down.']]);
+    await d.talk([['Lieutenant', 'Put it down.']]);
     cam.shot(wy3(-1.0, 1.55, 5.0), [P.pos.x, 1.5, P.pos.z]); cam.shot(wy3(-0.8, 1.55, 4.7), [P.pos.x, 1.5, P.pos.z], 4);
     await d.wait(0.8);
     await d.talk([['Yard hand', 'I did not open your gate.']]);
     onOfficer(6);
-    await d.talk([['Officer', 'Then you can prove it in the morning, in front of my sergeant.'], ['Officer', 'Hold him.']]);
+    await d.talk([['Lieutenant', 'Then you can prove it in the morning, in front of my sergeant.'], ['Lieutenant', 'Hold him.']]);
     await d.wait(0.6); ui.fade(1, 1.6); await d.wait(1.8);
   },
 });
@@ -648,10 +636,10 @@ stage('muster', {
     // phone was never seen at all), so the first shot is the two of them side on, the guards behind, the clerk's table beyond.
     off.watch = P; cam.shot(wy3(-4.2, 1.9, -8.9), wy3(1.75, 1.35, -7.4)); cam.shot(wy3(-3.6, 1.85, -8.7), wy3(1.75, 1.35, -7.4), 7); ui.fade(0, 2.2);
     await d.wait(2.6);
-    await d.talk([['Officer', 'The drover swears you killed them. The other stations swear a man on the inside opened their gates.'], ['Officer', 'A yard hand who fights like a soldier is a deserter, or he is theirs.']]);
+    await d.talk([['Lieutenant', 'The drover swears you killed them. The other stations swear a man on the inside opened their gates.'], ['Lieutenant', 'A yard hand who fights like a soldier is a deserter, or he is theirs.']]);
     off.go(...wy(5.2, -6.2), 1.4); // back to his place by the table, out of the way to the ring
     cam.shot(wy3(-6.5, 3.6, -10), wy3(2.5, 1.2, -2)); cam.shot(wy3(-4.5, 2.6, -8.5), wy3(2.5, 1.3, -2), 6); // then the yard, the ring and the sergeant
-    await d.talk([['Sergeant', "Give him blunt steel, sir, and I'll tell you which."], ['Soldier', 'Whenever you like, yard hand.']]);
+    await d.talk([['Sergeant', "With your leave, sir: give him blunt steel, and I'll tell you which."], ['Lieutenant', 'Do it.'], ['Soldier', 'Whenever you like, yard hand.']]);
     guards[0].go(...wy(-0.6, -7.6), 1.8); guards[1].go(...wy(3.6, -7.6), 1.8); for (const g of guards) { g.watch = P; } // they walk him to the ring and stand off behind it
     await stroll(d, ...wy(1.5, -3.9), 2.0, 5);
     // A round: fought until the other yields. Beaten, he is stood up and they go again.
@@ -701,7 +689,7 @@ stage('muster', {
     pair.forEach((e, i) => e.go(...spots[i], 2.2, PI));
     cam.shot(wy3(-5.5, 3.2, -9.5), wy3(1.5, 1.2, 0.5)); cam.shot(wy3(-4.2, 2.6, -8.6), wy3(1.5, 1.2, 0.5), 5);
     await d.wait(2.2);
-    await d.talk([['Officer', 'Sergeant.'], ['Sergeant', 'A deserter quits when it goes bad, sir. Let us see it go bad.']]);
+    await d.talk([['Lieutenant', 'Sergeant. Three on one?'], ['Sergeant', 'A deserter quits when it goes bad, sir. With your leave, let us see it go bad.'], ['Lieutenant', '...Go on.']]);
     { const t0 = G.time; await d.until(() => pair.every((e) => !e.to) || G.time - t0 > 4); }
     const HP3 = 0.55, TROOP = 72; let out = []; // he gets up with a little over half of himself; the two fresh ones are lighter than the first soldier
     const rise = (e) => { e.dead = false; e.solid = e.fixed = false; e.hold = false; e.stagDur = 0.3; e.st = 0; e.stop(0.5); e.set('circle'); };
@@ -735,7 +723,7 @@ stage('muster', {
     { const dx = P.pos.x - S.pos.x, dz = P.pos.z - S.pos.z, l = Math.hypot(dx, dz) || 1, mx = (P.pos.x + S.pos.x) / 2, mz = (P.pos.z + S.pos.z) / 2;
       cam.shot([mx - (dz / l) * 3.4, 1.5, mz + (dx / l) * 3.4], [mx, 1.1, mz]); cam.shot([mx - (dz / l) * 3.0, 1.4, mz + (dx / l) * 3.0], [mx, 1.1, mz], 5); }
     await d.wait(1.4);
-    await d.talk([['Sergeant', 'Enough. I yield.'], ['Sergeant', "He's no deserter, sir. A deserter would have quit by now."]]);
+    await d.talk([['Sergeant', 'Enough. I yield.'], ['Sergeant', "There's your answer, sir. A deserter would have quit by now."]]);
     // Then on the officer for his answer: from the ring's side of him, picked clear of the fighters and the company,
     // since the fight can end anywhere in the ring.
     { const ax = (P.pos.x + S.pos.x) / 2 - off.pos.x, az = (P.pos.z + S.pos.z) / 2 - off.pos.z, a0 = Math.atan2(ax, az), at = (a, r) => [off.pos.x + Math.sin(a) * r, off.pos.z + Math.cos(a) * r];
@@ -744,7 +732,7 @@ stage('muster', {
       const [x0, z0] = at(a, 3.0), [x1, z1] = at(a, 2.6), look = [off.pos.x, 1.55, off.pos.z];
       cam.shot([x0, 1.7, z0], look); cam.shot([x1, 1.65, z1], look, 4); }
     await d.wait(0.4);
-    await d.talk([['Officer', 'And their man would have gone out of the gate with them. He stayed and fought.'], ['Officer', 'Then he is a soldier. Put him on the roll.']]);
+    await d.talk([['Lieutenant', 'And their man would have gone out of the gate with them. He stayed and fought.'], ['Lieutenant', 'Then he is a soldier. Put him on the roll.']]);
     // The clerk's table. On a wide screen, across the yard from the east wall; held upright (a phone), that shot only had
     // room for the clerk, so there it looks down the yard from by the ring (west of the cart): officer, clerk and yard hand
     // left to right, in depth.
@@ -755,7 +743,7 @@ stage('muster', {
     await turnTo(d, P, P.angleTo(clerk), 0.4);
     await d.talk([['Clerk', 'Name?'], ['Clerk', 'I need something for the roll.'], ['Yard hand', 'Write whatever you like.']]);
     await d.wait(0.5);
-    await d.talk([['Clerk', 'Posting, sir?'], ['Officer', 'With us. The Third Company, on the wells.'], ['Clerk', '...Poor devil.'], ['Officer', 'You belong to the Watch now. Walk away from it, and you are the deserter I took you for.']]);
+    await d.talk([['Clerk', 'Posting, sir?'], ['Lieutenant', 'With us. The Third Company, on the wells.'], ['Clerk', '...Poor devil.'], ['Lieutenant', 'You belong to the Watch now. Walk away from it, and you are the deserter I took you for.']]);
     await d.wait(0.6); ui.fade(1, 1.6); await d.wait(1.8);
   },
 });
