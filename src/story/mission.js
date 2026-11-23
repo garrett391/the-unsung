@@ -803,19 +803,16 @@ stage('patrol', {
     cam.shot(fr3(-6.5, 2.6, -48.5), fr3(2.5, 1.3, -40)); cam.shot(fr3(-4.5, 2.0, -46.5), fr3(2.8, 1.3, -40), 8); ui.fade(0, 2.4);
     await d.wait(2.2); await turnTo(d, P, P.angleTo(sgt), 0.5);
     await d.talk([
-      ['Sergeant', "The beacon on the north rock has been dark three dawns running."],
-      ['Sergeant', "We sent three up there the first morning, and we haven't heard a thing since."],
+      ['Sergeant', "The beacon on the north rock has been dark three days running."],
+      ['Sergeant', "We sent three up there the first morning to investigate, and we haven't heard a thing since."],
     ]);
-    // Why he is out here at all (owner, Nov 2026: it went from calm to trouble with nothing said between). He asks, in few words; the
-    // sergeant tells it as a soldier sees it: the caravans first, then the small things, then stations opened from inside. Nobody knows why.
+    // Why he is out here at all (owner's wording, 23 Nov 2026): one question from him, and the sergeant tells it as a soldier sees it.
     cam.shot(fr3(0.9, 1.75, -44.9), [sgt.pos.x, sgt.pos.y + 1.55, sgt.pos.z]); cam.shot(fr3(1.0, 1.7, -44.5), [sgt.pos.x, sgt.pos.y + 1.55, sgt.pos.z], 9); // over his shoulder, at the sergeant
     await d.talk([
-      [ME, "The ones at my yard didn't run."],
-      ['Sergeant', "No. They don't, now. Two years ago this was where they sent a man to grow old. Count the herds, walk the wells, sleep."],
-      ['Sergeant', "Then the caravans started coming in late. Then short. Then not at all, and nobody could say what happened to them."],
-      ['Sergeant', "This season it's raids. Small ones, all along the line, and every one a little bolder than the last. And yards like yours, opened from the inside."],
-      ['Sergeant', "And they're the same desert people we've traded with for a hundred years. Only now they don't trade, and they don't run."],
-      ['Sergeant', "Something's put steel in them, and nobody in the Watch can tell me what."],
+      [ME, 'Any theories?'],
+      ['Sergeant', "Raids, from the desert people we've traded with for a hundred years. Only now they don't trade. Something's put steel in them."],
+      ['Sergeant', "Every day they become a little bolder. First it was small raids on unprotected caravans, but now they're coordinating full assaults on yards like yours."],
+      ['Sergeant', "Two years ago this was where they sent a man to grow old. I don't know what's angered them so much."],
       ['Sergeant', 'Hale, Brann, go and find out why that beacon is dark. Take the yard hand with you.'],
     ]);
     cam.shot(fr3(2.4, 1.6, -41.6), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z]); cam.shot(fr3(2.2, 1.6, -41.9), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z], 5);
