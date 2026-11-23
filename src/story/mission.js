@@ -1021,7 +1021,7 @@ stage('picket', {
   },
 });
 
-// 'caravan' (Act I, excursion 1, "the lost caravan"; docs/story.md, "The excursions"): a season after the picket. The sergeant gives
+// 'caravan' (Act I, excursion 1, "the lost caravan"; docs/story.md, "The excursions"): a few weeks after the picket. The sergeant gives
 // him the dead corporal's stripe, and the corporal's runner with it, and sends him with Hale, Brann, Wren and Corin out along
 // the old road to find a caravan that is overdue from the deep desert. They find it stopped in a dry wash (world/wash.js):
 // no beasts, no drivers, the goods untouched, the water casks stove in, and the tracks of everyone walked off north, deeper in.
@@ -1033,7 +1033,7 @@ stage('picket', {
 const CPL = 'Corporal'; // his speaker label from here on, until he is made captain
 const wa = (x, z) => [WASH.x + x, WASH.z + z], wa3 = (x, y, z) => [WASH.x + x, y + G.level.height(WASH.x + x, WASH.z + z), WASH.z + z]; // (wa3: y is above the ground there)
 const WREN = { ...LINE, skin: 0xc4926c, hair: 0x2a1c14 };
-// the four who go with him: each with his own place behind the corporal's shoulder. Corin a season on: a short sword and a buckler now, and still small for the line.
+// the four who go with him: each with his own place behind the corporal's shoulder. Corin a few weeks on: a short sword and a buckler now, and still small for the line.
 const squad = (at) => {
   const mk = (name, look, scale, slot, i) => G.enlist({ soldier: true, name, look, scale, slot, at: at[i] });
   const S = { hale: mk('HALE', { ...LINE, hair: 0x4a3424 }, 1.0, [4.2, 2.6], 0), brann: mk('BRANN', { ...LINE, skin: 0xb98a66, hair: 0x1e1814 }, 0.96, [-4.0, 3.4], 1), wren: mk('WREN', WREN, 0.98, [0.9, 6.2], 2), corin: mk('CORIN', LOOKS.lad, 0.86, [-1.6, 1.5], 3) };
@@ -1079,11 +1079,11 @@ stage('caravan', {
     const [Bx, Bz, Br] = WAGONS[1], bx = Math.cos(Br), bz = -Math.sin(Br), SIT = [Bx + bx * 1.75, Bz + bz * 1.75], sitF = Math.atan2(bx, bz); // the drover, sitting against the second wagon's side
 
     if (first) {
-      // ---- the well picket, a season on: the dead corporal's stripe
+      // ---- the well picket, weeks later: the dead corporal's stripe
       ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'morning', look: 'ranker', player: [...fr(2.2, -36.0), 0], corin: null }); G.carry = null;
       take(); G.freezeAI = true; G.maxAtk = 2; preloadMusic('vigil', 'gait');
-      await d.chronicle('A season on', [
-        'The season turned, and the raids along the line grew worse.',
+      await d.chronicle('Weeks later', [ // (owner, 23 Nov 2026: "a season" read as a long gap, and play doesn't feel like one)
+        'The raids along the line grew worse.',
         'Then the salt caravan from the deep desert never arrived.',
         '<em>The well picket.</em>',
       ], TAP); ui.chronClose();
