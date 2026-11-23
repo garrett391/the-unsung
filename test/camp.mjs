@@ -34,7 +34,7 @@ await run('patrol', async () => { // by day: the walker sets off once he is free
   await still('day-east', w(9.5, 1.7, -36.5), w(15.5, 0.8, -42));
   await still('day-west', w(-6.5, 1.8, -40.5), w(-13.5, 0.8, -38.5));
   await still('day-wheel', w(-8.6, 1.4, -46.6), w(-10.6, 0.7, -45.2));
-  await still('day-lookout', w(8.0, 1.6, -34.2), w(10.6, 1.0, -31.6));
+  await still('day-lookout', w(6.6, 1.7, -38.2), w(9.6, 0.9, -34.4));
   await still('day-wide', w(-2, 5.5, -27), w(4, 0, -44));
   await walkUp('say-cook', -11.9, -37.4, -2.2);
 });
@@ -42,6 +42,6 @@ await run('picket', async () => { // by night
   await still('night-east', w(8.5, 1.7, -33.5), w(14, 0.6, -40));
   await still('night-hearth', w(-8.6, 1.5, -36.6), w(-11.6, 0.6, -36.6));
   await still('night-wide', w(-2, 5.5, -27), w(4, 0, -44));
-  await walkUp('say-lookout', 10.6, -33.1, 0);
+  await walkUp('say-lookout', 9.4, -36.6, 0);
 });
 await browser.close(); server.close();
