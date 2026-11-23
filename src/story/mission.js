@@ -788,7 +788,7 @@ stage('patrol', {
   async run(d) {
     ui.fade(1, 0); G.resetWorld({ site: 'front', look: 'ranker', player: [...fr(1.2, -43.2), 0.5], corin: null }); G.carry = null;
     const P = G.player, L = G.level; G.cinematic = true; ui.cinematic(true); P.controlEnabled = false; P.calm = true; G.freezeAI = true; G.maxAtk = 2; preloadMusic('flagstones', 'granite');
-    if (!G.seenFront) { G.seenFront = true; await d.chronicle('Act I: The Western Watch', [
+    if (!G.seenFront) { G.seenFront = true; await d.chronicle('The Western Watch', [
       'The Third Company held the last wells before the open dunes. Nobody had ever asked to be sent there.',
       "They gave him a soldier's steel and a place in the line. He kept his helm on, and did what he was told.",
       'The company was short of men, and the men it had were tired. Nobody asked the new one many questions.',
