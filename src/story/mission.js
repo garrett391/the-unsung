@@ -793,7 +793,7 @@ const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.s
 // replies are in it under his label). One passing line at a time, shared with the picket's own bystanders (`campHush`).
 // Returns the folk by role. They are Extras, so resetWorld clears them.
 const campHush = { t: 0 };
-const COOK = { armor: 0x8a7a5c, trim: 0x5e4a34, under: 0x26305a, dark: 0x3a2c22, steel: 0xc9ccd2, rim: 0x3a2e22, plain: true, helm: 'open', kettle: 0x8d9096, coif: 0xb9ad90, scarf: 0x6e3229, sash: 0xe2d8c0, beard: 1, hair: 0x3a2c22, skin: 0xb98a66, weapon: 'none', pads: 0.6, legs: 1.1 }; // a soldier past the line, in his shirt with an apron of sacking, an iron hat
+const COOK = { ...LOOKS.carter, armor: 0xb3a385, under: 0x6b5a44, hat: 0x4e3e2c, beard: 1, hair: 0x7a7068, skin: 0xc4926c, sash: 0xe2d8c0 }; // an older man past the line: linen shirt, a sacking apron, a felt cap and a grey beard (owner, 23 Nov 2026: in a kettle hat and neckcloth he looked like Corin)
 function camp(d, mode, said = {}) {
   const P = G.player, L = G.level, at = L.front.lines, W = (p) => fr(...p), folk = {};
   L.front.camp({ night: mode === 'night' });
@@ -869,13 +869,13 @@ stage('patrol', {
     cam.shot(fr3(2.4, 1.6, -41.6), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z]); cam.shot(fr3(2.2, 1.6, -41.9), [hale.pos.x, hale.pos.y + 1.5, hale.pos.z], 5);
     await d.talk([['Hale', "Him, Sergeant? He's been with us nine days."], ['Sergeant', 'And he put the both of you on your knees on the first one. Go.']]);
     G.cinematic = false; ui.cinematic(false); P.calm = false; P.face = 0; cam.behind(); P.controlEnabled = true; G.freezeAI = false;
-    ui.objective('Go north, over the rise'); L.marker(...fr(8, -18));
-    // The rise. They are under the sand along its east end, and get up as he comes over the top.
-    await d.until(() => P.pos.z > FRONT.z - 21.5); L.marker(null);
+    ui.objective('Go north, over the rise'); L.marker(...fr(8, -15));
+    // The rise. They are under the sand on its far side, out of sight of the picket, and get up as he comes over the top.
+    await d.until(() => P.pos.z > FRONT.z - 12.5); L.marker(null); // (owner, 23 Nov 2026: it used to start a few metres past the stakes, in sight of the camp: now over the crest)
     const offJ = javelins('Brann');
-    const w1 = ambush([['raider', 17.5, -17], ['raider', 21, -22.5], ['raider', 24.5, -17.5], ['runner', 28, -21], ['raider', 14, -22], ['skirmisher', 32, -12.5]], [null, hale, brann]); // (owner, Nov 2026: more of them; the rest find their own fights, Enemy.share)
+    const w1 = ambush([['raider', 24, -13], ['raider', 33, -15], ['raider', 6, -6], ['runner', 36, -12], ['raider', 3, -3], ['skirmisher', 42, -13]], [null, hale, brann]); // (owner, Nov 2026: more of them; the rest find their own fights, Enemy.share)
     G.freezeAI = true; actOne(true); SFX.tele(); ui.say('Brann', "The sand! They're coming up out of the sand!", 3.5);
-    await glance(d, ...fr(21.5, -19.5), { hold: 1.7 }); G.freezeAI = false; for (const e of w1) e.cd = rnd(0.8, 2);
+    await glance(d, ...fr(24, -11), { hold: 1.7 }); G.freezeAI = false; for (const e of w1) e.cd = rnd(0.8, 2);
     ui.objective('Cut them down');
     await d.until(() => live() === 0); await d.wait(0.9); rallyAll();
     ui.say('Hale', 'They were lying in wait. For us, or for whoever came along?', 4.5);
