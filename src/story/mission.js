@@ -842,7 +842,7 @@ stage('patrol', {
     // (owner, Nov 2026: the morning used to wear on as they went, in two ten-second runs of the sun after each fight, and every shadow
     // on the field swung round while he watched. The hour now only changes behind a black screen: at the beacon, before the corporal's scene.)
     const sgt = new Extra(TYPES.sergeant.look, ...fr(3.6, -39.4), 0, { scale: TYPES.sergeant.scale }); sgt.watch = P;
-    { const e = new Extra({ ...LINE, shield: undefined, weapon: 'none' }, ...fr(7.6, -39.6), 0, { scale: 0.98 }); e.face = Math.atan2(6.4 - 7.6, -38.2 + 39.6); } // one of the picket, at the fire
+    { const e = new Extra({ ...LINE, shield: undefined, weapon: 'none' }, ...fr(7.96, -37.2), Math.atan2(6.4 - 7.96, -38.2 + 37.2) + 0.18, { scale: 0.98 }); e.unbound = true; e.play(C(0.1, [0, SEAT(0.98, 'lean')]), 0.01); e.live = { k: 0.8, seed: 8.2 }; } // one of the picket, on a log at the fire (standing beside it, he and the fire made a pocket that Brann stuck in as he set out)
     const [hale, brann] = file([[...fr(-0.6, -40.6), 1.9], [...fr(0.4, -38.6), 2.3]]);
     camp(d, 'day', { // (drafts) he has been here nine days
       cook: [['Cook', "Up to the beacon? Take a heel of bread off the table. I'll not have it said I sent a man out empty."]],
