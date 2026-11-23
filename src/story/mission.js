@@ -783,6 +783,50 @@ const SEAT = (scale = 1, kind = 'lean') => pose({ pos: [0, 0.53 / scale - 0.9, -
 const ME = 'Yard hand';
 // The first javelin on the frontier: one of the line shouts it, in the patrol only (owner, 23 Nov 2026: it was shouted again in later chapters). Returns the unsubscribe.
 const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.seenJav = true; ui.say(who, 'Javelins! Shields up, or get out of the way!', 3.5); } });
+// The picket's people (owner, 23 Nov 2026: the camp he keeps coming back to should be lived in; the tents and the rest are in
+// front.js). Who is about depends on the hour:
+//   'day'    the cook at his hearth, two at dice between the tents, one at the whetstone, the lookout at his stones, and one
+//            carrying water from the well to the hearth (he only walks while the captain is free to, so nobody crosses a scene)
+//   'night'  the lookout, and one who can't sleep, on a keg by the hearth; three asleep at their doors (front.camp({ night }))
+// Nobody is named (no plate over them: they are the rest of the post). `said` gives some of them something to say in this
+// chapter, once, when he comes within 2.6 m: { cook, dice, wheel, lookout, water, awake } each a run of [who, text] (his own
+// replies are in it under his label). One passing line at a time, shared with the picket's own bystanders (`campHush`).
+// Returns the folk by role. They are Extras, so resetWorld clears them.
+const campHush = { t: 0 };
+const COOK = { armor: 0x8a7a5c, trim: 0x5e4a34, under: 0x26305a, dark: 0x3a2c22, steel: 0xc9ccd2, rim: 0x3a2e22, plain: true, helm: 'open', kettle: 0x8d9096, coif: 0xb9ad90, scarf: 0x6e3229, sash: 0xe2d8c0, beard: 1, hair: 0x3a2c22, skin: 0xb98a66, weapon: 'none', pads: 0.6, legs: 1.1 }; // a soldier past the line, in his shirt with an apron of sacking, an iron hat
+function camp(d, mode, said = {}) {
+  const P = G.player, L = G.level, at = L.front.lines, W = (p) => fr(...p), folk = {};
+  L.front.camp({ night: mode === 'night' });
+  const put = (role, look, p, face, o = {}) => { const e = new Extra(look, ...W(p), face, { scale: o.scale || 0.98 }); e.voice = o.voice; e.home = face; e.sits = !!o.pose; if (o.pose) { e.unbound = true; e.play(C(0.1, [0, o.pose]), 0.01); } e.live = { k: o.k || 0.8, seed: o.seed || 0 }; folk[role] = e; return e; };
+  const face = (p, q) => Math.atan2(q[0] - p[0], q[1] - p[1]);
+  const hearth = at.hearth, look = { ...LINE, hair: 0x2c2420 };
+  put('lookout', look, at.lookout, 0.15, { voice: 'SENTRY', k: 0.5, seed: 1.1 }); // facing north, over the stones
+  if (mode === 'day') {
+    const cp = [hearth[0] - 0.75, hearth[1]]; put('cook', COOK, cp, face(cp, hearth), { voice: 'COOK', pose: pose({ spine: [0.3], neck: [0.15], shR: [-0.95, 0, 0.12], elR: [-0.7], haR: [0.3], shL: [-0.45, 0, -0.1], elL: [-0.9] }, PZ.kneelBy), seed: 2.2 });
+    const [dx, dz] = at.dice; for (const [k, p, o, seed, kind] of [['dice', [12.55, -41.85], { skin: 0xb98a66, hair: 0x1e1814 }, 3.3, 'lean'], ['dice2', [14.3, -41.15], { hair: 0x6a4a2a }, 4.7, 'back']]) put(k, { ...OFF, ...o }, p, face(p, [dx, dz]) + (kind === 'back' ? 0.25 : -0.1), { voice: 'SOLDIER', pose: SEAT(0.98, kind), seed });
+    put('wheel', { ...OFF, skin: 0xc4926c, hair: 0x4a3424 }, at.wheel, 0, { voice: 'SOLDIER', pose: pose({ shR: [-1.1, 0, 0.1], elR: [-0.5], shL: [-1.0, 0, -0.1], elL: [-0.55] }, SEAT(0.98, 'lean')), seed: 5.1 });
+    // the water: from the well round the palm to the hearth, and back; he stands at each end a while
+    const route = [[-11.4, -38.0], [-10.2, -41.3], [-7.6, -41.6], [-4.0, -45.4]], w = put('water', { ...OFF, hair: 0x3a2c22, skin: 0xd0a07c }, route[0], face(route[0], hearth), { voice: 'SOLDIER', k: 0.5, seed: 6.6 });
+    { const b = new T.Mesh(new T.CylinderGeometry(0.15, 0.12, 0.26, 10), new T.MeshToonMaterial({ color: 0x5c4028 })); b.position.set(0, -0.2, 0.02); b.castShadow = true; w.rig.J.haR.add(b); }
+    let i = 0, dir = 1, wait = 0;
+    d.every((dt) => { if (w.stopT > G.time || w.watch || !P.controlEnabled || G.cinematic || G.talking) return; if (w.to) return; if ((wait -= dt) > 0) return;
+      const n = i + dir; if (n < 0 || n >= route.length) { dir = -dir; wait = dir < 0 ? 3.2 : 2.6; w.faceTo = dir < 0 ? face(route[i], [-1.5, -45.5]) : face(route[i], hearth); return; } i = n; w.go(...W(route[i]), 1.25); });
+  } else {
+    const sp = at.seat; put('awake', { ...OFF, hair: 0x4a3424, skin: 0xb98a66 }, sp, face(sp, hearth) + 0.2, { voice: 'SOLDIER', pose: SEAT(0.98, 'clasp'), seed: 7.4 });
+  }
+  // a line, once each, as he comes near; they look round at him while it is said, and go back to what they were doing after
+  const near = Object.entries(folk).filter(([k]) => said[k.replace(/2$/, '')]);
+  d.every(() => {
+    for (const [, e] of Object.entries(folk)) if (e.turned && P.dist(e) > 4.5) { e.turned = false; if (e.sits) e.lookY = 0; else { e.watch = null; e.faceTo = e.home; } }
+    if (!P.controlEnabled || G.talking || G.cinematic || G.time < campHush.t) return;
+    for (const [k, e] of near) { const key = k.replace(/2$/, ''); if (said[key].done || P.dist(e) > 2.6) continue;
+      const run = said[key]; run.done = true; let t = 0;
+      for (const [k2, e2] of Object.entries(folk)) if (k2.replace(/2$/, '') === key) { e2.turned = true; if (e2.sits) e2.lookY = clamp(wrap(e2.angleTo(P) - e2.face), -0.9, 0.9); else { e2.watch = P; e2.stopT = G.time + 6; } }
+      for (const [who, text] of run) { const dur = 1.6 + text.length * 0.05; d.wait(t).then(() => { if (!G.talking) ui.say(who, text, dur); }, () => {}); t += dur + 0.5; }
+      campHush.t = G.time + t; break; }
+  });
+  return folk;
+}
 stage('patrol', {
   checkpoint: true, cards: true, // it opens on the Act I cards: main.js leaves the music playing under them
   async run(d) {
@@ -800,6 +844,13 @@ stage('patrol', {
     const sgt = new Extra(TYPES.sergeant.look, ...fr(3.6, -39.4), 0, { scale: TYPES.sergeant.scale }); sgt.watch = P;
     { const e = new Extra({ ...LINE, shield: undefined, weapon: 'none' }, ...fr(7.6, -39.6), 0, { scale: 0.98 }); e.face = Math.atan2(6.4 - 7.6, -38.2 + 39.6); } // one of the picket, at the fire
     const [hale, brann] = file([[...fr(-0.6, -40.6), 1.9], [...fr(0.4, -38.6), 2.3]]);
+    camp(d, 'day', { // (drafts) he has been here nine days
+      cook: [['Cook', "Up to the beacon? Take a heel of bread off the table. I'll not have it said I sent a man out empty."]],
+      dice: [['Soldier', 'In or out? ...Out, then. Mind my light.'], ['Soldier', 'Leave him be. He put Hale on his back the first day.']],
+      wheel: [['Soldier', "The sand gets in the edge. You'll be doing this every night, same as me."], [ME, 'I know.']],
+      lookout: [['Sentry', "Not a thing moving out there since first light. Three days of that now. I don't like it."]],
+      water: [['Soldier', 'Twenty buckets for the trough, and the sun drinks half of it.']],
+    });
     cam.shot(fr3(-6.5, 2.6, -48.5), fr3(2.5, 1.3, -40)); cam.shot(fr3(-4.5, 2.0, -46.5), fr3(2.8, 1.3, -40), 8); ui.fade(0, 2.4);
     await d.wait(2.2); await turnTo(d, P, P.angleTo(sgt), 0.5);
     await d.talk([
@@ -944,9 +995,9 @@ stage('picket', {
       const who = [['HALE', { hair: 0x4a3424 }, 1.0, 7.4, -33.4], ['BRANN', { skin: 0xb98a66, hair: 0x1e1814 }, 0.96, 9.2, -39.1], ['WREN', { skin: 0xc4926c, hair: 0x2a1c14 }, 0.98, 7.4, -42.6]] // (owner, 21 Nov 2026) spread about the fire, well off his way to the trough: talking to them is his choice;
       // lines[i] = [what they say, how long it stays, what he says back] (owner, 16 Nov 2026: no blank stares; he answers his own people)
       const folk = who.map(([name, o, scale, x, z], i) => ({ e: new Extra({ ...OFF, ...o }, ...fr(x, z), toFire(x, z), { scale, name }), who: name[0] + name.slice(1).toLowerCase(), line: lines[i][0], dur: lines[i][1], reply: lines[i][2] }));
-      const stop = d.every(() => { if (!P.controlEnabled || G.talking) return; for (const f of folk) if (!f.said && P.dist(f.e) < 2.5 && G.time > quiet) {
+      const stop = d.every(() => { if (!P.controlEnabled || G.talking) return; for (const f of folk) if (!f.said && P.dist(f.e) < 2.5 && G.time > Math.max(quiet, campHush.t)) {
         f.said = true; f.e.watch = P; ui.say(f.who, f.line, f.dur); quiet = G.time + f.dur + 0.3;
-        if (f.reply) { const rd = 1.4 + f.reply.length * 0.05; quiet += rd; d.wait(f.dur).then(() => { if (!G.talking) ui.say(ME, f.reply, rd); }, () => {}); } } });
+        if (f.reply) { const rd = 1.4 + f.reply.length * 0.05; quiet += rd; d.wait(f.dur).then(() => { if (!G.talking) ui.say(ME, f.reply, rd); }, () => {}); } campHush.t = quiet; } });
       return stop;
     };
     const take = () => { P.controlEnabled = false; P.lock = null; P.calm = true; G.cinematic = true; ui.cinematic(true); ui.objective(''); L.marker(null); ui.hideDialogue(); };
@@ -958,11 +1009,15 @@ stage('picket', {
     const corp = new Extra({ ...OFF, hair: 0x8a8680 }, ...fr(...loc(0, 0)), 0.4); corp.unbound = true; corp.play(C(0.1, [0, PZ.sit]), 0.01); // against the trough, facing the fire
     const boy = new Extra(BOY, ...fr(...loc(0.95, 0.25)), 0, { scale: BOY_SCALE, name: 'CORIN' }); boy.unbound = true; boy.face = boy.angleTo(corp); boy.play(C(0.1, [0, PZ.kneelBy]), 0.01);
     const sgt = new Extra(TYPES.sergeant.look, ...fr(...loc(-1.7, 2.5)), 0, { scale: TYPES.sergeant.scale }); sgt.face = sgt.angleTo(corp);
+    camp(d, 'night', { // (drafts)
+      lookout: [['Sentry', "Nothing out there tonight but the wind. ...Go and sit with him. I'll call if anything moves."]],
+      awake: [['Soldier', "Can't sleep? Nobody can, with him like that."], [ME, 'No.']],
+    });
     let stop = company([["He's been asking for you. ...The sergeant says he won't see the morning.", 5, "Then I won't keep him waiting."], ["Go on. I'll keep you a place by the fire.", 3.5, 'Thanks.'], ["I got the beacon lit. It didn't do him any good.", 4, 'It did the rest of us.']]);
     cam.shot(fr3(-1.5, 2.4, -33.5), fr3(4.6, 1.0, -39.6)); cam.shot(fr3(-0.6, 2.0, -34.6), fr3(4.6, 1.0, -39.8), 8); ui.fade(0, 2.6); // the picket by firelight, from the dark
     await d.wait(4.2); give();
     ui.objective('Go to the corporal'); // (owner, 21 Nov 2026: no beam: the firelight and the trough show where he lies)
-    await d.until(() => P.dist(corp) < 2.5 && G.time > quiet);
+    await d.until(() => P.dist(corp) < 2.5 && G.time > Math.max(quiet, campHush.t));
     stop(); await settled(d, 1); take();
     await stroll(d, ...fr(...loc(0.3, 2.0)), 1.8, 5); await turnTo(d, P, P.angleTo(corp), 0.4);
     const eye = (c, h = 1.45) => [c.pos.x, c.pos.y + h, c.pos.z], c3 = (a, n, y) => { const [x, z] = loc(a, n); return fr3(x, y, z); };
@@ -994,6 +1049,13 @@ stage('picket', {
     const sg = new Extra(TYPES.sergeant.look, ...fr(...loc(-2.0, 1.4)), 0, { scale: TYPES.sergeant.scale }); sg.watch = P;
     // (owner, 16 Nov 2026: he should be some way off, and found.) Out past the stakes, at the top of the rise, looking north to the beacon.
     const K = [9.0, -12.0], kid = new Extra(BOY, ...fr(...K), 0.17, { scale: BOY_SCALE, name: 'CORIN' }); kid.lookP = -0.2; // chin up: he is looking at the beacon on its rock
+    L.front.camp({ grave: true }); camp(d, 'day', { // (drafts) the morning after: they have buried him under the palms
+      cook: [['Cook', "Eat something. He'd have told you the same."]],
+      dice: [['Soldier', "We'd play, but it doesn't seem right. Not today."]],
+      wheel: [['Soldier', "He sharpened this for me my first week. Said I'd take my thumb off doing it my way."]],
+      lookout: [['Sentry', "The boy went out past me at first light. I didn't stop him. ...Should I have?"], [ME, 'No.']],
+      water: [['Soldier', 'We put him where the shade falls in the afternoon. He hated the sun.']],
+    });
     stop = company([["The boy went out past the stakes as soon as we'd buried him. Somebody ought to go after him. ...It shouldn't be me.", 6, "I'll go."], ['My father had a dog like you. Never made a sound, and nothing ever got near the sheep.', 5.5, 'Was that meant kindly?'], ['Three days at the rock he carried water to all of us, and never spilled any. ...Be patient with him.', 6, "I'll try."]]);
     cam.shot(c3(1.6, 2.2, 1.1), c3(0, 0.3, 0.5)); cam.shot(c3(1.2, 2.6, 1.3), c3(0, 0.3, 0.5), 7); ui.fade(0, 2.4); // where he sat: nobody
     await d.wait(3.0);
@@ -1007,7 +1069,7 @@ stage('picket', {
     ]);
     give(); ui.objective('Find Corin');
     { const t0 = G.time; let shown = false; const late = d.every(() => { if (!shown && G.time - t0 > 40) { shown = true; L.marker(...K.map((v, i) => v + (i ? FRONT.z : FRONT.x))); } }); // no marker at first: the sergeant has said where; it comes if he is still looking after a while
-      await d.until(() => P.dist(kid) < 2.6 && G.time > quiet); late(); }
+      await d.until(() => P.dist(kid) < 2.6 && G.time > Math.max(quiet, campHush.t)); late(); }
     stop(); await settled(d, 1); take(); await turnTo(d, P, P.angleTo(kid), 0.3);
     { const f = kid.face, sx = Math.sin(f), cz = Math.cos(f); cam.shot(fr3(K[0] + sx * 2.6 + cz * 1.5, 1.3, K[1] + cz * 2.6 - sx * 1.5), eye(kid, 1.0)); cam.shot(fr3(K[0] + sx * 2.4 + cz * 1.2, 1.25, K[1] + cz * 2.4 - sx * 1.2), eye(kid, 1.0), 9); } // from out in front of him: the boy, and the soldier behind his shoulder
     await d.wait(1.2);
@@ -1090,6 +1152,7 @@ stage('caravan', {
       wash(); forgetMusic(); preloadMusic('vigil', 'gait');
       const sgt = new Extra(TYPES.sergeant.look, ...fr(0.9, -38.4), 0, { scale: TYPES.sergeant.scale }); sgt.watch = P; P.face = P.angleTo(sgt);
       S = squad([[...fr(4.6, -35.6), -2.4], [...fr(-0.8, -35.0), 2.6], [...fr(3.8, -33.8), -2.8], [...fr(3.7, -42.9), 2.6]]);
+      L.front.camp({ grave: true }); camp(d, 'day'); // the post goes on about its morning behind them
       S.corin.face = Math.atan2(2.6 - 3.7, -41.6 + 42.9) + PI * 0.15; // by the trough, where his brother died: not with the others
       cam.shot(fr3(-5.5, 2.4, -30.5), fr3(2.0, 1.2, -38.5)); cam.shot(fr3(-4.2, 2.0, -31.6), fr3(2.0, 1.2, -38.5), 9); ui.fade(0, 2.4); await d.wait(3.0);
       const dir = [-0.476, -0.879], perp = [0.879, -0.476];
@@ -1333,6 +1396,10 @@ stage('tracks', {
       // Wren on her knees, turning the piece of glass over in her hands in front of her
       fire.wren.unbound = true; fire.wren.play(C(0.1, [0, pose({ spine: [0.2], neck: [0.1], shL: [-0.75, 0, -0.3], elL: [-1.15], shR: [-0.75, 0, 0.3], elR: [-1.15], haR: [0.6] }, PZ.kneelBy)]), 0.01); fire.wren.live = { k: 0.8, seed: 3.4 };
       fire.wren.lookP = -0.1; // (her chin up: under the brim of the helm a bowed head hides the face)
+      L.front.camp({ grave: true }); camp(d, 'night', { // (drafts)
+        lookout: [['Sentry', 'Those pale ones you met in the wash, Corporal. Do they come at night?'], [CPL, 'Keep your eyes open.']],
+        awake: [['Soldier', 'You brought a man back alive from out there. First good news in a month.']],
+      });
       const at = (e, who) => { e.lookY = clamp(wrap(e.angleTo(who) - e.face), -0.9, 0.9); }; // a seated one turns his head, not his body
       cam.shot(fr3(7.6, 2.3, -45.2), fr3(5.0, 1.0, -35.2)); cam.shot(fr3(7.2, 2.1, -44.6), fr3(4.8, 1.0, -35.0), 9); ui.fade(0, 2.4); // the fire, and him out at the stakes beyond it
       await d.wait(3.4); give(); ui.objective('Go to the fire');

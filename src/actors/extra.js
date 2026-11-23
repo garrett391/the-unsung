@@ -28,6 +28,7 @@ function alive(o, { k = 1, seed = 0 }, talk) {
 //   watch = someone     keep turned toward them while standing
 //   lie()               dead on the ground (and no longer in anyone's way)
 //   lookP, lookY        tip the head up (negative) or down, turn it left or right
+//   voice               the label his lines go under when he has no name over his head (he gestures as he speaks)
 //   live = { k, seed }  someone sitting or standing about while a scene plays: he breathes, shifts a little now and then,
 //                       and while his name is the one on the dialogue box (G.speaker) he lifts a hand and nods as he talks
 // Turning on the spot, the head goes first and the feet take steps (owner, Nov 2026: a half turn with still legs looked odd).
@@ -69,7 +70,7 @@ export class Extra extends Char {
     this.headY = damp(this.headY, this.clip || this.dead ? 0 : clamp(turn, -0.9, 0.9), 7, dt); this.stepK = damp(this.stepK, big ? 1 : 0, big ? 10 : 6, dt);
     this.setLoco(4.6, dt);
     if (this.stepK > 0.02 && !this.to) { this.speedN = Math.max(this.speedN, 0.13 * this.stepK); this.phase += dt * 9.5 * this.stepK; } // short steps round, in place
-    if (this.live) this.talkK = damp(this.talkK, this.type.name && G.speaker === this.type.name ? 1 : 0, 3, dt);
+    if (this.live) { const nm = this.voice || this.type.name; this.talkK = damp(this.talkK, nm && G.speaker === nm ? 1 : 0, 3, dt); } // (voice: the speaker label of someone with no nameplate)
   }
   layer(c) {
     const y = this.lookY + this.headY, p = this.lookP; if (!y && !p && !this.live) return c;

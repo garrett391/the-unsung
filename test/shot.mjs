@@ -1,6 +1,6 @@
 // A few stills of one place, for looking at a change without running a whole tour.
 //   npm run build && WORLD='{"site":"way"}' SHOTS='[["palm",[0,2,125],[-9,5,128]]]' node test/shot.mjs   (writes test/shots/shot-<name>.png)
-// WORLD is what resetWorld takes; each shot is [name, camera position, look-at] in world coordinates. W and H set the window (a phone: W=390 H=780).
+// WORLD is what resetWorld takes; EVAL is a script run after it (e.g. 'G.level.front.camp({ night: true })'); each shot is [name, camera position, look-at] in world coordinates. W and H set the window (a phone: W=390 H=780).
 import { chromium } from 'playwright-core';
 import http from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
@@ -17,8 +17,9 @@ await page.route('**/fonts.googleapis.com/**', (r) => r.abort());
 await page.goto(`http://localhost:${server.address().port}/`); await page.waitForTimeout(800);
 await page.evaluate(async (o) => {
   for (const id of ['title', 'hud', 'chron']) document.getElementById(id).style.display = 'none'; document.getElementById('fade').style.opacity = 0;
-  G.director.abort(); G.running = true; G.resetWorld({ corin: null, ...o }); G.player.setVisible(false); G.player.controlEnabled = false; G.freezeAI = true;
-}, JSON.parse(process.env.WORLD || '{}'));
+  G.director.abort(); G.running = true; const { eval: _e, ...w } = o; G.resetWorld({ corin: null, ...w }); G.player.setVisible(false); G.player.controlEnabled = false; G.freezeAI = true;
+  if (o.eval) (0, eval)(o.eval);
+}, { ...JSON.parse(process.env.WORLD || '{}'), eval: process.env.EVAL || '' });
 for (const [n, from, to] of JSON.parse(process.env.SHOTS || '[]')) {
   await page.evaluate(async ([from, to]) => { G.cam.shot(from, to); for (let k = 0; k < 8; k++) { G.step(1 / 60, true); await null; } G.step(1 / 60); }, [from, to]);
   await page.screenshot({ path: join(shots, `shot-${n}.png`) });

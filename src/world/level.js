@@ -581,7 +581,7 @@ export function buildLevel() {
     stars.material.opacity = bright.material.opacity = mx('stars'); moon.material.opacity = mx('moon'); halo.material.opacity = 0.3 * mx('stars'); mHalo.opacity = 0.45 - warm * 0.2;
     halo.position.copy(moon.position).multiplyScalar(1.03);
     if (G.grade) G.grade.uniforms.uWarm.value = warm;
-    for (const l of W.fires) l.userData.base = FIRE * mx('fire');
+    for (const l of W.fires) l.userData.base = FIRE * mx('fire'); if (W.front) W.front.fireK = mx('fire'); // (the picket's fire)
   };
   // In the vault the only strong light is the Door's: the "sun" is moved behind the glass and
   // shines down the hall through the doorway, so the leading of the panes falls across the floor
