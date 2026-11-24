@@ -218,7 +218,7 @@ if (at('tracks')) {
   await play(30, { tap: true, until: dtxt('/my orders/') }); await play(0.8); await shot('2b2-my-orders');
   log('the deep desert', await play(90, { tap: true, until: "G.level.site==='hollow'" })); await play(2.6); await page.waitForTimeout(1500); await shot('2c-the-tracks');
   await play(20, { until: "G.player.controlEnabled" }); await play(0.5); await shot('2c2-sets-out');
-  log('the crest', await walkH([[0.3, -52], [0.2, -42], [0, -39]], "G.cinematic")); await play(20, { until: "G.cinematic" }); await play(1.8); await shot('2d-the-first');
+  log('the crest', await walkH([[-7.7, -82.2], [-13.4, -76.7], [-16.0, -70.2], [-16.4, -65.3], [-15.6, -60.3], [-14.0, -55.6], [-11.7, -51.2], [-9.0, -47.0], [-4.5, -41.6], [-2.5, -39.4]], "G.cinematic")); // (the way in winds: west, north round a dune, then north-east up to the crest) await play(20, { until: "G.cinematic" }); await play(1.8); await shot('2d-the-first');
   await play(20, { until: "G.player.controlEnabled" }); await play(0.5);
   log('the rim', await walkH([[-0.8, -35], [-0.4, -30], [0, -25]], "G.cinematic")); await play(20, { until: "G.cinematic" }); await play(2.0); await shot('2e-the-hollow');
   await play(20, { until: "G.player.controlEnabled" }); await play(0.5); await shot('2e2-rim');

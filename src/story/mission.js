@@ -9,7 +9,7 @@ import { HALLS } from '../world/halls.js';
 import { FORE } from '../world/forecourt.js';
 import { FRONT } from '../world/front.js';
 import { WASH, WAGONS, CASKS, WAREA } from '../world/wash.js';
-import { HOLLOW, HAREA, HDOOR, glassMan } from '../world/hollow.js';
+import { HOLLOW, HAREA, HDOOR, glassMan, onTrack } from '../world/hollow.js';
 import { PZ, C, P as pose, eClip } from '../actors/anim.js';
 import { FX, shock, clearBlood, blood } from '../gfx/fx.js';
 import { coarse, opts } from '../core/input.js';
@@ -1096,8 +1096,9 @@ const CPL = 'Corporal'; // his speaker label from here on, until he is made capt
 const wa = (x, z) => [WASH.x + x, WASH.z + z], wa3 = (x, y, z) => [WASH.x + x, y + G.level.height(WASH.x + x, WASH.z + z), WASH.z + z]; // (wa3: y is above the ground there)
 const WREN = { ...LINE, skin: 0xc4926c, hair: 0x2a1c14 };
 // the four who go with him: each with his own place behind the corporal's shoulder. Corin a few weeks on: a short sword and a buckler now, and still small for the line.
+// With no `at`, each is put in his place for the way the corporal faces (Ally.fallIn), ready to march.
 const squad = (at) => {
-  const mk = (name, look, scale, slot, i) => G.enlist({ soldier: true, name, look, scale, slot, at: at[i] });
+  const mk = (name, look, scale, slot, i) => { const a = G.enlist({ soldier: true, name, look, scale, slot, at: at && at[i] }); if (!at) a.fallIn(); return a; };
   const S = { hale: mk('HALE', { ...LINE, hair: 0x4a3424 }, 1.0, [4.2, 2.6], 0), brann: mk('BRANN', { ...LINE, skin: 0xb98a66, hair: 0x1e1814 }, 0.96, [-4.0, 3.4], 1), wren: mk('WREN', WREN, 0.98, [0.9, 6.2], 2), corin: mk('CORIN', LOOKS.lad, 0.86, [-1.6, 1.5], 3) };
   S.corin.hp = S.corin.maxHp = 150; return S;
 };
@@ -1178,7 +1179,7 @@ stage('caravan', {
 
       // ---- the old road, and down into the wash
       G.resetWorld({ site: 'wash', sky: 'day', look: 'corporal', player: [...wa(0.5, -63), 0], corin: null });
-      S = squad([[...wa(2.4, -64.3), 0], [...wa(-1.4, -64.6), 0], [...wa(1.5, -66.2), 0], [...wa(-0.4, -66.5), 0]]); G.maxAtk = 2;
+      S = squad(); G.maxAtk = 2; // each already in his place, so they set off as he does instead of running out to it
       take(); G.freezeAI = false; P.walk = { x: WASH.x + 0.5, z: WASH.z - 55, sp: 2.2 }; // they walk in; the camera watches them come
       cam.shot(wa3(4.2, 1.5, -46.5), wa3(0.4, 1.3, -61)); cam.shot(wa3(3.6, 1.7, -46.0), wa3(0.4, 1.4, -57), 7); ui.fade(0, 1.6); // out in front of them, as they come up the track
       await d.wait(5.5); P.walk = null; P.face = 0; give(); ui.objective('Follow the road north');
@@ -1363,7 +1364,7 @@ stage('tracks', {
     const say = (list) => { lines(list).catch(() => {}); };
     const hush = () => { gen++; quiet = 0; ui.hideDialogue(); };
     const SGT = TYPES.sergeant.look, SSC = TYPES.sergeant.scale;
-    const five = (at) => { const s = squad(at); s.sgt = G.enlist({ soldier: true, name: 'SERGEANT', look: SGT, scale: SSC, slot: [2.0, -0.2], at: at[4] }); s.sgt.hp = s.sgt.maxHp = 170; return s; };
+    const five = (at) => { const s = squad(at); s.sgt = G.enlist({ soldier: true, name: 'SERGEANT', look: SGT, scale: SSC, slot: [2.0, -0.2], at: at && at[4] }); if (!at) s.sgt.fallIn(); s.sgt.hp = s.sgt.maxHp = 170; return s; };
     const who = () => [P, S.hale, S.brann, S.wren, S.corin, S.sgt];
     const clearAt = (x, z) => HAREA.some((c) => Math.hypot(x - c.x, z - c.z) < c.r - 1.4) && !OBSTACLES.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + 1.2) && !who().some((c) => Math.hypot(c.pos.x - x, c.pos.z - z) < 3.5);
     const ring = (cx, cz, n, r1, r0) => { const out = [], a0 = rnd(0, PI * 2);
@@ -1479,12 +1480,15 @@ stage('tracks', {
       await d.wait(1.2); ui.fade(1, 1.4); await d.wait(1.6); ui.hideDialogue();
       await d.chronicle('The deep desert', ['<em>Two days north of the old road.</em>'], TAP); ui.chronClose();
 
-      // ---- the tracks, over the crest
-      G.resetWorld({ site: 'hollow', look: 'corporal', player: [...ho(0.3, -63), 0], corin: null }); G.maxAtk = 2;
-      S = five([[...ho(2.2, -64.4), 0], [...ho(-1.6, -64.6), 0], [...ho(1.4, -66.0), 0], [...ho(-0.6, -66.4), 0], [...ho(0.2, -65.2), 0]]);
-      take(); G.freezeAI = false; P.walk = { x: HOLLOW.x + 0.3, z: HOLLOW.z - 56, sp: 2.2 };
-      cam.shot(ho3(3.8, 1.5, -48.5), ho3(0.3, 1.3, -61)); cam.shot(ho3(3.3, 1.7, -48.0), ho3(0.3, 1.4, -57), 7); ui.fade(0, 1.6);
-      await d.wait(5.0); P.walk = null; P.face = 0; give(); ui.objective('Follow the tracks');
+      // ---- the tracks, round the dunes and over the crest (owner, 24 Nov 2026: longer, and winding, so the door is not in sight from the start)
+      const [sx, sz, sf] = onTrack(7.5), [wx, wz, wf] = onTrack(17); // they come in over the sand at the valley's mouth and walk in along it, west
+      G.resetWorld({ site: 'hollow', look: 'corporal', player: [...ho(sx, sz), sf], corin: null }); G.maxAtk = 2;
+      S = five(); // each in his place
+      take(); G.freezeAI = false; P.walk = { x: HOLLOW.x + wx, z: HOLLOW.z + wz, sp: 2.2 };
+      { const at = (s, side, y) => { const [x, z, f] = onTrack(s); return ho3(x - Math.cos(f) * side, y, z + Math.sin(f) * side); }; // (side: + to the right of the way)
+        cam.shot(at(29, 2.0, 1.5), at(11, 0, 1.3)); cam.shot(at(28.5, 1.6, 1.7), at(15, 0, 1.4), 7); } // from the bend ahead, back down the valley at them as they come
+      ui.fade(0, 1.6);
+      await d.wait(5.0); P.walk = null; P.face = wf; give(); ui.objective('Follow the tracks');
       d.wait(2.5).then(() => say([['Hale', 'Two days, and no water. Nobody walks that.', 3.2], ['Sergeant', "They weren't walking. They were being walked.", 3.4]]), () => {});
       // the first of the drivers, on the crest: he had turned round
       await d.until(() => P.pos.z > HOLLOW.z - 40.5); hush(); G.freezeAI = true; deep('sealed');

@@ -25,7 +25,7 @@ const LLEN = LINE.reduce((l, p, i) => (i ? l + Math.hypot(p[0] - LINE[i - 1][0],
 const along = (s) => { for (let i = 1; i < LINE.length; i++) { const a = LINE[i - 1], b = LINE[i], l = Math.hypot(b[0] - a[0], b[1] - a[1]); if (s <= l || i === LINE.length - 1) return [lerp(a[0], b[0], s / l), lerp(a[1], b[1], s / l)]; s -= l; } return LINE[0]; };
 const nearLine = (x, z) => { let bd = 1e9, bs = 0, acc = 0; for (let i = 1; i < LINE.length; i++) { const a = LINE[i - 1], b = LINE[i], dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz, t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / l2, 0, 1), d = Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t), l = Math.sqrt(l2); if (d < bd) { bd = d; bs = acc + t * l; } acc += l; } return [bd, bs]; };
 // [x, z, r], local. Neighbours overlap by well over the widest walker (see confine in level.js).
-const DISCS = [[0, -52, 12], [0.5, -40, 9]]; // the plain the track comes in over
+const DISCS = [[0, -52, 12], [0.5, -40, 9], [0.4, -65, 7.5]]; // the plain the track comes in over (the last: room behind where the squad sets out, each in his place)
 for (let s = 0; s <= LLEN + 0.1; s += 5) DISCS.push([...along(Math.min(s, LLEN)), 6.4]); // the wash
 for (const [x, z, r] of BAYS) DISCS.push([x, z, r + 2.6]);
 const OPEN = openArea(DISCS, WASH), outside = OPEN.outside;

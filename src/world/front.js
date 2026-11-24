@@ -77,19 +77,20 @@ function land(x, z) {
 // ---- shared by every open site (the frontier, the wash)
 // The ground: one sheet, fine where he walks and coarse far off (the grid's lines crowd toward the middle). `colour(x, z, slope, c)`
 // sets each vertex's colour in `c`. Returns the height at a local point: exactly the sheet's own surface (each cell is two
-// triangles, split along the same diagonal as the mesh), so feet meet it.
-export function openSheet(g, land, colour) {
-  const N = 190, warp = (u) => 92 * u + 178 * u ** 7, xs = new Float32Array(N + 1); for (let i = 0; i <= N; i++) xs[i] = warp((i / N) * 2 - 1);
-  const H = new Float32Array((N + 1) * (N + 1)); for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) H[j * (N + 1) + i] = land(xs[i], xs[j]);
+// triangles, split along the same diagonal as the mesh), so feet meet it. `o.c` = [x, z] moves the fine middle of the grid
+// off the site's origin (a site whose walkable ground runs a long way to one side of it); `o.n` sets how many cells across.
+export function openSheet(g, land, colour, o = {}) {
+  const N = o.n || 190, [cx, cz] = o.c || [0, 0], warp = (u) => 92 * u + 178 * u ** 7, xs = new Float32Array(N + 1); for (let i = 0; i <= N; i++) xs[i] = warp((i / N) * 2 - 1);
+  const H = new Float32Array((N + 1) * (N + 1)); for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) H[j * (N + 1) + i] = land(cx + xs[i], cz + xs[j]);
   const cell = (v) => { let a = 0, b = N; while (b - a > 1) { const m = (a + b) >> 1; if (xs[m] <= v) a = m; else b = m; } return a; };
   const hl = (x, z) => {
-    x = clamp(x, xs[0], xs[N] - 1e-3); z = clamp(z, xs[0], xs[N] - 1e-3); const i = cell(x), j = cell(z), u = (x - xs[i]) / (xs[i + 1] - xs[i]), v = (z - xs[j]) / (xs[j + 1] - xs[j]), k = j * (N + 1) + i;
+    x = clamp(x - cx, xs[0], xs[N] - 1e-3); z = clamp(z - cz, xs[0], xs[N] - 1e-3); const i = cell(x), j = cell(z), u = (x - xs[i]) / (xs[i + 1] - xs[i]), v = (z - xs[j]) / (xs[j + 1] - xs[j]), k = j * (N + 1) + i;
     const a = H[k], b = H[k + 1], c = H[k + N + 1], d = H[k + N + 2];
     return u + v <= 1 ? a + (b - a) * u + (c - a) * v : d + (c - d) * (1 - u) + (b - d) * (1 - v);
   };
   const pos = new Float32Array((N + 1) * (N + 1) * 3), uv = new Float32Array((N + 1) * (N + 1) * 2), col = new Float32Array((N + 1) * (N + 1) * 3), idx = [], c = new T.Color();
   for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
-    const k = j * (N + 1) + i, x = xs[i], z = xs[j], h = H[k]; pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z; uv[k * 2] = x / 7; uv[k * 2 + 1] = z / 7;
+    const k = j * (N + 1) + i, x = cx + xs[i], z = cz + xs[j], h = H[k]; pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z; uv[k * 2] = x / 7; uv[k * 2 + 1] = z / 7;
     colour(x, z, Math.hypot(land(x + 0.5, z) - land(x - 0.5, z), land(x, z + 0.5) - land(x, z - 0.5)), c);
     col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
     if (i < N && j < N) idx.push(k, k + N + 1, k + 1, k + 1, k + N + 1, k + N + 2);
@@ -130,11 +131,12 @@ function rockKit() {
   return ROCKKIT;
 }
 // A site's rocks: rock(x, z, r, o) puts one of half-width r at a local point, sunk a little into the ground (o.solid makes it
-// something to walk round, through `block`; o.kind picks the shape, o.sy its height); rock.done() draws them all.
+// something to walk round, through `block`; o.kind picks the shape, o.sy its height; o.bed sinks it to the lowest ground under
+// its rim, so one on a steep dune face is buried on the uphill side instead of standing out from the slope); rock.done() draws them all.
 export function rockSet(g, hl, q, block) {
   const { mRock, ROCKS } = rockKit(), rockAt = ROCKS.map(() => []), Q = (a, b) => a + q() * (b - a);
   const M4 = new T.Matrix4(), qt = new T.Quaternion(), eu = new T.Euler(), sv = new T.Vector3(1, 1, 1), pv = new T.Vector3();
-  const rock = (x, z, r, o = {}) => { const k = o.kind == null ? (q() * 4) | 0 : o.kind, sy = o.sy || Q(0.75, 1.25); pv.set(x, hl(x, z) - r * 0.12, z); qt.setFromEuler(eu.set(Q(-0.12, 0.12), Q(0, 6.3), Q(-0.12, 0.12))); sv.set(r * Q(0.85, 1.2), r * sy, r * Q(0.85, 1.2)); rockAt[k].push(M4.compose(pv, qt, sv).clone()); if (o.solid) block(x, z, r * 0.92); };
+  const rock = (x, z, r, o = {}) => { const k = o.kind == null ? (q() * 4) | 0 : o.kind, sy = o.sy || Q(0.75, 1.25); let y = hl(x, z); if (o.bed) for (let a = 0; a < 6.28; a += PI / 4) y = Math.min(y, hl(x + Math.sin(a) * r * 0.9, z + Math.cos(a) * r * 0.9)); pv.set(x, y - r * 0.12, z); qt.setFromEuler(eu.set(Q(-0.12, 0.12), Q(0, 6.3), Q(-0.12, 0.12))); sv.set(r * Q(0.85, 1.2), r * sy, r * Q(0.85, 1.2)); rockAt[k].push(M4.compose(pv, qt, sv).clone()); if (o.solid) block(x, z, r * 0.92); };
   rock.done = () => ROCKS.forEach((geo, k) => { const im = new T.InstancedMesh(geo, mRock, rockAt[k].length); rockAt[k].forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = im.receiveShadow = true; im.frustumCulled = false; g.add(im); });
   return rock;
 }

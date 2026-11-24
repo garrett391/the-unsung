@@ -40,6 +40,6 @@ if (!ONLY || ONLY === 'front') for (const at of [[0, -40], [8, -17], [-15, 12], 
 const WS = [[-1.2, -23], [-2.2, -31], [6.4, 4.5], [8.4, 7.5], [-4.6, -9], [-2.4, -17.6], [3.0, 27]].map(([x, z]) => [-330 + x, -120 + z]);
 if (!ONLY || ONLY === 'wash') for (const at of [[0, -50], [-6.5, -14], [12, 17], [3, 27], [5, -2]]) bad = bad.concat(await run(`wash, captain at ${at}`, { site: 'wash', player: [-330, -170, 0], corin: null }, [-330 + at[0], -120 + at[1]], [['raider', WS], ['veiled', WS], ['skirmisher', WS], ['brute', WS]], 60));
 // The hollow (the tracks north): from round the door and up the tracks.
-const HS = [[-9, -8], [10, 0], [0, -14], [-6, 9], [0, -46]].map(([x, z]) => [300 + x, 200 + z]);
-if (!ONLY || ONLY === 'hollow') for (const at of [[0, -50], [0, -25], [0, 2.9], [-8, 4]]) bad = bad.concat(await run(`hollow, captain at ${at}`, { site: 'hollow', player: [300, 140, 0], corin: null }, [300 + at[0], 200 + at[1]], [['veiled', HS], ['raider', HS], ['brute', HS]], 60));
+const HS = [[-9, -8], [10, 0], [0, -14], [-6, 9], [-11.7, -51.2], [-15.6, -71]].map(([x, z]) => [300 + x, 200 + z]);
+if (!ONLY || ONLY === 'hollow') for (const at of [[-15.6, -60.3], [-2.5, -39.4], [0, -25], [0, 2.9], [-8, 4]]) bad = bad.concat(await run(`hollow, captain at ${at}`, { site: 'hollow', player: [300, 140, 0], corin: null }, [300 + at[0], 200 + at[1]], [['veiled', HS], ['raider', HS], ['brute', HS]], 60));
 console.log(bad.length ? bad.join('\n') : 'every spawn reaches the captain'); await browser.close(); server.close(); process.exit(bad.length ? 1 : 0);

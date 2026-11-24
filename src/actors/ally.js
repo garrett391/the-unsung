@@ -45,6 +45,11 @@ export class Ally extends Char {
     else { this.set('reel'); this.play(CL.hit, 0.05); }
     return 'hit';
   }
+  // His place beside the captain when they are going the way `h` (slot: [side, back]; + side is the captain's left).
+  slotAt(h) { const P_ = G.player; return [P_.pos.x - Math.cos(h) * this.slot[0] - Math.sin(h) * this.slot[1], P_.pos.z + Math.sin(h) * this.slot[0] - Math.cos(h) * this.slot[1]]; }
+  // Put him in that place, facing that way, before they set out (owner, 24 Nov 2026: started in a knot round the corporal, the
+  // whole squad ran out to its places as the march began, crossing each other's paths). The captain must be placed first.
+  fallIn(h = G.player.face) { const [x, z] = this.slotAt(h); this.place(x, z, h); this.hd = h; this.tailing = false; this.animate(0, G.time); }
   rally() { if (!this.out) return; this.out = false; this.hp = this.maxHp * 0.6; this.set('loco'); this.stop(0.6); this.cd = 1.5; }
   takeHit(a, from) {
     const dir = tmpA.subVectors(this.pos, from.pos).setY(0).normalize(), hp = new T.Vector3().copy(this.pos).addScaledVector(dir, -0.4).setY(this.pos.y + 1.05);
@@ -101,7 +106,7 @@ export class Ally extends Char {
           const pv = Math.hypot(P_.vel.x, P_.vel.z); if (this.hd == null) this.hd = P_.face;
           if (pv > 0.8) this.hd = wrap(this.hd + wrap(Math.atan2(P_.vel.x, P_.vel.z) - this.hd) * (1 - Math.exp(-1.3 * dt)));
           const h = this.soldier && !this.post ? this.hd : P_.face;
-          const tx = this.post ? this.post[0] : P_.pos.x - Math.cos(h) * this.slot[0] - Math.sin(h) * this.slot[1], tz = this.post ? this.post[1] : P_.pos.z + Math.sin(h) * this.slot[0] - Math.cos(h) * this.slot[1];
+          const [tx, tz] = this.post || this.slotAt(h);
           const dx = tx - this.pos.x, dz = tz - this.pos.z, d = Math.hypot(dx, dz);
           if (this.slack == null) this.slack = rnd(2.0, 3.4);
           let sp;
