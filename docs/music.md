@@ -95,7 +95,9 @@ Owner: the Act I pair ("Beneath the Flagstones", "The Weight of Granite") is car
 
 > Instrumental, no vocals, no choir. Cold, relentless combat music for silent enemies who do not shout or run. Low strings in a driving ostinato, heavy frame drums and a deep tom on an uneven pulse (7/8 or a limping 4/4), no brass fanfare, no heroics. Over it a brittle, glassy lead: struck glass, celesta or high bowed metal playing a short falling figure that repeats like something that will not stop. Tension without triumph, melancholy underneath the drive. About 120 bpm, D minor to match the piece above, 90 seconds, steady intensity start to finish with no intro and no fade so it can loop.
 
-## The tracks north: the drivers and the door (prompt written 24 Nov 2026; track not made yet)
+## The tracks north: the drivers and the door (prompt written 24 Nov 2026; track made by the owner the same day)
+
+"Before the Ground Settles" (`hollow`, 81.6 s, looped), made by the owner from the prompt below. It plays from the first glass driver on the crest (and from the start of a retry before the door) until the Veiled get up. The 2.4 s of silence at its end was cut so it loops (with a 60 ms fade against a click), and it was re-encoded at 128 kbps. Its loudness already matched the others (-12.1 LUFS), so the level was left alone. "Beneath the Sealed Glass" stays for the sergeant's death. Unheard: the owner's ear decides.
 
 Owner: from the first driver on the crest to the door, the chapter borrows "Beneath the Sealed Glass", which is the sealing's music (the Usurper beaten and shut in). A prompt for a track of its own. It would play from the first glass driver (`deep('sealed')` after the crest trigger in the `tracks` stage, and on a retry before the door) through the hollow, the walk down among the drivers and the talk at the door, until the Veiled get up and "The Unceasing Gait" takes over: about a minute and a half if he doesn't dawdle, so it loops. Suggested key `hollow` in `TRACKS`. Recommendation: keep "Beneath the Sealed Glass" for the sergeant's death after the fight, where the Usurper speaks through him; hearing the sealing's music again there is the callback.
 

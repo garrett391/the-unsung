@@ -1352,7 +1352,7 @@ stage('caravan', {
 // once more behind the corporal, and the sergeant takes the blade meant for him. Dying, with the glass going up through him,
 // he speaks in a voice that is not his: the Usurper's, who says again what he said at the sealing. All lines are drafts.
 const ho = (x, z) => [HOLLOW.x + x, HOLLOW.z + z], ho3 = (x, y, z) => [HOLLOW.x + x, y + G.level.height(HOLLOW.x + x, HOLLOW.z + z), HOLLOW.z + z];
-const deep = (k) => playMusic(k, { cross: 3, fade: 4, over: true }); // the chapter's music: the waystation's theme at the picket (owner, 22 Nov 2026: not the corporal's), then the sealing's, with the caravan's for the fight
+const deep = (k) => playMusic(k, { cross: 3, fade: 4, over: true }); // the chapter's music: the waystation's theme at the picket (owner, 22 Nov 2026: not the corporal's), its own from the first driver to the door, the caravan's for the fight, and the sealing's for the sergeant's death
 stage('tracks', {
   checkpoint: true, cards: true,
   async run(d) {
@@ -1379,12 +1379,12 @@ stage('tracks', {
       // ---- the well picket, the night they came in: the fire (owner, 22 Nov 2026: the card skipped a scene. What they make of
       // the caravan is said here, sitting down, and not on the run home: the raiders, the ones in white, the boy, and the glass.)
       ui.fade(1, 0); G.resetWorld({ site: 'front', sky: 'night', look: 'corporal', player: [...fr(2.6, -30.4), 2.66], corin: null }); G.carry = null; L.front.light(true);
-      take(); G.freezeAI = true; preloadMusic('well', 'sealed', 'gait');
+      take(); G.freezeAI = true; preloadMusic('well', 'hollow', 'gait');
       await d.chronicle('The tracks north', [
         'They brought the drover in to the well picket after dark, and the sergeant sent word of the pale veils up the line.',
         '<em>The well picket, that night.</em>',
       ], TAP); ui.chronClose();
-      deep('well'); forgetMusic(); preloadMusic('sealed', 'gait');
+      deep('well'); forgetMusic(); preloadMusic('hollow', 'gait', 'sealed');
       const FIRE = [6.4, -38.2], toFire = (x, z) => Math.atan2(FIRE[0] - x, FIRE[1] - z);
       // on the two logs (each lies across the fire's line), and Wren on her knees on the far side of it
       // each sits his own way (SEATS), not quite square to the fire, and breathes and shifts while the scene plays (Extra.live)
@@ -1491,7 +1491,7 @@ stage('tracks', {
       await d.wait(5.0); P.walk = null; P.face = wf; give(); ui.objective('Follow the tracks');
       d.wait(2.5).then(() => say([['Hale', 'Two days, and no water. Nobody walks that.', 3.2], ['Sergeant', "They weren't walking. They were being walked.", 3.4]]), () => {});
       // the first of the drivers, on the crest: he had turned round
-      await d.until(() => P.pos.z > HOLLOW.z - 40.5); hush(); G.freezeAI = true; deep('sealed');
+      await d.until(() => P.pos.z > HOLLOW.z - 40.5); hush(); G.freezeAI = true; deep('hollow'); // "Before the Ground Settles": the drivers and the door
       await glance(d, ...ho(1.3, -33), { from: ho3(-1.6, 1.5, -37.6), y: 1.1, hold: 3.0 }); G.freezeAI = false;
       say([['Hale', "Who'd stand a statue out here?", 2.6], ['Wren', "It isn't one. Look at his face. That's a driver. It's halfway up him.", 4.2], ['Sergeant', 'Nobody touches him.', 2.4]]);
       d.wait(10.4).then(() => { if (!G.cinematic) ui.thought('...No. Not out here.', 4); }, () => {});
@@ -1504,7 +1504,7 @@ stage('tracks', {
       await settled(d, 1); take(); G.freezeAI = true; ui.fade(1, 0.5); await d.wait(0.6);
       G.seenTracks = 1; // (a retry starts before the door)
     } else {
-      ui.fade(1, 0); G.resetWorld({ site: 'hollow', look: 'corporal', player: [...ho(...HERE), 0], corin: null }); G.maxAtk = 2; preloadMusic('sealed', 'gait'); deep('sealed');
+      ui.fade(1, 0); G.resetWorld({ site: 'hollow', look: 'corporal', player: [...ho(...HERE), 0], corin: null }); G.maxAtk = 2; preloadMusic('hollow', 'gait', 'sealed'); deep('hollow');
       S = five([0, 0, 0, 0, 0].map(() => [...ho(0, -4), 0])); take(); G.freezeAI = true;
     }
 
