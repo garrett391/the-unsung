@@ -1478,6 +1478,7 @@ stage('tracks', {
       ]);
       kid.live = null; kid.lookY = 0; kid.stop(0.5); kid.go(...fr(9.4, -41.2), 2.2); // he gets up off the log and goes
       await d.wait(1.2); ui.fade(1, 1.4); await d.wait(1.6); ui.hideDialogue();
+      deep('hollow'); // "Before the Ground Settles" from the card on (owner, 25 Nov 2026: no need to wait for the first driver)
       await d.chronicle('The deep desert', ['<em>Two days north of the old road.</em>'], TAP); ui.chronClose();
 
       // ---- the tracks, round the dunes and over the crest (owner, 24 Nov 2026: longer, and winding, so the door is not in sight from the start)
@@ -1491,7 +1492,7 @@ stage('tracks', {
       await d.wait(5.0); P.walk = null; P.face = wf; give(); ui.objective('Follow the tracks');
       d.wait(2.5).then(() => say([['Hale', 'Two days, and no water. Nobody walks that.', 3.2], ['Sergeant', "They weren't walking. They were being walked.", 3.4]]), () => {});
       // the first of the drivers, on the crest: he had turned round
-      await d.until(() => P.pos.z > HOLLOW.z - 40.5); hush(); G.freezeAI = true; deep('hollow'); // "Before the Ground Settles": the drivers and the door
+      await d.until(() => P.pos.z > HOLLOW.z - 40.5); hush(); G.freezeAI = true;
       await glance(d, ...ho(1.3, -33), { from: ho3(-1.6, 1.5, -37.6), y: 1.1, hold: 3.0 }); G.freezeAI = false;
       say([['Hale', "Who'd stand a statue out here?", 2.6], ['Wren', "It isn't one. Look at his face. That's a driver. It's halfway up him.", 4.2], ['Sergeant', 'Nobody touches him.', 2.4]]);
       d.wait(10.4).then(() => { if (!G.cinematic) ui.thought('...No. Not out here.', 4); }, () => {});
