@@ -132,12 +132,13 @@ function rockKit() {
 }
 // A site's rocks: rock(x, z, r, o) puts one of half-width r at a local point, sunk a little into the ground (o.solid makes it
 // something to walk round, through `block`; o.kind picks the shape, o.sy its height; o.bed sinks it to the lowest ground under
-// its rim, so one on a steep dune face is buried on the uphill side instead of standing out from the slope); rock.done() draws them all.
+// its rim, so one on a steep dune face is buried on the uphill side instead of standing out from the slope; o.shade false keeps it from
+// casting a shadow: the sand casts none, so under a low sun a rock high on a dune throws a dark blob through the dune onto the ground below); rock.done() draws them all.
 export function rockSet(g, hl, q, block) {
-  const { mRock, ROCKS } = rockKit(), rockAt = ROCKS.map(() => []), Q = (a, b) => a + q() * (b - a);
+  const { mRock, ROCKS } = rockKit(), rockAt = ROCKS.map(() => []), flatAt = ROCKS.map(() => []), Q = (a, b) => a + q() * (b - a);
   const M4 = new T.Matrix4(), qt = new T.Quaternion(), eu = new T.Euler(), sv = new T.Vector3(1, 1, 1), pv = new T.Vector3();
-  const rock = (x, z, r, o = {}) => { const k = o.kind == null ? (q() * 4) | 0 : o.kind, sy = o.sy || Q(0.75, 1.25); let y = hl(x, z); if (o.bed) for (let a = 0; a < 6.28; a += PI / 4) y = Math.min(y, hl(x + Math.sin(a) * r * 0.9, z + Math.cos(a) * r * 0.9)); pv.set(x, y - r * 0.12, z); qt.setFromEuler(eu.set(Q(-0.12, 0.12), Q(0, 6.3), Q(-0.12, 0.12))); sv.set(r * Q(0.85, 1.2), r * sy, r * Q(0.85, 1.2)); rockAt[k].push(M4.compose(pv, qt, sv).clone()); if (o.solid) block(x, z, r * 0.92); };
-  rock.done = () => ROCKS.forEach((geo, k) => { const im = new T.InstancedMesh(geo, mRock, rockAt[k].length); rockAt[k].forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = im.receiveShadow = true; im.frustumCulled = false; g.add(im); });
+  const rock = (x, z, r, o = {}) => { const k = o.kind == null ? (q() * 4) | 0 : o.kind, sy = o.sy || Q(0.75, 1.25); let y = hl(x, z); if (o.bed) for (let a = 0; a < 6.28; a += PI / 4) y = Math.min(y, hl(x + Math.sin(a) * r * 0.9, z + Math.cos(a) * r * 0.9)); pv.set(x, y - r * 0.12, z); qt.setFromEuler(eu.set(Q(-0.12, 0.12), Q(0, 6.3), Q(-0.12, 0.12))); sv.set(r * Q(0.85, 1.2), r * sy, r * Q(0.85, 1.2)); (o.shade === false ? flatAt : rockAt)[k].push(M4.compose(pv, qt, sv).clone()); if (o.solid) block(x, z, r * 0.92); };
+  rock.done = () => ROCKS.forEach((geo, k) => { for (const [list, cast] of [[rockAt[k], true], [flatAt[k], false]]) { if (!list.length) continue; const im = new T.InstancedMesh(geo, mRock, list.length); list.forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = cast; im.receiveShadow = true; im.frustumCulled = false; g.add(im); } });
   return rock;
 }
 

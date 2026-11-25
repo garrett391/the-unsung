@@ -99,7 +99,7 @@ export function buildHollow(scene, kit) {
 
   // ---- rock: little of it out here. A few half-buried in the dune faces, two to fight round in the hollow.
   const rock = rockSet(g, hl, q, block);
-  for (let i = 0; i < 70; i++) { const a = Q(0, 6.3), d = Q(14, 95), x = Math.sin(a) * d, z = Math.cos(a) * d - 20; if (outside(x, z) > 3) rock(x, z, Q(0.5, 2.6), { sy: Q(0.45, 0.9), bed: true }); }
+  for (let i = 0; i < 70; i++) { const a = Q(0, 6.3), d = Q(14, 95), x = Math.sin(a) * d, z = Math.cos(a) * d - 20; if (outside(x, z) > 3) rock(x, z, Q(0.5, 2.6), { sy: Q(0.45, 0.9), bed: true, shade: false }); } // (up on the dunes: no shadow, or a low sun throws it through the sand onto the track)
   for (const [x, z, r] of [[-9.5, -6.5, 1.0], [9.2, 4.5, 0.9], [-12.6, -63, 0.9]]) rock(x, z, r, { solid: true });
   rock.done();
   kit.into(g, () => { kit.mesa(-70, 60, 12, 17, { sx: 1.4, ry: 0.7 }); kit.mesa(64, 84, 15, 22, { sx: 1.3, ry: 2.0, tilt: 0.2, ta: 1 }); kit.mesa(52, -70, 11, 13, { sx: 1.6, ry: 0.3 }); });
