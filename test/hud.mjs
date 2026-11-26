@@ -20,7 +20,7 @@ const run = (sec, js) => page.evaluate(async ([sec, js]) => { const f = js && (0
 await page.evaluate(() => {
   for (const id of ['title', 'chron']) document.getElementById(id).style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; document.getElementById('fade').style.opacity = 0;
   if (matchMedia('(pointer:coarse)').matches) document.getElementById('touch').style.display = 'block';
-  G.director.abort(); G.running = true; G.resetWorld({ site: 'front', sky: 'day', look: 'ranker', corin: null, player: [260, -204, 0] }); G.player.setVisible(true); G.player.controlEnabled = true; G.cam.behind();
+  G.director.abort(); G.running = true; G.resetWorld({ site: 'front', sky: 'day', look: 'ranker', corin: null, player: [260, -204, 0] }); G.wayDelay = 0; G.player.setVisible(true); G.player.controlEnabled = true; G.cam.behind();
 });
 // the pointer: the place ahead and in view, then behind him, then round the riverbed's bend
 await run(0.5, "G.level.marker(262, -186); null"); await shot('way-ahead');

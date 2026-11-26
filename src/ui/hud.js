@@ -51,10 +51,16 @@ const live = () => G.running && !G.cinematic && !G.talking && G.player.controlEn
 // The waypoint pointer. `G.level.way` is the place (set by level.marker or level.goal). In view, an arrow stands over it; out of
 // view, the arrow sits on an oval inside the screen's edge (clear of the bars and, on a phone, the buttons) and points the way.
 // It leads by the same router the raiders use, so round a bend it points along the ground he can walk, not through a dune.
-const wp = { x: 0, y: 0, on: false, d: -1, rot: 9 };
+// (Friends' note, 26 Nov 2026: only when the player needs help.) A new place's pointer waits `G.wayDelay` seconds (30) of play
+// before it shows: the clock runs only while he has control (not in cutscenes, dialogue or the pause menu), restarts when the place
+// moves by more than a metre, and the pointer then stays until the place is cleared. The beam, where there is one, shows at once as before.
+G.wayDelay = 30;
+const wp = { x: 0, y: 0, on: false, d: -1, rot: 9, kx: NaN, kz: NaN, wait: 0, t: 0 };
 function wayPoint() {
   const el = $('way'), w = G.level && G.level.way, P = G.player, cam = G.camera, W = innerWidth, H = innerHeight;
-  const d = w ? Math.hypot(w.x - P.pos.x, w.z - P.pos.z) : 0, show = !!w && live() && d > 3.5;
+  const now = G.time, step = Math.min(0.25, Math.max(0, now - wp.t)); wp.t = now;
+  if (!w) wp.kx = NaN; else if (!(Math.hypot(w.x - wp.kx, w.z - wp.kz) < 1)) { wp.kx = w.x; wp.kz = w.z; wp.wait = 0; } else if (live()) wp.wait += step;
+  const d = w ? Math.hypot(w.x - P.pos.x, w.z - P.pos.z) : 0, show = !!w && live() && d > 3.5 && wp.wait >= G.wayDelay;
   if (show !== wp.on) { el.style.opacity = show ? 1 : 0; if (show && !wp.on) wp.d = -1, wp.snap = true; wp.on = show; }
   if (!show) return;
   const via = route(P.pos, w), far = via && Math.hypot(via[0] - P.pos.x, via[1] - P.pos.z) > 2.5, tx = far ? via[0] : w.x, tz = far ? via[1] : w.z;
