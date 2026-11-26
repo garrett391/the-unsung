@@ -125,14 +125,14 @@ export class Player extends Char {
     if (this.state === 'loco' && I.block && this.controlEnabled && ang < 1.7) {
       if (G.time - this.blockT < 0.24) {
         SFX.parry(); FX.sparks.emit(hp, 26, 6, 0xfff0b0, 0.4, { up: 1, boost: 2 }); G.hitstop = 0.13; G.slow = 0.28; G.shake = 0.25;
-        e.parried(); this.state = 'parry'; this.aT = 0; this.play(CL.par, 0.04); this.inv = 0.5; this.st = Math.min(100, this.st + 25); return 'parry';
+        this.parryAt = G.time; this.shPop = 1.6; e.parried(); this.state = 'parry'; this.aT = 0; this.play(CL.par, 0.04); this.inv = 0.5; this.st = Math.min(100, this.st + 25); return 'parry';
       }
       const cost = dmg * 1.35;
       if (this.st >= cost && !through) {
-        this.st -= cost; this.stDelay = 0.9; SFX.clang(); FX.sparks.emit(hp, 10, 4, 0xffd890, 0.25, { boost: 1.5 });
+        this.st -= cost; this.stDelay = 0.9; this.blockAt = G.time; this.shPop = 1.1; SFX.clang(); FX.sparks.emit(hp, 10, 4, 0xffd890, 0.25, { boost: 1.5 });
         this.vel.addScaledVector(dir, 4.5 + dmg * 0.12); this.recoil = 1; G.shake = 0.12; G.hitstop = 0.04; return 'block';
       }
-      this.st = 0; this.stDelay = 1.4; dmg *= 0.5; this.hitDur = 0.95; SFX.clang();
+      this.st = 0; this.stDelay = 1.4; this.breakAt = G.time; dmg *= 0.5; this.hitDur = 0.95; SFX.clang();
     } else this.hitDur = 0.42;
     this.hp -= dmg; if (G.blunt && this.hp < 1) this.hp = 1; /* a bout with blunted steel: nothing bleeds and nobody dies */ this.flash = 1; if (dmg > 0 || !G.spar) SFX.hurt(); else SFX.hit(); /* a sparring touch (no damage): the plain recorded hit, not the synthesized grunt */ if (dmg > 0) { (e.missile ? SFX.pierce : dmg > 20 ? SFX.big : SFX.hit)(); /* a javelin is not a sword's cut */ if (!G.blunt) blood(hp, dir, dmg > 20 ? 2 : 1, this.hp <= 0, e); G.hurt = Math.min(1, 0.5 + dmg * 0.02); } // sparring blows (no damage) draw none
     FX.sparks.emit(hp, 12, 4, 0xff5040, 0.3); G.shake = 0.3 + dmg * 0.01; G.hitstop = 0.07;
@@ -151,6 +151,9 @@ export class Player extends Char {
   update(dt) {
     const now = G.time; this.inv -= dt; this.aT += dt; this.gait = this.walk ? 2.9 : 1; // a walked-to-a-point pace takes real steps: about 0.65 m each
     const blockHeld = I.block && this.controlEnabled;
+    // The shield's glow (Char.animate draws it): a flash as it comes up, a faint light while it is up, a flare when it stops a blow. `guarding` is what the HUD's ring shows.
+    this.guarding = blockHeld && this.state === 'loco' && !this.dead; if (this.guarding && !this.wasGuard) this.shPop = Math.max(this.shPop || 0, 0.75); this.wasGuard = this.guarding;
+    this.shPop = Math.max(0, (this.shPop || 0) - dt * 3.2); this.shGlow = this.shPop + (this.guarding ? 0.07 + Math.sin(now * 5) * 0.02 : 0);
     if (this.stDelay > 0) this.stDelay -= dt; else this.st = Math.min(100, this.st + (blockHeld && this.state === 'loco' ? 12 : 30) * dt);
     if (this.lock && (this.lock.dead || this.lock.gone || this.dist(this.lock) > 24 || !this.lock.root.visible)) this.lock = pickLock(true);
     if (!this.controlEnabled) this.buf.a = '';

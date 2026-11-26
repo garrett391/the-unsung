@@ -67,6 +67,8 @@ export class Char {
       this.flash = Math.max(0, this.flash - dt * 7); this._fl = this.flash > 0; const f = this.flash * 1.4;
       for (const m of this.rig.mats) m.emissive.setRGB(f * this.flashCol[0], f * this.flashCol[1], f * this.flashCol[2]);
     }
+    // A raised shield catches the light (Player.update sets shGlow): a flash as it comes up, a faint glow while it is held, a flare when it stops a blow.
+    if ((this.shGlow > 0.004 || this._sg) && this.rig.shieldMat) { const g = this.shGlow > 0.004 ? this.shGlow : 0; this._sg = g > 0; if (g > this.flash * 1.4) this.rig.shieldMat.emissive.setRGB(g, g * 0.84, g * 0.5); else if (!this._fl) this.rig.shieldMat.emissive.setRGB(0, 0, 0); }
     if (this.wet > 0 || this._wet) { // a blade that has cut stays red for a while and drips
       this.wet = Math.max(0, this.wet - dt / 16); this._wet = this.wet > 0;
       this.rig.bladeMat.color.copy(this.bladeBase).lerp(GORE, Math.min(1, this.wet * 1.6) * 0.78);

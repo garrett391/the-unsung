@@ -423,10 +423,10 @@ export function buildHumanoid(o) {
   const reach = o.weapon === 'glaive' ? len + 0.7 : 0.13 + len + 0.1;
   const wBase = joint(w, 0, 0, o.weapon === 'glaive' ? len - 0.3 : 0.2), wTip = joint(w, 0, 0, reach);
   // shield
-  J.shield = joint(J.elL, 0.075, -0.11, 0);
+  J.shield = joint(J.elL, 0.075, -0.11, 0); let shieldMat = null;
   if (o.shield != null) {
     const sp = new T.Shape(); sp.moveTo(-0.22, 0.27); sp.lineTo(0.22, 0.27); sp.lineTo(0.22, -0.04); sp.lineTo(0, -0.35); sp.lineTo(-0.22, -0.04); sp.closePath();
-    const sm = M(0xffffff, { map: shields[o.shield] });
+    const sm = shieldMat = M(0xffffff, { map: shields[o.shield] });
     // Face out from the forearm, with the point running across the arm (not along it), so a
     // raised guard holds the shield point-down in front of the body.
     const sg = new T.ExtrudeGeometry(sp, { depth: 0.035, bevelEnabled: false }); sg.rotateY(PI / 2); sg.rotateX(PI / 2);
@@ -451,5 +451,5 @@ export function buildHumanoid(o) {
       if (last) { if (!o.tatter) mk(drape(wd + 0.004, wd + 0.004, 0.035, BOW), mH, p, 0, -0.27, -0.003); } else p = joint(p, 0, -0.3, 0);
     }
   }
-  return { root, J, mats, wBase, wTip, bladeMat: o.weapon ? mS : mBlade, cape, eye: mEye };
+  return { root, J, mats, shieldMat, wBase, wTip, bladeMat: o.weapon ? mS : mBlade, cape, eye: mEye };
 }

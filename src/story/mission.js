@@ -140,7 +140,7 @@ stage('halls', {
     F.play(chop, 0.2); SFX.tele(); await d.wait(0.9); SFX.swing(0.5); await d.wait(0.12);
     { const at = new T.Vector3(V.pos.x, 0.35, V.pos.z), dir = new T.Vector3(V.pos.x - F.pos.x, 0, V.pos.z - F.pos.z).normalize(); SFX.big(); G.hitstop = 0.08; G.shake = 0.2; blood(at, dir, 2, true, F); V.flash = 0.8; V.play(C(0.5, [0.12, pose({ chest: [-0.3], neck: [-0.5] }, PZ.down), 'o'], [0.5, PZ.down]), 0.04); }
     await d.wait(1.5); F.stop(0.4); await d.wait(0.4);
-    G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; ui.objective('Find the way down to the vault');
+    G.cinematic = false; ui.cinematic(false); P.calm = false; cam.behind(); P.controlEnabled = true; ui.objective('Find the way down to the vault'); L.goal(...hx(0, -56.3)); // (the pointer, no beam)
     // The first guard turns from his work and comes on. The shield, once (not again on a retry): he can't be killed until two of his
     // swings have been stopped, and then a tip says what stopping them costs.
     await d.until(() => P.dist(F) < 8.5 || F.hp < F.maxHp); turnTo(d, F, F.angleTo(P), 0.5).catch(() => {});
@@ -1016,9 +1016,9 @@ stage('picket', {
     let stop = company([["He's been asking for you. ...The sergeant says he won't see the morning.", 5, "Then I won't keep him waiting."], ["Go on. I'll keep you a place by the fire.", 3.5, 'Thanks.'], ["I got the beacon lit. It didn't do him any good.", 4, 'It did the rest of us.']]);
     cam.shot(fr3(-1.5, 2.4, -33.5), fr3(4.6, 1.0, -39.6)); cam.shot(fr3(-0.6, 2.0, -34.6), fr3(4.6, 1.0, -39.8), 8); ui.fade(0, 2.6); // the picket by firelight, from the dark
     await d.wait(4.2); give();
-    ui.objective('Go to the corporal'); // (owner, 21 Nov 2026: no beam: the firelight and the trough show where he lies)
+    ui.objective('Go to the corporal'); L.goal(corp.pos.x, corp.pos.z); // (the HUD's pointer only) (owner, 21 Nov 2026: no beam: the firelight and the trough show where he lies)
     await d.until(() => P.dist(corp) < 2.5 && G.time > Math.max(quiet, campHush.t));
-    stop(); await settled(d, 1); take();
+    stop(); L.marker(null); await settled(d, 1); take();
     await stroll(d, ...fr(...loc(0.3, 2.0)), 1.8, 5); await turnTo(d, P, P.angleTo(corp), 0.4);
     const eye = (c, h = 1.45) => [c.pos.x, c.pos.y + h, c.pos.z], c3 = (a, n, y) => { const [x, z] = loc(a, n); return fr3(x, y, z); };
     cam.shot(c3(-2.9, 1.1, 1.0), c3(0.5, 0.7, 1.0)); cam.shot(c3(-2.6, 1.0, 0.95), c3(0.5, 0.7, 1.0), 9);
@@ -1182,14 +1182,14 @@ stage('caravan', {
       S = squad(); G.maxAtk = 2; // each already in his place, so they set off as he does instead of running out to it
       take(); G.freezeAI = false; P.walk = { x: WASH.x + 0.5, z: WASH.z - 55, sp: 2.2 }; // they walk in; the camera watches them come
       cam.shot(wa3(4.2, 1.5, -46.5), wa3(0.4, 1.3, -61)); cam.shot(wa3(3.6, 1.7, -46.0), wa3(0.4, 1.4, -57), 7); ui.fade(0, 1.6); // out in front of them, as they come up the track
-      await d.wait(5.5); P.walk = null; P.face = 0; give(); ui.objective('Follow the road north');
+      await d.wait(5.5); P.walk = null; P.face = 0; give(); ui.objective('Follow the road north'); L.goal(...wa(6, 12)); // (the pointer only: no beam, as the owner asked)
       // (Owner, 21 Nov 2026: no beam of light on the way down: the track and the wash lead him, and the beam took his eye off the
       // place. And less talk: someone walking quickly ran into a queue of lines, and the arrival waited for them.) Two short things
       // are said on the way; reaching the bend cuts off whatever is being said.
       const talkAt = [[-50, [['Brann', 'Four days late. Could be a broken wheel.', 3.2], ['Corin', "Or it could be nothing good.", 2.4]]]];
       const chat = d.every(() => { for (const t of talkAt) if (!t.done && P.pos.z > WASH.z + t[0] && G.time > quiet) { t.done = true; say(t[1]); } });
       await d.until(() => P.pos.z > WASH.z - 27); ui.objective('Follow the wash');
-      await d.until(() => P.pos.z > WASH.z + 1.5); chat(); hush(); ui.objective('');
+      await d.until(() => P.pos.z > WASH.z + 1.5); chat(); hush(); ui.objective(''); L.marker(null);
       // the bend, and in it the caravan, stopped
       G.freezeAI = true; await glance(d, ...wa(7.5, 15.5), { from: wa3(3.4, 2.4, 2.5), y: 0.9, hold: 2.6 }); G.freezeAI = false;
       say([['Hale', "There it is. ...Where are the beasts?", 3.0], [CPL, 'Wren, the casks. Brann, the wagons. Hale, find their tracks.', 3.6]]);
@@ -1403,9 +1403,9 @@ stage('tracks', {
       });
       const at = (e, who) => { e.lookY = clamp(wrap(e.angleTo(who) - e.face), -0.9, 0.9); }; // a seated one turns his head, not his body
       cam.shot(fr3(7.6, 2.3, -45.2), fr3(5.0, 1.0, -35.2)); cam.shot(fr3(7.2, 2.1, -44.6), fr3(4.8, 1.0, -35.0), 9); ui.fade(0, 2.4); // the fire, and him out at the stakes beyond it
-      await d.wait(3.4); give(); ui.objective('Go to the fire');
+      await d.wait(3.4); give(); ui.objective('Go to the fire'); L.goal(FRONT.x + FIRE[0], FRONT.z + FIRE[1]);
       await d.until(() => Math.hypot(P.pos.x - FRONT.x - FIRE[0], P.pos.z - FRONT.z - FIRE[1]) < 3.4);
-      await settled(d, 1); take(); ui.objective('');
+      await settled(d, 1); take(); ui.objective(''); L.marker(null);
       const STAND = [4.35, -38.9]; await stroll(d, ...fr(...STAND), 1.8, 5); await turnTo(d, P, toFire(...STAND), 0.4);
       at(fire.corin, P);
       cam.shot(fr3(3.3, 1.9, -42.0), fr3(7.0, 0.8, -37.4)); cam.shot(fr3(3.6, 1.8, -41.8), fr3(7.0, 0.8, -37.4), 9); // past him, at the fire and the two on the far log
@@ -1489,7 +1489,7 @@ stage('tracks', {
       { const at = (s, side, y) => { const [x, z, f] = onTrack(s); return ho3(x - Math.cos(f) * side, y, z + Math.sin(f) * side); }; // (side: + to the right of the way)
         cam.shot(at(29, 2.0, 1.5), at(11, 0, 1.3)); cam.shot(at(28.5, 1.6, 1.7), at(15, 0, 1.4), 7); } // from the bend ahead, back down the valley at them as they come
       ui.fade(0, 1.6);
-      await d.wait(5.0); P.walk = null; P.face = wf; give(); ui.objective('Follow the tracks');
+      await d.wait(5.0); P.walk = null; P.face = wf; give(); ui.objective('Follow the tracks'); L.goal(...ho(0, 1.5)); // (the pointer follows the track round the dunes)
       d.wait(2.5).then(() => say([['Hale', 'Two days, and no water. Nobody walks that.', 3.2], ['Sergeant', "They weren't walking. They were being walked.", 3.4]]), () => {});
       // the first of the drivers, on the crest: he had turned round
       await d.until(() => P.pos.z > HOLLOW.z - 40.5); hush(); G.freezeAI = true;

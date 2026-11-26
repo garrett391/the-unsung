@@ -15,6 +15,7 @@ import { throwJavelin } from './missile.js';
 const tmpA = new T.Vector3(), tmpB = new T.Vector3(), tmpR = new T.Vector3();
 // A die-hard getting up off the ground (`again`): the fall run backwards, through a knee, to his guard.
 const UP = C(1.5, [0, PZ.d2], [0.5, PZ.d1], [0.95, PZ.kneel], [1.25, PZ.rise3, 'i'], [1.5, PZ.guard]);
+const RED = [1, 0.12, 0.06], WHITE = [1, 1, 1];
 export const attackers = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && !e.marked() && !e.mv.throw ? 1 : 0), 0); // those swinging at him (one set on a soldier is not his to worry about, and a javelin is not a blade at his shoulder)
 const throwing = () => G.enemies.reduce((n, e) => n + ((e.state === 'wind' || e.state === 'strike') && e.mv.throw ? 1 : 0), 0);
 // Who is fighting whom: how many raiders are on the captain, or on one soldier (not counting `self`).
@@ -105,7 +106,7 @@ export class Enemy extends Char {
       this.gp = this.type.guard || 3; this.blk = 0; this.stagDur = 1.4; this.open = true; SFX.clang(); // guard broken: this hit lands
     }
     if (from === G.player) { this.mark = null; this.mineT = G.time + 6; }
-    const wasOpen = this.open; dmg *= wasOpen && !a.crit ? 1.5 : 1; this.hp -= dmg; if (this.spare && this.hp < 1) this.hp = 1; this.flash = 1;
+    const wasOpen = this.open; dmg *= wasOpen && !a.crit ? 1.5 : 1; this.hp -= dmg; if (this.spare && this.hp < 1) this.hp = 1; this.flashCol = WHITE; this.flash = 1;
     (a.heavy || a.crit ? SFX.big : SFX.hit)();
     FX.sparks.emit(hp, a.crit ? 34 : a.heavy ? 20 : 11, a.crit ? 8 : 5.5, a.crit ? 0xffe890 : 0xfff4d0, 0.32, { vx: dir.x * 3, vz: dir.z * 3, up: 1, boost: 1.6 });
     if (!a.quiet) { G.hitstop = Math.max(G.hitstop, a.stop || 0.05); G.shake = Math.max(G.shake, a.crit ? 0.5 : a.heavy ? 0.35 : 0.16); } if (a.crit) G.slow = 0.4; // quiet: a soldier's blow beside him, which must not stop the game's clock or shake his camera
@@ -134,6 +135,7 @@ export class Enemy extends Char {
   }
   startMove(m, blend) {
     this.mv = m; this.set('wind'); this.hitDone = false; this.thrown = false; this.slam = false; this.play(m.clip, blend || 0.14); if (!this.type.silent) SFX.tele();
+    this.flashCol = m.throw ? RED : WHITE; if (m.throw) { this.flash = 1; this.root.updateMatrixWorld(true); FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 14, 2.6, 0xff4a30, 0.45, { grav: 0, boost: 2.2 }); } // a javelin about to come: he flashes red and the point glints
     if (m.rush) { this.flash = 0.8; FX.sparks.emit(tmpB.copy(this.pos).addScaledVector(this.fwd(tmpA), 0.5).setY(this.pos.y + 1.2 * this.scale), 18, 3, 0xff6a3c, 0.5, { grav: 0, boost: 2 }); G.emit('rush', { enemy: this }); } // a rush is its own warning: red, off the shield
     else FX.sparks.emit(this.rig.wTip.getWorldPosition(tmpB), 8, 2, this.type.tele || this.type.look.eye, 0.4, { grav: 0, boost: 2 });
   }

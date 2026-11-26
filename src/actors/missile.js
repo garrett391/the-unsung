@@ -39,7 +39,7 @@ export function throwJavelin(from, target, dmg) {
   const ax = aim.x - o.x, az = aim.z - o.z, D2 = Math.hypot(ax, az) || 0.001, t2 = D2 / SPEED;
   const v = new T.Vector3((ax / D2) * SPEED, (aim.y - o.y + 0.5 * GRAV * t2 * t2) / t2, (az / D2) * SPEED);
   const mesh = make(); mesh.position.copy(o);
-  LIVE.push({ mesh, pos: o, vel: v, dmg, from, age: 0, spent: false });
+  LIVE.push({ mesh, pos: o, vel: v, dmg, from, at: target, age: 0, spent: false });
   SFX.swing(1.15); G.emit('javelin', { from });
 }
 

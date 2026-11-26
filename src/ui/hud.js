@@ -1,7 +1,8 @@
 import { Vector3 } from 'three';
 import { G } from '../core/game.js';
 import { $ } from '../core/util.js';
-import { label } from '../core/input.js';
+import { label, coarse } from '../core/input.js';
+import { route } from '../world/level.js';
 import { SFX } from '../core/audio.js';
 
 // DOM overlay: bars, objective, hints, dialogue, the chronicle screens, fades.
@@ -43,6 +44,73 @@ function plates() {
   for (let i = n; i < pool.length; i++) if (pool[i].style.display !== 'none') pool[i].style.display = 'none';
 }
 
+// ---- Three things that follow the play (friends' playthrough, 26 Nov 2026: where to go was hard to tell on a phone, the guard
+// was too small to see, javelins came without warning, and stamina wanted to be nearer the eye). All are placed by transform each frame.
+const cv = new Vector3(), tag = (el, k, on) => { if (el['_' + k] !== on) { el['_' + k] = on; el.classList.toggle(k, on); } };
+const kick = (el, k) => { el.classList.remove(k); void el.offsetWidth; el.classList.add(k); el['_' + k] = true; };
+const live = () => G.running && !G.cinematic && !G.talking && G.player.controlEnabled && !G.player.dead && G.player.root.visible;
+
+// The waypoint pointer. `G.level.way` is the place (set by level.marker or level.goal). In view, an arrow stands over it; out of
+// view, the arrow sits on an oval inside the screen's edge (clear of the bars and, on a phone, the buttons) and points the way.
+// It leads by the same router the raiders use, so round a bend it points along the ground he can walk, not through a dune.
+const wp = { x: 0, y: 0, on: false, d: -1, rot: 9 };
+function wayPoint() {
+  const el = $('way'), w = G.level && G.level.way, P = G.player, cam = G.camera, W = innerWidth, H = innerHeight;
+  const d = w ? Math.hypot(w.x - P.pos.x, w.z - P.pos.z) : 0, show = !!w && live() && d > 3.5;
+  if (show !== wp.on) { el.style.opacity = show ? 1 : 0; if (show && !wp.on) wp.d = -1, wp.snap = true; wp.on = show; }
+  if (!show) return;
+  const via = route(P.pos, w), far = via && Math.hypot(via[0] - P.pos.x, via[1] - P.pos.z) > 2.5, tx = far ? via[0] : w.x, tz = far ? via[1] : w.z;
+  cv.set(tx, G.level.height(tx, tz) + (far ? 1.6 : 3.1), tz).applyMatrix4(cam.matrixWorldInverse); const front = cv.z < -0.3;
+  let x, y, rot, dx = cv.x, dy = -cv.y;
+  if (front) { cv.applyMatrix4(cam.projectionMatrix); dx = cv.x * W; dy = -cv.y * H; }
+  const cx = W / 2, cy = H * (coarse ? 0.44 : 0.5), rx = W / 2 - (coarse ? 38 : 64), ry = coarse ? H * 0.27 : H / 2 - 96;
+  const ex = dx / 2 / rx, ey = (dy / 2 + (H / 2 - cy)) / ry;
+  if (front && !far && ex * ex + ey * ey < 1) { x = W / 2 + dx / 2; y = H / 2 + dy / 2; rot = Math.PI; } // in view, and it is the place itself: stand over it, pointing down
+  else { // otherwise as a compass does: by where it lies on the ground from him, ahead being up the screen (so a place behind him is at the bottom)
+    const e = cam.matrixWorld.elements, fl = Math.hypot(e[8], e[10]) || 1, gx = tx - P.pos.x, gz = tz - P.pos.z; dx = gx * e[0] + gz * e[2]; dy = (gx * e[8] + gz * e[10]) / fl; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; const k = 1 / Math.sqrt((dx / rx) ** 2 + (dy / ry) ** 2); x = cx + dx * k; y = cy + dy * k; rot = Math.atan2(dx, -dy); }
+  if (wp.snap) { wp.x = x; wp.y = y; wp.snap = false; } else { wp.x += (x - wp.x) * 0.22; wp.y += (y - wp.y) * 0.22; }
+  el.style.transform = `translate(${wp.x.toFixed(1)}px,${wp.y.toFixed(1)}px)`;
+  if (Math.abs(rot - wp.rot) > 0.01) { wp.rot = rot; el.firstChild.style.transform = `rotate(${rot.toFixed(2)}rad)`; el.lastChild.style.top = Math.cos(rot) < -0.3 ? '-4px' : '40px'; } // the distance under the arrow, or over it when it points down
+  const m = Math.round(d); if (m !== wp.d) { wp.d = m; el.lastChild.textContent = m + ' m'; }
+}
+
+// Stamina and guard, in a ring at his side. It shows while stamina is short of full or his shield is up, and fades when neither.
+// The shield in it lights when the guard is up (and only when a blow would really be stopped: not mid-swing or mid-roll),
+// flashes when a blow is stopped, bursts on a parry and goes red when the guard is broken.
+const rg = { st: -1, bl: 0, pa: 0, br: 0 };
+G.on((k) => { if (k === 'tired') kick($('ring'), 'tired'); });
+function ring() {
+  const el = $('ring'), P = G.player, cam = G.camera, ok = live() || (G.running && !G.cinematic && !G.talking && P.root.visible && !P.dead && P.st < 99.5);
+  const recent = G.time - Math.max(P.blockAt || -9, P.parryAt || -9, P.breakAt || -9) < 0.7, on = ok && (P.st < 99.5 || P.guarding || recent);
+  if (el._on !== on) { el._on = on; el.style.opacity = on ? 1 : 0; }
+  tag(el, 'guard', ok && !!P.guarding);
+  if (!on && !el._vis) return; el._vis = on;
+  const e = cam.matrixWorld.elements; cv.set(P.pos.x + e[0] * 0.62, P.pos.y + 1.22, P.pos.z + e[2] * 0.62).project(cam);
+  el.style.transform = `translate(${((cv.x + 1) / 2 * innerWidth).toFixed(1)}px,${((1 - cv.y) / 2 * innerHeight).toFixed(1)}px)`;
+  const s = Math.round(P.st); if (s !== rg.st) { rg.st = s; $('ringf').style.strokeDashoffset = 100 - s; tag(el, 'low', s < 25); }
+  if ((P.blockAt || 0) !== rg.bl) { rg.bl = P.blockAt || 0; kick(el, 'hit'); } if ((P.parryAt || 0) !== rg.pa) { rg.pa = P.parryAt || 0; kick(el, 'parry'); } if ((P.breakAt || 0) !== rg.br) { rg.br = P.breakAt || 0; kick(el, 'broke'); }
+}
+
+// Javelins. A red mark on a circle round him, on the side the throw is coming from (so it is read without finding the thrower):
+// it pulses while a thrower winds up at him, and burns steady while the javelin is in the air.
+const tpool = [];
+function threats() {
+  const box = $('threats'), P = G.player, cam = G.camera; let n = 0;
+  if (live()) {
+    const e = cam.matrixWorld.elements, rx = e[0], rz = e[2], fl = Math.hypot(e[8], e[10]) || 1, fx = -e[8] / fl, fz = -e[10] / fl; // the camera's right, and its forward along the ground
+    cv.set(P.pos.x, P.pos.y + 1.1, P.pos.z).project(cam); const cx = (cv.x + 1) / 2 * innerWidth, cy = (1 - cv.y) / 2 * innerHeight, R = Math.max(92, Math.min(132, Math.min(innerWidth, innerHeight) * 0.2));
+    const mark = (p, fly) => {
+      if (n >= 5) return; const dx = p.x - P.pos.x, dz = p.z - P.pos.z, a = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz);
+      let el = tpool[n]; if (!el) { el = tpool[n] = document.createElement('div'); el.className = 'threat'; el.innerHTML = '<svg viewBox="0 0 60 26"><path d="M5 23Q30 3 55 23"/><path d="M30 0l8 10h-16z"/></svg>'; box.appendChild(el); }
+      n++; tag(el, 'fly', fly); tag(el, 'wind', !fly); if (el._d !== 1) { el._d = 1; el.style.display = 'block'; }
+      el.style.transform = `translate(${(cx + Math.sin(a) * R).toFixed(1)}px,${(cy - Math.cos(a) * R).toFixed(1)}px) rotate(${a.toFixed(2)}rad)`;
+    };
+    for (const j of G.missiles || []) if (!j.spent && j.at === P) mark(cv.set(P.pos.x - j.vel.x, 0, P.pos.z - j.vel.z), true); // (the side it is flying in from, not where it is: one about to pass him would read as behind)
+    for (const f of G.enemies) if (!f.dead && f.state === 'wind' && f.mv && f.mv.throw && !f.marked()) mark(f.pos, false);
+  }
+  for (let i = n; i < tpool.length; i++) if (tpool[i]._d !== 0) { tpool[i]._d = 0; tpool[i].style.display = 'none'; }
+}
+
 export const ui = {
   frame() {
     const p = G.player;
@@ -56,7 +124,7 @@ export const ui = {
     if (l !== lastL) { lastL = l; $('lk').style.opacity = l ? 1 : 0; if (l) $('lname').textContent = l.title || l.type.name; lastLhp = -1; }
     if (l) { const h = frac(l); if (h !== lastLhp) { lastLhp = h; bar('lhp', h); } }
     if (G.hold) bar('holdp', G.hold.progress);
-    plates();
+    plates(); wayPoint(); ring(); threats();
   },
   // A new objective or hint arrives with a short gold flash and a soft cue, so it is seen (a count ticking up inside one is not new).
   objective(text) { const el = $('obj'), key = (text || '').replace(/\d+/g, ''); el.textContent = text || ''; el.style.opacity = text ? 1 : 0; if (key && key !== ui._obj) arrive(el); ui._obj = key; },

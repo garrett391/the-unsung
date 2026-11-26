@@ -659,7 +659,11 @@ export function buildLevel() {
   // waypoint marker
   const mk = new T.Mesh(new T.CylinderGeometry(0.9, 0.9, 5, 20, 1, true), new T.MeshBasicMaterial({ color: new T.Color(1.6, 1.3, 0.5), transparent: true, opacity: 0.35, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }));
   mk.visible = false; scene.add(mk);
-  W.marker = (x, z) => { mk.visible = x != null; if (x != null) mk.position.set(x, 2.5 + W.height(x, z), z); };
+  // `W.way` is where the HUD's pointer leads (hud.js, wayPoint): the marker sets it, and `W.goal(x, z)` sets it without the beam,
+  // for places where the beam was taken out on purpose but a player may still need to be told which way. Either cleared by `marker(null)`.
+  W.way = null;
+  W.marker = (x, z) => { mk.visible = x != null; W.way = x != null ? { x, z } : null; if (x != null) mk.position.set(x, 2.5 + W.height(x, z), z); };
+  W.goal = (x, z) => { mk.visible = false; W.way = x != null ? { x, z } : null; };
   // How high the ground stands at a point (0 everywhere but in open country), and a thing laid flat on it: `lay` puts a mesh made in the
   // XY plane (a ring, a blob of shadow) on the ground at x, z, `up` above it, tilted to the slope and turned by `spin`.
   W.height = (x, z) => (W.ground ? W.ground(x, z) : 0);
