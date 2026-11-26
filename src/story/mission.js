@@ -1067,7 +1067,7 @@ stage('picket', {
       ['Sergeant', "He isn't asking you for anything. You're the one his brother picked. He doesn't want you yet, and he'll make sure you know it. Out here that's as good a start as anybody gets."],
       ['Sergeant', "The boy went out past the stakes. Up the rise, I'd guess, where he can see the beacon. Go and find him."],
     ]);
-    give(); ui.objective('Find Corin');
+    give(); ui.objective('Find Corin'); L.goal(...fr(...K)); // the HUD's pointer after 30 s, as everywhere (friends' note); the beam still waits 40
     { const t0 = G.time; let shown = false; const late = d.every(() => { if (!shown && G.time - t0 > 40) { shown = true; L.marker(...K.map((v, i) => v + (i ? FRONT.z : FRONT.x))); } }); // no marker at first: the sergeant has said where; it comes if he is still looking after a while
       await d.until(() => P.dist(kid) < 2.6 && G.time > Math.max(quiet, campHush.t)); late(); }
     stop(); await settled(d, 1); take(); await turnTo(d, P, P.angleTo(kid), 0.3);
