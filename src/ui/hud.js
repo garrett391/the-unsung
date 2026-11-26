@@ -51,12 +51,12 @@ const live = () => G.running && !G.cinematic && !G.talking && G.player.controlEn
 // The waypoint pointer. `G.level.way` is the place (set by level.marker or level.goal). In view, an arrow stands over it; out of
 // view, the arrow sits on an oval inside the screen's edge (clear of the bars and, on a phone, the buttons) and points the way.
 // It leads by the same router the raiders use, so round a bend it points along the ground he can walk, not through a dune.
-// (Friends' note, 26 Nov 2026: only when the player needs help.) A new place's pointer waits `G.wayDelay` seconds (30) of play
+// (Friends' note, 26 Nov 2026: only when the player needs help.) A new place's pointer waits `G.wayDelay` seconds (20; it was 30 until the owner lowered it, 26 Nov 2026) of play
 // before it shows: the clock runs only while he has control (not in cutscenes, dialogue or the pause menu), restarts when the place
 // moves by more than a metre, and the pointer then stays until the place is cleared. (Owner, 26 Nov 2026: in the halls it came up during
 // the second wave, while he had his hands full.) The clock also restarts whenever he is in a fight, which puts away a pointer that was up.
 // The beam, where there is one, shows at once as before. The look, a gold double chevron, was the owner's pick from samples (26 Nov 2026).
-G.wayDelay = 30;
+G.wayDelay = 20;
 const wp = { x: 0, y: 0, on: false, d: -1, rot: 9, kx: NaN, kz: NaN, wait: 0, t: 0 };
 // in a fight: any foe up and not held back (the Warden on the stair, a soldier who has yielded), or down and getting up again, and not running off
 const fighting = () => G.enemies.some((e) => (!e.dead || e.downed) && !e.hold && !e.gone && e.state !== 'flee');
