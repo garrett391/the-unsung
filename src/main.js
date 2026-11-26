@@ -4,6 +4,7 @@ import { PI, $ } from './core/util.js';
 import { initAudio, playMusic, stopMusic } from './core/audio.js';
 import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, setBlood, setModel, releaseAll } from './core/input.js';
 import { initRenderer } from './gfx/renderer.js';
+import { gfx, pickGfx, watchGfx, TIERS } from './gfx/quality.js';
 import { initFx, updateFx, clearBlood } from './gfx/fx.js';
 import { buildLevel, confine } from './world/level.js';
 import { updateMissiles, clearMissiles } from './actors/missile.js';
@@ -195,6 +196,13 @@ G.setModel = async (on) => {
   if (player.look === 'captain') player.dress(LOOKS.captain);
 };
 modelLabel(); modelBtn.addEventListener('click', () => G.setModel(!opts.model)); if (opts.model) G.setModel(true);
+// Graphics tier (gfx/quality.js): AUTO, or one the player picks. The button steps through them and the pick takes effect
+// half a second after the last press, so stepping past a tier doesn't run it. The note says what AUTO is running, and why if it is lower than usual.
+const gfxBtn = $('pgfx'), gfxNote = $('pgfxn'), GFX = ['auto', ...TIERS]; let gfxWant = gfx.pick, gfxT = 0;
+const WHY = { gpu: 'Shadows are off: this device’s graphics driver is known to stop the game with them on.', lost: 'Lowered because this device’s graphics driver stopped the game.', slow: 'Lowered to keep the game running smoothly.', url: 'Set by the page’s address.' };
+const gfxLabel = () => { const set = gfxWant === gfx.pick; gfxBtn.textContent = `GRAPHICS: ${gfxWant.toUpperCase()}`; gfxNote.textContent = set ? [gfx.pick === 'auto' && `Running at ${gfx.tier.toUpperCase()}.`, WHY[gfx.why]].filter(Boolean).join(' ') : ''; gfxNote.style.display = gfxNote.textContent ? '' : 'none'; };
+gfxLabel(); G.on((kind) => { if (kind === 'gfx') { if (!gfxT) gfxWant = gfx.pick; gfxLabel(); } });
+gfxBtn.addEventListener('click', () => { gfxWant = GFX[(GFX.indexOf(gfxWant) + 1) % GFX.length]; gfxLabel(); clearTimeout(gfxT); gfxT = setTimeout(() => { gfxT = 0; pickGfx(gfxWant); }, 500); });
 const sens = $('psens'); sens.value = opts.sens; sens.addEventListener('input', () => setSens(+sens.value));
 G.pause = (on) => {
   if (!G.running || on === !!G.paused) return;
@@ -217,7 +225,8 @@ for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener
 
 // rdt is clamped at zero: the first frame can carry a timestamp earlier than this one.
 last = performance.now();
-function frame(now) { const rdt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; if (G.manual) G.composer.render(); else step(rdt); requestAnimationFrame(frame); } // G.manual: the playtest steps the game itself, and this loop only draws
+const watched = !navigator.webdriver; // (a browser driven by a test is no measure of a player's device)
+function frame(now) { const rdt = Math.max(0, Math.min(0.05, (now - last) / 1000)); if (watched && G.running && !G.paused && !G.manual && !G.auto && document.visibilityState === 'visible') watchGfx((now - last) / 1000); last = now; if (G.manual) G.composer.render(); else step(rdt); requestAnimationFrame(frame); } // G.manual: the playtest steps the game itself, and this loop only draws
 requestAnimationFrame(frame);
 // The title's buttons come up once the first frame is drawn and the title's typeface is in (or after 1.5 s without it).
 Promise.race([document.fonts ? document.fonts.ready : null, new Promise((r) => setTimeout(r, 1500))]).then(() => $('title').classList.remove('loading'));

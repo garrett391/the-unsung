@@ -11,7 +11,6 @@ import { buildFore, FORE, FCOURT, FGATE, FDOOR, FROAD } from './forecourt.js';
 import { buildFront, FRONT, FAREA, frontRoute } from './front.js';
 import { buildWash, WASH, WAREA, washRoute } from './wash.js';
 import { buildHollow, HOLLOW, HAREA, hollowRoute } from './hollow.js';
-import { coarse } from '../core/input.js';
 
 // Layout (north = +z). A walled camp in front of a cliff. Raiders come through the
 // breach in the north wall and a gap in the east wall. South, a slot canyon
@@ -561,6 +560,10 @@ export function buildLevel() {
 
   const hemi = new T.HemisphereLight(NIGHT.hemiS, NIGHT.hemiG, NIGHT.hemiI); scene.add(hemi);
   const sun = new T.DirectionalLight(NIGHT.sun, NIGHT.sunI); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  // Whether the sun casts at all, and how big its map is, come from the graphics tier (gfx/quality.js): open country's wider box
+  // gets a bigger map on the top tier. Turning the sun's shadow off or on is also what makes three.js build every lit shader again.
+  const shadowSize = (q = G.gfx) => { const ms = (W.site && SITES[W.site].open ? q.open : q.shadow) || 0; sun.castShadow = ms > 0; if (sun.shadow.map && sun.shadow.mapSize.x !== ms) { sun.shadow.map.dispose(); sun.shadow.map = null; } if (ms) sun.shadow.mapSize.set(ms, ms); };
+  shadowSize(); G.on((kind, q) => { if (kind === 'gfx') shadowSize(q); });
   const sc = sun.shadow.camera; sc.left = -36; sc.right = 36; sc.top = 36; sc.bottom = -36; sc.near = 2; sc.far = 140; sun.shadow.bias = -0.0012; sun.shadow.normalBias = 0.05;
   sun.target.position.set(0, 0, 0); scene.add(sun); scene.add(sun.target);
   scene.fog = new T.Fog(NIGHT.fog, 26, 150);
@@ -591,7 +594,7 @@ export function buildLevel() {
     endCliff.castShadow = !door; for (const l of W.fires) l.visible = !door && site === SITES.ruins; gateL.visible = site === SITES.ruins;
     for (const m of [mBlock, mStone, mGold, mDark, mIron]) m.shadowSide = door ? T.FrontSide : null; // the Door's surround is seen from its unlit side: cast its shadow from the faces toward the light, so the faces toward us lie well inside it (cast from themselves, they speckled)
     const k = door ? 13 : site.shadow || 36; sc.left = -k; sc.right = k; sc.top = k; sc.bottom = -k; sc.near = door ? -1 : site.open ? -40 : 2; sc.far = site.open ? 150 : 140; sun.shadow.bias = site.open ? -0.0009 : -0.0012; // (open country: a wider box, deeper toward the sun so the buttes up-sun still cast into it)
-    { const ms = site.open && !coarse ? 4096 : 2048; if (sun.shadow.mapSize.x !== ms) { sun.shadow.mapSize.set(ms, ms); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } } } // the wider box keeps its detail on a desktop; a phone keeps the smaller map
+    shadowSize();
     /* behind the light, to take in the backs of the Door's pillars, which now cast */ sc.updateProjectionMatrix(); sun.target.position.set(site.at[0], 0, site.at[1] + (door ? -19 : 0));
     if (door) { sun.color.setHex(0xd2efe9); sun.intensity = 2.3; sun.position.set(0, 4.14, -29.5); /* just behind the glass, so nothing outside the vault shadows it */ hemi.color.setHex(0x7284a8); hemi.groundColor.setHex(0x1c1d26); hemi.intensity = 0.95; }
     else if (W.setDawn) W.setDawn(W.dawn);

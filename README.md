@@ -66,7 +66,7 @@ node test/cast.mjs                  # every look and enemy type, in daylight
 node test/halls.mjs                 # a tour of the empty halls
 node test/fore.mjs                  # the forecourt (as the war left it, and whole), the road outside, the stair mouth, the pause menu
 node test/places.mjs                # the camp (night and dawn) and the waystation yard, empty
-node test/gpu.mjs                   # a PowerVR phone (no shadow maps), a lost context, a refused one
+node test/gpu.mjs                   # graphics tiers: picked in the menu, a slow device, a PowerVR phone, a lost context, a refused one
 ```
 
 ## Layout
