@@ -6,7 +6,7 @@ import { route } from '../world/level.js';
 import { SFX } from '../core/audio.js';
 
 // DOM overlay: bars, objective, hints, dialogue, the chronicle screens, fades.
-let lastHp = -1, lastSt = -1, lastT = null, lastThp = -1, lastL = null, lastLhp = -1, typing = null;
+let lastHp = -1, lastT = null, lastThp = -1, lastL = null, lastLhp = -1, typing = null;
 // A spared foe's health stops at 1 (the stage ends the fight there), so his bar is measured down to 1: it empties instead of leaving a sliver.
 const frac = (t) => (t.spare ? (t.hp - 1) / (t.maxHp - 1) : t.hp / t.maxHp);
 const bar = (id, v) => { $(id).style.transform = `scaleX(${Math.max(0, Math.min(1, v))})`; };
@@ -14,8 +14,6 @@ const bar = (id, v) => { $(id).style.transform = `scaleX(${Math.max(0, Math.min(
 const fill = (s) => s.replace(/\{(\w+)\}/g, (_, a) => `<b>${label(a)}</b>`);
 const arrive = (el) => { el.classList.remove('new'); void el.offsetWidth; el.classList.add('new'); if (!G.auto) SFX.cue(); };
 
-// A refused dodge or heavy (not enough stamina) flashes the stamina bar.
-G.on((k) => { if (k !== 'tired') return; const b = $('st').parentNode; b.classList.remove('tired'); void b.offsetWidth; b.classList.add('tired'); });
 
 // Nameplates (owner, 16 Nov 2026: the soldiers who grow with him and die need their names over their health in a fight).
 // In a fight every soldier on his side has his name and health above his head, and Corin in battle his name. Out of one,
@@ -115,7 +113,6 @@ export const ui = {
   frame() {
     const p = G.player;
     if (p.hp !== lastHp) { lastHp = p.hp; bar('hp', p.hp / 100); }
-    const s = Math.round(p.st); if (s !== lastSt) { lastSt = s; bar('st', s / 100); }
     const t = G.talking || G.cinematic ? null : G.boss && !G.boss.dead ? G.boss : p.lock; // no target bar under dialogue or a cutscene
     if (t !== lastT) { lastT = t; const el = $('tgt'); el.style.opacity = t ? 1 : 0; el.classList.toggle('boss', !!(t && t === G.boss)); if (t) $('tname').textContent = t.title || t.type.name; lastThp = -1; }
     if (t) { const h = frac(t); if (h !== lastThp) { lastThp = h; bar('thp', h); } }

@@ -15,7 +15,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 #bars{position:absolute;left:16px;top:14px;width:min(44vw,260px)}
 .bar{height:8px;background:rgba(8,8,14,.6);border:1px solid rgba(239,230,210,.5);margin-bottom:5px;position:relative;border-radius:1px}
 .bar i{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left;transition:transform .12s linear}
-.bar.hp i{background:#c8322f}.bar.tired{animation:tired .5s}@keyframes tired{0%,60%{border-color:#ff5040;box-shadow:0 0 8px #ff5040}}.bar.st{height:5px;width:80%}.bar.st i{background:#d9b24a}
+.bar.hp i{background:#c8322f}
 #obj{position:absolute;left:16px;top:50px;max-width:min(92vw,520px);white-space:nowrap;font-size:16px;letter-spacing:.04em;text-shadow:0 1px 3px #000;opacity:0;transition:opacity .4s}
 #obj::before{content:"";display:inline-block;width:7px;height:7px;background:#d9b24a;transform:rotate(45deg);margin:0 9px 2px 2px}
 #hold{position:absolute;left:16px;top:80px;width:min(44vw,220px);display:none}
@@ -53,7 +53,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 .threat{position:absolute;left:0;top:0;width:60px;height:26px;margin:-13px 0 0 -30px;will-change:transform;display:none}
 .threat svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 7px rgba(255,50,30,.9))}
 .threat path{stroke:#ff3a26;fill:none;stroke-width:5;stroke-linecap:round}.threat path+path{fill:#ff3a26;stroke:none}
-.threat.wind svg{animation:thr .34s ease-in-out infinite alternate}.threat.fly path{stroke:#ff8a6a}.threat.fly path+path{fill:#ffd9cc}
+.threat.wind svg{animation:thr .34s ease-in-out infinite alternate}.threat.fly path{stroke:#ff5a34}.threat.fly path+path{fill:#fff}
 @keyframes thr{from{opacity:.45;transform:scale(.9)}to{opacity:1;transform:scale(1.08)}}
 #banner{position:absolute;left:0;right:0;top:26%;text-align:center;font-size:clamp(24px,6vw,46px);font-weight:700;letter-spacing:.28em;text-indent:.28em;opacity:0;transition:opacity .6s;text-shadow:0 2px 8px #000}
 #banner.long{font-size:clamp(17px,4vw,26px);font-weight:500;font-style:italic;letter-spacing:.08em;text-indent:0;top:30%}
@@ -168,7 +168,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 <canvas id="c"></canvas>
 <div id="hud" style="visibility:hidden">
   <div id="plates"></div>
-  <div id="bars"><div class="bar hp"><i id="hp"></i></div><div class="bar st"><i id="st"></i></div></div>
+  <div id="bars"><div class="bar hp"><i id="hp"></i></div></div>
   <div id="obj"></div>
   <div id="hold"><div class="bar"><i id="holdp"></i></div></div>
   <div id="tgt"><span id="tname"></span><div class="bar"><i id="thp"></i></div></div>
