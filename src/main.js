@@ -2,8 +2,7 @@ import * as T from 'three';
 import { G } from './core/game.js';
 import { PI, $ } from './core/util.js';
 import { initAudio, playMusic, stopMusic } from './core/audio.js';
-import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, setBlood, setModel, setPointer, releaseAll } from './core/input.js';
-import { POINTERS } from './ui/pointers.js';
+import { I, keys, press, initInput, pollInput, coarse, showTouch, opts, setSens, setBlood, setModel, releaseAll } from './core/input.js';
 import { initRenderer } from './gfx/renderer.js';
 import { initFx, updateFx, clearBlood } from './gfx/fx.js';
 import { buildLevel, confine } from './world/level.js';
@@ -196,10 +195,6 @@ G.setModel = async (on) => {
   if (player.look === 'captain') player.dress(LOOKS.captain);
 };
 modelLabel(); modelBtn.addEventListener('click', () => G.setModel(!opts.model)); if (opts.model) G.setModel(true);
-// A trial of the waypoint pointer's looks (ui/pointers.js): round him on the javelin warning's circle, on the ground, or at the screen's edge.
-const waySel = $('pway');
-waySel.innerHTML = [['ring', 'Round him'], ['ground', 'On the ground'], ['edge', 'At the screen edge']].map(([m, t]) => `<optgroup label="${t}">${POINTERS.filter((p) => p.mode === m).map((p) => `<option value="${p.id}">${p.name}${p.id === 'k' ? ' (default)' : ''}</option>`).join('')}</optgroup>`).join('');
-waySel.value = opts.pointer; waySel.addEventListener('change', () => setPointer(waySel.value));
 const sens = $('psens'); sens.value = opts.sens; sens.addEventListener('input', () => setSens(+sens.value));
 G.pause = (on) => {
   if (!G.running || on === !!G.paused) return;

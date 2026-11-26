@@ -6,10 +6,9 @@ export const I = { mx: 0, my: 0, block: false, heavy: false, touch: false };
 export const keys = {};
 export const coarse = matchMedia('(pointer:coarse)').matches;
 // Camera sensitivity, 0.25..2, kept between visits where storage allows.
-export const opts = { sens: 1, blood: true, model: false, pointer: 'k' };
-try { const v = +localStorage.getItem('unsung.sens'); if (v >= 0.25 && v <= 2) opts.sens = v; if (localStorage.getItem('unsung.blood') === 'off') opts.blood = false; if (localStorage.getItem('unsung.model') === 'on') opts.model = true; const w = localStorage.getItem('unsung.pointer'); if (w && /^[a-n]$/.test(w)) opts.pointer = w; } catch (_) { /* no storage */ }
+export const opts = { sens: 1, blood: true, model: false };
+try { const v = +localStorage.getItem('unsung.sens'); if (v >= 0.25 && v <= 2) opts.sens = v; if (localStorage.getItem('unsung.blood') === 'off') opts.blood = false; if (localStorage.getItem('unsung.model') === 'on') opts.model = true; } catch (_) { /* no storage */ }
 export function setModel(on) { opts.model = on; try { localStorage.setItem('unsung.model', on ? 'on' : 'off'); } catch (_) { /* no storage */ } }
-export function setPointer(id) { opts.pointer = id; try { localStorage.setItem('unsung.pointer', id); } catch (_) { /* no storage */ } }
 export function setBlood(on) { opts.blood = on; try { localStorage.setItem('unsung.blood', on ? 'on' : 'off'); } catch (_) { /* no storage */ } }
 export function setSens(v) { opts.sens = v; try { localStorage.setItem('unsung.sens', String(v)); } catch (_) { /* no storage */ } }
 let stick = null, look = null, mBlock = false, tHeavy = false, mHeavy = false, touchT = -9;
@@ -35,7 +34,7 @@ export function initInput(canvas, cam) {
   // guard up forever, so every event that reports modifier state resyncs it.
   const syncShift = (e) => { if (!e.shiftKey) keys.ShiftLeft = keys.ShiftRight = false; };
   addEventListener('keydown', (e) => {
-    if ((e.code === 'Tab' || e.code === 'Space' || e.code.startsWith('Arrow')) && !e.target.closest?.('select')) e.preventDefault(); // (a list in the pause menu keeps its arrow keys)
+    if (e.code === 'Tab' || e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
     if (e.code !== 'ShiftLeft' && e.code !== 'ShiftRight') syncShift(e);
     if (e.repeat) return;
     if (e.code === 'Escape' || e.code === 'KeyP') { G.togglePause?.(); return; }
@@ -60,7 +59,7 @@ export function initInput(canvas, cam) {
   let tapT = -9;
   document.addEventListener('touchend', (e) => {
     const now = performance.now(), fast = now - tapT < 400; tapT = now;
-    if ((fast || !e.target.closest?.('button, input, select, summary, a')) && e.cancelable) e.preventDefault();
+    if ((fast || !e.target.closest?.('button, input, summary, a')) && e.cancelable) e.preventDefault();
   }, { passive: false });
   document.addEventListener('dblclick', (e) => e.preventDefault());
   document.addEventListener('gesturestart', (e) => e.preventDefault());

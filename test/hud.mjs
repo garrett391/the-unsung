@@ -1,6 +1,5 @@
 // Stills of the things the HUD hangs on the play: the waypoint pointer, the stamina and guard ring, the javelin warning.
 //   npm run build && node test/hud.mjs            (writes test/shots/hud-*.png; W=390 H=780 for a phone, as hud-phone-*.png)
-//   POINTER=a node test/hud.mjs                    (the waypoint pointer's look, a to n: ui/pointers.js; k by default)
 import { chromium } from 'playwright-core';
 import http from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
@@ -18,12 +17,11 @@ await page.route('**/fonts.googleapis.com/**', (r) => r.abort());
 await page.goto(`http://localhost:${server.address().port}/`); await page.waitForTimeout(800);
 const shot = async (n) => { console.log(n, await page.evaluate(() => JSON.stringify({ vis: G.player.root.visible, pos: G.player.pos.toArray().map(v => +v.toFixed(1)), cam: G.camera.position.toArray().map(v => +v.toFixed(1)), ce: G.player.controlEnabled, cin: G.cinematic, talk: G.talking, way: G.level.way, st: G.player.st, g: G.player.guarding, w: document.getElementById('way').style.transform, r: document.getElementById('way').firstChild.style.transform }))); await page.waitForTimeout(700); return page.screenshot({ path: join(shots, `hud-${phone ? 'phone-' : ''}${n}.png`) }); };
 const run = (sec, js) => page.evaluate(async ([sec, js]) => { const f = js && (0, eval)(js); for (let i = 0; i < sec * 60; i++) { G.player.hp = 100; if (f) f(i); G.step(1 / 60, i < sec * 60 - 1); for (let k = 0; k < 8; k++) await null; } }, [sec, js]);
-const POINTER = process.env.POINTER || '';
-await page.evaluate((POINTER) => {
+await page.evaluate(() => {
   for (const id of ['title', 'chron']) document.getElementById(id).style.display = 'none'; document.getElementById('hud').style.visibility = 'visible'; document.getElementById('fade').style.opacity = 0;
   if (matchMedia('(pointer:coarse)').matches) document.getElementById('touch').style.display = 'block';
-  G.director.abort(); G.running = true; G.resetWorld({ site: 'front', sky: 'day', look: 'ranker', corin: null, player: [260, -204, 0] }); G.wayDelay = 0; if (POINTER) G.opts.pointer = POINTER; G.player.setVisible(true); G.player.controlEnabled = true; G.cam.behind();
-}, POINTER);
+  G.director.abort(); G.running = true; G.resetWorld({ site: 'front', sky: 'day', look: 'ranker', corin: null, player: [260, -204, 0] }); G.wayDelay = 0; G.player.setVisible(true); G.player.controlEnabled = true; G.cam.behind();
+});
 // the pointer: the place ahead and in view, then behind him, then round the riverbed's bend
 await run(0.5, "G.level.marker(262, -186); null"); await shot('way-ahead');
 await run(0.5, "G.level.goal(258, -222); null"); await shot('way-behind');

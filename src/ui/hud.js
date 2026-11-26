@@ -1,8 +1,7 @@
 import { Vector3 } from 'three';
 import { G } from '../core/game.js';
 import { $ } from '../core/util.js';
-import { label, coarse, opts } from '../core/input.js';
-import { pointer } from './pointers.js';
+import { label, coarse } from '../core/input.js';
 import { route } from '../world/level.js';
 import { SFX } from '../core/audio.js';
 
@@ -49,79 +48,38 @@ const cv = new Vector3(), tag = (el, k, on) => { if (el['_' + k] !== on) { el['_
 const kick = (el, k) => { el.classList.remove(k); void el.offsetWidth; el.classList.add(k); el['_' + k] = true; };
 const live = () => G.running && !G.cinematic && !G.talking && G.player.controlEnabled && !G.player.dead && G.player.root.visible;
 
-// The waypoint pointer. `G.level.way` is the place (set by level.marker or level.goal). It leads by the same router the raiders use,
-// so round a bend it points along the ground he can walk, not through a dune. How it looks is a trial in the pause menu
-// (`opts.pointer`, the looks in pointers.js): on the javelin warning's circle round him (K, the default; J, L, M), on the ground at his
-// feet (N), or at the screen's edge (A to I: in view, it stands over the place pointing down; out of view, it sits on an oval inside the
-// screen's edge, clear of the bars and, on a phone, the buttons, and points as a compass does).
+// The waypoint pointer. `G.level.way` is the place (set by level.marker or level.goal). In view, an arrow stands over it; out of
+// view, the arrow sits on an oval inside the screen's edge (clear of the bars and, on a phone, the buttons) and points the way.
+// It leads by the same router the raiders use, so round a bend it points along the ground he can walk, not through a dune.
 // (Friends' note, 26 Nov 2026: only when the player needs help.) A new place's pointer waits `G.wayDelay` seconds (30) of play
 // before it shows: the clock runs only while he has control (not in cutscenes, dialogue or the pause menu), restarts when the place
-// moves by more than a metre, and (owner, 26 Nov 2026: in the halls it came up during the second wave, while he had his hands full)
-// restarts whenever he is in a fight, which also puts away a pointer that was up. The beam, where there is one, shows at once as before.
+// moves by more than a metre, and the pointer then stays until the place is cleared. (Owner, 26 Nov 2026: in the halls it came up during
+// the second wave, while he had his hands full.) The clock also restarts whenever he is in a fight, which puts away a pointer that was up.
+// The beam, where there is one, shows at once as before. The look, a gold double chevron, was the owner's pick from samples (26 Nov 2026).
 G.wayDelay = 30;
-const wp = { x: 0, y: 0, on: false, d: -1, rot: 9, kx: NaN, kz: NaN, wait: 0, t: 0, ga: 0, R: 0 };
+const wp = { x: 0, y: 0, on: false, d: -1, rot: 9, kx: NaN, kz: NaN, wait: 0, t: 0 };
 // in a fight: any foe up and not held back (the Warden on the stair, a soldier who has yielded), or down and getting up again, and not running off
 const fighting = () => G.enemies.some((e) => (!e.dead || e.downed) && !e.hold && !e.gone && e.state !== 'flee');
-const wrapA = (v) => v - Math.round(v / (2 * Math.PI)) * 2 * Math.PI;
-const vis = (el, on) => { if (el._v !== on) { el._v = on; el.style.opacity = on ? 1 : 0; } };
-let look = null;
-function dress(el) { // put on the chosen look (when it changes in the pause menu, the pointer changes where it stands)
-  const p = pointer(opts.pointer); if (p === look) return p; look = p;
-  const sv = el.firstChild, w = p.w || p.s || 26, h = p.h || p.s || 26;
-  sv.setAttribute('viewBox', p.vb || '0 0 24 24'); sv.innerHTML = p.svg;
-  sv.style.cssText = `left:${30 - w / 2}px;top:${30 - h / 2}px;width:${w}px;height:${h}px;${p.mode === 'ground' ? 'display:none;' : ''}${p.css || ''}`;
-  el.className = p.cls || ''; el.lastChild.style.transform = ''; wp.rot = 9; wp.snap = true; return p;
-}
 function wayPoint() {
-  const el = $('way'), wl = $('wayl'), wg = $('wayg'), w = G.level && G.level.way, P = G.player, cam = G.camera, W = innerWidth, H = innerHeight;
+  const el = $('way'), w = G.level && G.level.way, P = G.player, cam = G.camera, W = innerWidth, H = innerHeight;
   const now = G.time, step = Math.min(0.25, Math.max(0, now - wp.t)); wp.t = now;
   if (!w) wp.kx = NaN; else if (!(Math.hypot(w.x - wp.kx, w.z - wp.kz) < 1)) { wp.kx = w.x; wp.kz = w.z; wp.wait = 0; } else if (fighting()) wp.wait = 0; else if (live()) wp.wait += step;
   const d = w ? Math.hypot(w.x - P.pos.x, w.z - P.pos.z) : 0, show = !!w && live() && d > 3.5 && wp.wait >= G.wayDelay;
-  const p = dress(el);
-  if (show !== wp.on) { vis(el, show); if (show && !wp.on) wp.d = -1, wp.snap = true; wp.on = show; }
-  vis(wl, show && !!p.arc); vis(wg, show && p.mode === 'ground');
+  if (show !== wp.on) { el.style.opacity = show ? 1 : 0; if (show && !wp.on) wp.d = -1, wp.snap = true; wp.on = show; }
   if (!show) return;
   const via = route(P.pos, w), far = via && Math.hypot(via[0] - P.pos.x, via[1] - P.pos.z) > 2.5, tx = far ? via[0] : w.x, tz = far ? via[1] : w.z;
-  const e = cam.matrixWorld.elements, fl = Math.hypot(e[8], e[10]) || 1, span = el.lastChild;
-  let x, y, rot;
-  if (p.mode === 'edge') {
-    cv.set(tx, G.level.height(tx, tz) + (far ? 1.6 : 3.1), tz).applyMatrix4(cam.matrixWorldInverse); const front = cv.z < -0.3;
-    let dx = cv.x, dy = -cv.y;
-    if (front) { cv.applyMatrix4(cam.projectionMatrix); dx = cv.x * W; dy = -cv.y * H; }
-    const cx = W / 2, cy = H * (coarse ? 0.44 : 0.5), rx = W / 2 - (coarse ? 38 : 64), ry = coarse ? H * 0.27 : H / 2 - 96;
-    const ex = dx / 2 / rx, ey = (dy / 2 + (H / 2 - cy)) / ry;
-    if (front && !far && ex * ex + ey * ey < 1) { x = W / 2 + dx / 2; y = H / 2 + dy / 2; rot = Math.PI; } // in view, and it is the place itself: stand over it, pointing down
-    else { // otherwise as a compass does: by where it lies on the ground from him, ahead being up the screen (so a place behind him is at the bottom)
-      const gx = tx - P.pos.x, gz = tz - P.pos.z; dx = gx * e[0] + gz * e[2]; dy = (gx * e[8] + gz * e[10]) / fl; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; const k = 1 / Math.sqrt((dx / rx) ** 2 + (dy / ry) ** 2); x = cx + dx * k; y = cy + dy * k; rot = Math.atan2(dx, -dy); }
-    if (wp.snap) { wp.x = x; wp.y = y; wp.snap = false; } else { wp.x += (x - wp.x) * 0.22; wp.y += (y - wp.y) * 0.22; }
-    if (Math.abs(rot - wp.rot) > 0.01) { wp.rot = rot; el.firstChild.style.transform = `rotate(${rot.toFixed(2)}rad)`; span.style.top = Math.cos(rot) < -0.3 ? '-4px' : '40px'; } // the distance under the arrow, or over it when it points down
-  } else {
-    // Round him: the bearing on the ground is eased (so it swings round a bend instead of jumping); the camera's own turning is not.
-    const ga = Math.atan2(tx - P.pos.x, tz - P.pos.z); if (wp.snap) wp.ga = ga; else wp.ga += wrapA(ga - wp.ga) * 0.2; wp.snap = false;
-    const ux = Math.sin(wp.ga), uz = Math.cos(wp.ga), a = Math.atan2(ux * e[0] + uz * e[2], -(ux * e[8] + uz * e[10]) / fl); // ahead (away from the camera) is up the screen
-    if (p.mode === 'ring') { // on the javelin warning's circle (threats)
-      cv.set(P.pos.x, P.pos.y + 1.1, P.pos.z).project(cam); const cx = (cv.x + 1) / 2 * W, cy = (1 - cv.y) / 2 * H, R = Math.max(92, Math.min(132, Math.min(W, H) * 0.2)), r = R + (p.out || 0);
-      x = cx + Math.sin(a) * r; y = cy - Math.cos(a) * r; rot = a;
-      const gh = (p.h || p.s || 26) / 2; span.style.top = `${(21 - Math.cos(a) * (gh + 14)).toFixed(1)}px`; span.style.transform = `translateX(${(Math.sin(a) * (gh + 30)).toFixed(1)}px)`; // the distance just outside it
-      if (p.arc) { // L: a faint ring round him, lit along the side to go (drawn once at the top and turned, so it is only moved, never redrawn)
-        if (wp.R !== R) { wp.R = R; const s = R + 20, q = (t) => `${(Math.sin(t) * R).toFixed(1)} ${(-Math.cos(t) * R).toFixed(1)}`;
-          wl.setAttribute('viewBox', `${-s} ${-s} ${2 * s} ${2 * s}`); wl.style.width = wl.style.height = `${2 * s}px`; wl.style.margin = `${-s}px 0 0 ${-s}px`;
-          wl.innerHTML = `<circle r="${R}"/><path d="M${q(-0.32)}A${R} ${R} 0 0 1 ${q(0.32)}"/>`; }
-        wl.style.transform = `translate(${cx.toFixed(1)}px,${cy.toFixed(1)}px) rotate(${a.toFixed(3)}rad)`;
-      }
-    } else { // N: a ring lying on the ground round his feet, with a point on its rim; the distance stands beyond the point
-      const r = 1.0, pr = (gx, gz) => { cv.set(gx, G.level.height(gx, gz) + 0.04, gz).project(cam); return `${((cv.x + 1) / 2 * W).toFixed(1)},${((1 - cv.y) / 2 * H).toFixed(1)}`; };
-      const pts = []; for (let i = 0; i <= 32; i++) { const t = i / 32 * Math.PI * 2; pts.push(pr(P.pos.x + Math.cos(t) * r, P.pos.z + Math.sin(t) * r)); }
-      const at = (k, s) => pr(P.pos.x + ux * k - uz * s, P.pos.z + uz * k + ux * s);
-      const ring = pts.join(' '), tip = `M${at(r + 0.6, 0)}L${at(r + 0.05, 0.3)}L${at(r + 0.22, 0)}L${at(r + 0.05, -0.3)}z`;
-      wg.firstChild.setAttribute('points', ring); wg.children[1].setAttribute('points', ring); wg.children[2].setAttribute('d', tip); wg.children[3].setAttribute('d', tip);
-      const [lx, ly] = at(r + 1.2, 0).split(',').map(Number); x = Math.max(30, Math.min(W - 30, lx)); y = Math.max(30, Math.min(H - 24, ly)); rot = 0; span.style.top = '21px'; // (kept on screen: behind him it falls below the frame)
-    }
-    wp.x = x; wp.y = y;
-    if (Math.abs(rot - wp.rot) > 0.005) { wp.rot = rot; el.firstChild.style.transform = `rotate(${rot.toFixed(3)}rad)`; }
-  }
+  cv.set(tx, G.level.height(tx, tz) + (far ? 1.6 : 3.1), tz).applyMatrix4(cam.matrixWorldInverse); const front = cv.z < -0.3;
+  let x, y, rot, dx = cv.x, dy = -cv.y;
+  if (front) { cv.applyMatrix4(cam.projectionMatrix); dx = cv.x * W; dy = -cv.y * H; }
+  const cx = W / 2, cy = H * (coarse ? 0.44 : 0.5), rx = W / 2 - (coarse ? 38 : 64), ry = coarse ? H * 0.27 : H / 2 - 96;
+  const ex = dx / 2 / rx, ey = (dy / 2 + (H / 2 - cy)) / ry;
+  if (front && !far && ex * ex + ey * ey < 1) { x = W / 2 + dx / 2; y = H / 2 + dy / 2; rot = Math.PI; } // in view, and it is the place itself: stand over it, pointing down
+  else { // otherwise as a compass does: by where it lies on the ground from him, ahead being up the screen (so a place behind him is at the bottom)
+    const e = cam.matrixWorld.elements, fl = Math.hypot(e[8], e[10]) || 1, gx = tx - P.pos.x, gz = tz - P.pos.z; dx = gx * e[0] + gz * e[2]; dy = (gx * e[8] + gz * e[10]) / fl; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; const k = 1 / Math.sqrt((dx / rx) ** 2 + (dy / ry) ** 2); x = cx + dx * k; y = cy + dy * k; rot = Math.atan2(dx, -dy); }
+  if (wp.snap) { wp.x = x; wp.y = y; wp.snap = false; } else { wp.x += (x - wp.x) * 0.22; wp.y += (y - wp.y) * 0.22; }
   el.style.transform = `translate(${wp.x.toFixed(1)}px,${wp.y.toFixed(1)}px)`;
-  const m = Math.round(d); if (m !== wp.d) { wp.d = m; span.textContent = m + ' m'; }
+  if (Math.abs(rot - wp.rot) > 0.01) { wp.rot = rot; el.firstChild.style.transform = `rotate(${rot.toFixed(2)}rad)`; el.lastChild.style.top = Math.cos(rot) < -0.3 ? '-4px' : '40px'; } // the distance under the arrow, or over it when it points down
+  const m = Math.round(d); if (m !== wp.d) { wp.d = m; el.lastChild.textContent = m + ' m'; }
 }
 
 // Stamina and guard, in a ring at his side. It shows while stamina is short of full or his shield is up, and fades when neither.
