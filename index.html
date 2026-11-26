@@ -150,6 +150,10 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 .chap:disabled{opacity:.3;cursor:default;background:none}
 @media (pointer:coarse){.chap{padding:10px 4px}}
 
+/* When the graphics are lost or refused (renderer.js, notice): over everything, in place of a white canvas or a title stuck on LOADING. */
+#gpu{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 24px;background:#05060c}
+#gpu h2{font-size:15px;letter-spacing:.4em;text-indent:.4em;font-weight:500;color:#e9c15a;margin-bottom:18px}
+#gpu p{max-width:min(100%,460px);font-size:18px;line-height:1.45;margin-bottom:22px}
 @keyframes pulse{50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){#dlg .more,#dlg .time,#chron .tap,#obj.new,#hint.new{animation:none}}
 @media (max-width:600px){#ring{width:40px;height:40px;margin:-20px 0 0 -20px}#bars{width:40vw}#tgt,#lk{left:auto;right:62px;transform:none;width:36vw}#tgt.boss{left:50%;right:auto;transform:translateX(-50%);bottom:auto;top:132px;width:80vw}
@@ -218,6 +222,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
     <button class="btn small" id="pmodel"></button>
   </details>
 </div>
+<div id="gpu"><h2></h2><p></p><button class="btn" onclick="location.reload()">RELOAD</button></div>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

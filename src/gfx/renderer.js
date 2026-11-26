@@ -24,9 +24,50 @@ const GradeShader = {
       gl_FragColor=c;}`,
 };
 
+// Shadow maps crash some phones' graphics drivers. On the Pixel 10 (PowerVR D-Series, Nov 2026: the owner's brother) the
+// driver loses the WebGL context within the first frames once many draws a frame sample a shadow map; Chrome then paints the
+// dead canvas white while the page and its music go on, and after a few losses refuses WebGL to the site until it is
+// restarted. Other three.js projects saw the same on that phone, and shadows off was what stopped it. So: no shadow maps on a
+// PowerVR GPU, nor on a device that has lost its context with them on in the last month (remembered under NOSHADOW, keyed to
+// the GPU's name). Figures keep their painted shadows (Char.shadow). `?shadows=0` or `?shadows=1` in the address overrides.
+const NOSHADOW = 'the-unsung.noshadow', MONTH = 30 * 864e5;
+function gpuName(gl) {
+  try { const x = gl.getExtension('WEBGL_debug_renderer_info'); return [gl.getParameter(gl.RENDERER), x && gl.getParameter(x.UNMASKED_VENDOR_WEBGL), x && gl.getParameter(x.UNMASKED_RENDERER_WEBGL)].filter(Boolean).join(' / '); } catch (_) { return ''; }
+}
+function shadowsWanted(gpu) {
+  const q = new URLSearchParams(location.search).get('shadows'); if (q === '0' || q === '1') return q === '1';
+  if (/PowerVR|Imagination/i.test(gpu)) return false;
+  try { const r = JSON.parse(localStorage.getItem(NOSHADOW) || 'null'); if (r && r.gpu === gpu && Date.now() - r.at < MONTH) return false; } catch (_) { /* storage blocked */ }
+  return true;
+}
+// A notice over the canvas when the graphics are gone (#gpu in index.html), instead of a white screen or a title stuck on LOADING.
+function notice(on, head, text) {
+  const n = document.getElementById('gpu'); if (!n) return;
+  if (on) { n.querySelector('h2').textContent = head; n.querySelector('p').textContent = text; }
+  n.style.display = on ? 'flex' : 'none';
+}
+const AGAIN = 'If the screen stays blank, wait half a minute and reload again. If it still won’t start, close the browser completely and open it again.';
+
 export function initRenderer(canvas) {
-  const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  let renderer;
+  try { renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); } catch (e) {
+    notice(true, 'NO 3D GRAPHICS', 'The browser wouldn’t start the game’s 3D graphics. If the game crashed a moment ago, the browser may be holding them back for a while: wait half a minute and reload. If it still won’t start, close the browser completely and open it again.');
+    throw e;
+  }
+  const gpu = gpuName(renderer.getContext());
+  renderer.shadowMap.enabled = shadowsWanted(gpu); renderer.shadowMap.type = T.PCFSoftShadowMap;
+  // Lost: pause, hide the canvas (Chrome paints a lost one white), say so, and remember to start this device without shadows.
+  // three.js keeps the context restorable (it calls preventDefault); if the browser gives it back, carry on without shadows.
+  // (A context dropped while the page was hidden, as a phone may do to a tab in the background, is not the shadows' doing.)
+  let drop = false;
+  canvas.addEventListener('webglcontextlost', () => {
+    const had = renderer.shadowMap.enabled; drop = had && document.visibilityState === 'visible';
+    if (drop) try { localStorage.setItem(NOSHADOW, JSON.stringify({ gpu, at: Date.now() })); } catch (_) { /* storage blocked */ }
+    if (G.pause) G.pause(true);
+    canvas.style.visibility = 'hidden';
+    notice(true, 'THE GRAPHICS STOPPED', (drop ? 'This device’s graphics driver dropped the game. Shadows are now off on this device, which usually stops it.' : 'This device’s graphics driver dropped the game.') + ' Reload to carry on from your last checkpoint. ' + AGAIN);
+  });
+  canvas.addEventListener('webglcontextrestored', () => { if (drop) renderer.shadowMap.enabled = false; canvas.style.visibility = ''; notice(false); }); // (after three.js's own handler, which rebuilds its state)
   renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new T.Scene();
   const camera = new T.PerspectiveCamera(54, 1, 0.1, 900);
@@ -45,6 +86,6 @@ export function initRenderer(canvas) {
     camera.aspect = W / H; camera.fov = W < H ? 66 : 54; camera.updateProjectionMatrix();
   }
   addEventListener('resize', resize); resize();
-  Object.assign(G, { renderer, scene, camera, composer, grade, bloom });
+  Object.assign(G, { renderer, scene, camera, composer, grade, bloom, gpu });
   return { renderer, scene, camera, composer };
 }
