@@ -147,9 +147,9 @@ stage('halls', {
     const beaten = () => F.hp <= 1;
     if (!G.taughtDoor) {
       let n = 0; const off = G.on((k, e) => { if (k === 'struck' && (e.result === 'block' || e.result === 'parry')) n++; });
-      F.hold = false; F.cd = 1.0; ui.hint('Hold {b} to raise your shield when he swings');
+      F.hold = false; F.cd = 1.0; ui.tip('Hold {b} to raise your shield when he swings', () => P.guarding);
       await d.until(() => n >= 2 || beaten()); off(); G.taughtDoor = true;
-      const tip = 'Every blow your shield stops costs stamina'; ui.hint(n >= 2 ? tip : ''); d.wait(6).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); // (not shown if he was beaten down without a block)
+      const tip = 'Every blow your shield stops costs stamina'; if (n >= 2) ui.tip(tip); else ui.hint(''); d.wait(6).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); // (not shown if he was beaten down without a block)
     }
     F.hold = false; F.spare = false;
     await d.until(() => F.dead);
@@ -548,10 +548,10 @@ stage('waystation', {
       const foe = R[0]; for (const e of R) e.hold = e !== foe; foe.spare = true; foe.cd = 1.0; // (he can't be cut down until both have come back, so each is the objective in its turn)
       const back = async (name, thought) => { SFX.learn(); ui.banner(name, 2.2); ui.hint(''); ui.thought(thought, 4.5); P.flashCol = [1, 0.8, 0.3]; P.flash = 0.9; G.slow = Math.max(G.slow, 0.5); shock(P.pos, 2, 0xffe2a0); await d.wait(1.1); P.flashCol = [1, 0.15, 0.1]; };
       // (Owner, Nov 2026.) Only a roll counts: a step back used to pass for one. A step back gets a nudge instead.
-      ui.objective('Remember how to get clear of a blade'); ui.hint('Roll: hold a direction and press {d}'); let stepped = false;
+      ui.objective('Remember how to get clear of a blade'); ui.tip('Roll: hold a direction and press {d}', () => P.state === 'roll'); let stepped = false;
       const nudge = d.every(() => { if (P.state === 'back' && !stepped) { stepped = true; ui.hint('That was a step back. To roll, hold a direction and press {d}'); } });
       await d.until(() => P.state === 'roll'); nudge(); await back('THE ROLL', 'I know this. ...My feet never forgot it.');
-      ui.objective('Remember how to end it in one blow'); ui.hint('Hold {h} to wind up a heavy blow, then let go'); await d.until(() => P.state === 'atk' && P.at && P.at.heavy && P.hitSet.size > 0); await back('THE HEAVY BLOW', 'And this. ...The weight of it.');
+      ui.objective('Remember how to end it in one blow'); ui.tip('Hold {h} to wind up a heavy blow, then let go', () => P.state === 'wind' && P.charge > 0); await d.until(() => P.state === 'atk' && P.at && P.at.heavy && P.hitSet.size > 0); await back('THE HEAVY BLOW', 'And this. ...The weight of it.');
       G.taughtWay = true; foe.spare = false; for (const e of R) e.hold = false;
     }
     ui.objective('Drive the raiders out of the yard');
@@ -668,7 +668,7 @@ stage('muster', {
     // His rush: called for here, every so often while he circles, and oftener once he is half beaten. The first
     // one comes with the one thing the player has not met before: a blow the shield will not stop.
     let rt = 5, told = false, pressed = false; const RUSH = TYPES.sergeant.moves[2];
-    const offR = G.on((k) => { if (k === 'rush') rt = Math.max(rt, pressed ? 3 : 5); /* one he threw in answer to blows on his shield counts too */ if (k === 'rush' && !told) { told = true; const tip = 'His shield rush breaks a guard. Roll clear of it: a direction and {d}'; ui.hint(tip); d.wait(5).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); } });
+    const offR = G.on((k) => { if (k === 'rush') rt = Math.max(rt, pressed ? 3 : 5); /* one he threw in answer to blows on his shield counts too */ if (k === 'rush' && !told) { told = true; const tip = 'His shield rush breaks a guard. Roll clear of it: a direction and {d}'; ui.tip(tip, () => P.state === 'roll'); d.wait(5).then(() => { if (ui._hint === tip) ui.hint(''); }, () => {}); } });
     const tick = d.every((dt) => {
       if (!pressed && S.hp < S.maxHp * 0.5) { pressed = true; S.phase2 = true; rt = Math.min(rt, 1.5); /* quicker on his feet, chains oftener, less time between attacks */ }
       if (G.freezeAI || G.talking || S.hp <= 1 || P.dead) return;
@@ -782,7 +782,7 @@ const SEAT = (scale = 1, kind = 'lean') => pose({ pos: [0, 0.53 / scale - 0.9, -
 // What he goes by on the frontier (owner, 16 Nov 2026: he answers his own people; asked his name, he gives his old job). His speaker label too, until he is made captain.
 const ME = 'Yard hand';
 // The first javelin on the frontier: one of the line shouts it, in the patrol only (owner, 23 Nov 2026: it was shouted again in later chapters). Returns the unsubscribe.
-const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.seenJav = true; ui.say(who, 'Javelins! Shields up, or get out of the way!', 3.5); } });
+const javelins = (who) => G.on((k) => { if (k === 'javelin' && !G.seenJav) { G.seenJav = true; const P = G.player, tip = 'Javelins: face them with your shield up ({b}), or roll clear ({d})'; /* the tip first, with the fight slowed; then the shout */ ui.tip(tip, () => P.guarding || P.state === 'roll').then(() => { if (ui._hint === tip) ui.hint(''); ui.say(who, 'Javelins! Shields up, or get out of the way!', 3.5); }); } });
 // The picket's people (owner, 23 Nov 2026: the camp he keeps coming back to should be lived in; the tents and the rest are in
 // front.js). Who is about depends on the hour:
 //   'day'    the cook at his hearth, two at dice between the tents, one at the whetstone, the lookout at his stones, and one
@@ -1727,7 +1727,7 @@ stage('vessa', {
       ['Vessa', 'Step aside, and I will let you live long enough to be forgotten.'],
     ]);
     G.cinematic = false; ui.cinematic(false); cam.behind(); P.controlEnabled = true; G.freezeAI = false; G.maxAtk = 1; V.cd = 1.2;
-    ui.objective("Drive off Vessa, the Witches' Hand"); ui.hint('Her glaive outreaches you. Parry it, or roll through and punish the recovery.');
+    ui.objective("Drive off Vessa, the Witches' Hand"); ui.tip('Her glaive outreaches you. Parry it, or roll through and punish the recovery.');
     const t = d.every(() => { if (!V.phase2 && V.hp < V.maxHp * 0.5 && !V.dead) { V.phase2 = true; V.flash = 1; SFX.flame(); shock(V.pos, 3.4, 0xc79bff); ui.banner('SHE STOPS HOLDING BACK', 2); } });
     await d.wait(7); ui.hint('');
     await d.until(() => V.hp <= 1);

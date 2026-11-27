@@ -11,7 +11,7 @@ import { gfx, startGfx, applyGfx, capGfx } from './quality.js';
 // a red pulse at the frame edge when the captain is cut (uHurt), and fine noise that
 // breaks up banding in the night sky and fog.
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.85 }, uWarm: { value: 0 }, uHurt: { value: 0 }, uTime: { value: 0 }, uFocus: { value: 0 }, uBlur: { value: 0.011 }, uAsp: { value: 1 } },
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.85 }, uWarm: { value: 0 }, uHurt: { value: 0 }, uTime: { value: 0 }, uFocus: { value: 0 }, uBlur: { value: 0.0055 }, uAsp: { value: 1 } },
   vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
   fragmentShader: `uniform sampler2D tDiffuse;uniform float uVig,uWarm,uHurt,uTime,uFocus,uBlur,uAsp;varying vec2 vUv;
     void main(){vec4 c=texture2D(tDiffuse,vUv);

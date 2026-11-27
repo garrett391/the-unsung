@@ -41,7 +41,7 @@ G.clearEnemies = () => { clearMissiles(); for (const e of G.enemies) e.dispose()
 G.enlist = (o) => { const a = new Ally(o); G.allies.push(a); return a; }; // a soldier who fights beside him (actors/ally.js)
 // Put the world in a known state for the start of a stage.
 G.resetWorld = (o) => {
-  G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.wear(o.look || 'captain'); player.reset(...o.player); G.blunt = false; G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = G.hurt = 0; clearBlood();
+  G.clearEnemies(); if (G.stretchers) { G.stretchers.dispose(); G.stretchers = null; } player.wear(o.look || 'captain'); player.reset(...o.player); G.blunt = false; G.spar = !!o.spar; G.boss = null; G.hold = null; G.freezeAI = false; G.cinematic = false; G.hitstop = G.slow = G.hurt = 0; G.focus = 0; clearBlood();
   ui.holdBar(false); ui.objective(''); ui.hint(''); ui.thought(''); ui.hideDialogue(); ui.cinematic(false); level.marker(null); level.setSite(o.site || 'ruins', o); level.setDawn(0); level.flare = 0; level.setGate(o.gate || 'sanctum');
   if (o.corin) { corin.setVisible(true); corin.place(o.corin[0], o.corin[1], o.corin[2]); corin.setMode(o.corin[3]); } else corin.setVisible(false);
 };

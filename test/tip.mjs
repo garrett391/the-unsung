@@ -28,10 +28,14 @@ const TIP = 'His shield rush breaks a guard. Roll clear of it: a direction and {
 await run(1.2, "G.freezeAI = true; null");
 await page.evaluate(() => { G.freezeAI = false; S.startMove(S.type.moves[2]); });
 await run(0.3); await shot('0-before');
-await page.evaluate((t) => { G.grade.uniforms.uBlur.value = 0; G.ui.tip(t); }, TIP);
+await page.evaluate((t) => { window.B = G.grade.uniforms.uBlur.value; G.grade.uniforms.uBlur.value = 0; window.lifted = 0; G.ui.tip(t, () => G.player.state === 'roll').then(() => lifted++); }, TIP);
 await run(0.5); await shot('1-dim');
-await page.evaluate(() => { G.grade.uniforms.uBlur.value = 0.011; });
+await page.evaluate(() => { G.grade.uniforms.uBlur.value = B; });
 await run(0.1); await shot('2-blur');
-await page.evaluate(() => { G.grade.uniforms.uBlur.value = 0.022; });
-await run(0.1); await shot('3-blur-strong');
+const st = () => page.evaluate(() => JSON.stringify({ focus: G.focus, k: +G.focusK.toFixed(2), lifted, cls: document.getElementById('hint').className, hint: G.ui._hint.slice(0, 12) }));
+// it lifts when he rolls, and the text stays as a plain hint
+await run(0.6, "G.keys.KeyW = true; G.press('d'); null"); console.log('after a roll   ', await st());
+// with nothing done, it lifts when the time to read it is up; and a scene taking over lifts it at once
+await page.evaluate((t) => { G.keys.KeyW = false; G.ui.hint(''); G.ui.tip(t); }, TIP); await run(3); console.log('3 s, unread    ', await st()); await run(4); console.log('7 s            ', await st());
+await page.evaluate((t) => { G.ui.hint(''); G.ui.tip(t); G.cinematic = true; }, TIP); await run(0.1); console.log('a scene        ', await st());
 await browser.close(); server.close();

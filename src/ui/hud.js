@@ -119,6 +119,13 @@ function threats() {
   for (let i = n; i < tpool.length; i++) if (tpool[i]._d !== 0) { tpool[i]._d = 0; tpool[i].style.display = 'none'; }
 }
 
+// The tip the fight is slowed for (ui.tip), if one is up.
+let tipS = null;
+function unfocus() { if (!G.focus && !tipS) return; G.focus = 0; $('hint').classList.remove('tip'); $('hud').classList.remove('focus'); const s = tipS; tipS = null; if (s) s.res(); }
+function focus() {
+  const s = tipS; if (!s) return; s.t += G.rdt || 0; const p = G.player;
+  if (!G.focus || s.t > s.dur || (s.t > 0.8 && s.done && s.done()) || G.talking || G.cinematic || (p && p.dead) || ui._hint !== s.text) unfocus();
+}
 export const ui = {
   frame() {
     const p = G.player;
@@ -131,13 +138,20 @@ export const ui = {
     if (l !== lastL) { lastL = l; $('lk').style.opacity = l ? 1 : 0; if (l) $('lname').textContent = l.title || l.type.name; lastLhp = -1; }
     if (l) { const h = frac(l); if (h !== lastLhp) { lastLhp = h; bar('lhp', h); } }
     if (G.hold) bar('holdp', G.hold.progress);
-    plates(); wayPoint(); ring(); threats();
+    plates(); wayPoint(); ring(); threats(); focus();
   },
   // A new objective or hint arrives with a short gold flash and a soft cue, so it is seen (a count ticking up inside one is not new).
   objective(text) { const el = $('obj'), key = (text || '').replace(/\d+/g, ''); el.textContent = text || ''; el.style.opacity = text ? 1 : 0; if (key && key !== ui._obj) arrive(el); ui._obj = key; },
-  // A tip that must be read while a foe is loose: the hint, larger and mid-screen, with the fight slowed and the picture dimmed behind it (G.focus, main.js).
-  tip(text) { $('hint').classList.toggle('tip', !!text); $('hud').classList.toggle('focus', !!text); G.focus = text ? 1 : 0; ui.hint(text); },
-  hint(text) { const el = $('hint'); if (text) el.innerHTML = fill(text); el.style.opacity = text ? 1 : 0; if (text && text !== ui._hint) arrive(el); ui._hint = text || ''; },
+  // A tip that must be read while a foe is loose (friends' playthrough, Nov 2026: they were hit while reading): the hint, larger and
+  // up the screen, with the fight at a tenth speed and the picture dimmed and soft behind it (G.focus, main.js). It lifts when
+  // `done()` says the player has done the thing (not in the first 0.8 s), or when the time to read it is up, or when a scene takes
+  // over; the text then stays as an ordinary hint until the stage clears it. Resolves when it lifts. The test bot (G.auto) gets a plain hint.
+  tip(text, done) {
+    ui.hint(text, true); if (!text || G.auto) return Promise.resolve();
+    $('hint').classList.add('tip'); $('hud').classList.add('focus'); G.focus = 1;
+    return new Promise((res) => { tipS = { text, done, t: 0, dur: Math.min(7.5, 2 + text.replace(/<[^>]*>|[{}]/g, '').length * 0.055), res }; });
+  },
+  hint(text, keep) { if (!keep || !text) unfocus(); const el = $('hint'); if (text) el.innerHTML = fill(text); el.style.opacity = text ? 1 : 0; if (text && text !== ui._hint) arrive(el); ui._hint = text || ''; },
   // What the captain thinks: a plain line of italic text above the hint, no box. It stays only as long as it takes to read (dur is a ceiling), stops nothing and gives way to dialogue.
   // A bystander's line, said as he comes near: the dialogue box, but it stops nothing, asks for no click and goes by itself.
   // It looks different from a line that waits for a tap (owner, Nov 2026: in play it wasn't clear which was which): no prompt, lighter, and a bar that runs down to show it goes by itself.
