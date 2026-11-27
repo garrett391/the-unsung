@@ -172,33 +172,38 @@ const pick = (k) => {
   fresh(); if (!G.running) { leave(k); return; }
   G.pause(false); ui.fade(1, 0.3); if (k === 0) playMusic('title', { cross: 1 }); else if (!STAGES[k].cards) stopMusic(1.5); setTimeout(() => G.runFrom(k), 350);
 };
-G.drawChapters = () => {
-  const box = $('pchap'), here = G.running ? G.checkpoint : saved || -1; box.innerHTML = ''; let act = null;
-  CHAPTERS.forEach(([s, k], n) => {
-    const a = actOf(s), open = reached.has(s.name);
-    if (a !== act) { act = a; const h = document.createElement('div'); h.className = 'act'; h.textContent = a; box.appendChild(h); }
-    const b = document.createElement('button'), num = document.createElement('i'); b.className = 'chap' + (open && here === k ? ' now' : ''); num.textContent = ROMAN[n] || n + 1;
-    b.append(num, open ? chapName(s) : '· · ·'); b.disabled = !open; b.addEventListener('click', () => pick(k)); box.appendChild(b);
-  });
-  $('pchapg').style.display = G.running || reached.size > 1 ? '' : 'none'; // on the title, nothing to replay until a second chapter has been reached
+G.drawChapters = () => { // the pause menu's list, and the title's under CONTINUE
+  const here = G.running ? G.checkpoint : saved || -1;
+  for (const id of ['pchap', 'tchap']) {
+    const box = $(id); box.innerHTML = ''; let act = null;
+    CHAPTERS.forEach(([s, k], n) => {
+      const a = actOf(s), open = reached.has(s.name);
+      if (a !== act) { act = a; const h = document.createElement('div'); h.className = 'act'; h.textContent = a; box.appendChild(h); }
+      const b = document.createElement('button'), num = document.createElement('i'); b.className = 'chap' + (open && here === k ? ' now' : ''); num.textContent = ROMAN[n] || n + 1;
+      b.append(num, open ? chapName(s) : '\u00B7 \u00B7 \u00B7'); b.disabled = !open; b.addEventListener('click', () => pick(k)); box.appendChild(b);
+    });
+  }
 };
 G.drawChapters();
-// The title (owner, 27 Nov 2026: it was crowded): three panels under the name, one at a time. The menu: CONTINUE, NEW GAME,
-// MORE. The question CONTINUE asks, which says where it continues from (it used to be a line under the button). And MORE,
-// which borrows the pause menu's groups (Chapters, Options, Controls, Trials) while it is open, so each control exists once;
-// they go back to the pause menu when MORE is left or a game starts. Esc goes back to the menu.
-const menus = (title) => { const to = title ? $('tmorep') : $('pause'); for (const g of document.querySelectorAll('#pause>details, #tmorep>details')) if (g.parentNode !== to) to.insertBefore(g, title ? $('tmback') : null); };
-const panel = (id) => {
+// The title (owner, 27 Nov 2026: it was crowded): three panels under the name, one at a time. The menu: CONTINUE and NEW GAME
+// (the only buttons styled to be pressed: .go), then a quiet More. CONTINUE asks first, saying where it continues from, with
+// the chapters under it for starting somewhere else (with no save but chapters reached, a quiet Chapters link opens only
+// those). More borrows the pause menu's Options, Controls and Trials while it is open, so each control exists once; they go
+// back when More is left or a game starts. The pause menu keeps its own Chapters. Esc goes back to the menu.
+const menus = (title) => { const to = title ? $('tmorep') : $('pause'); for (const g of document.querySelectorAll('#pause>details:not(#pchapg), #tmorep>details')) if (g.parentNode !== to) to.insertBefore(g, $(title ? 'tmback' : 'pchapg')); };
+const panel = (id, list) => {
   for (const p of ['tmenu', 'tconf', 'tmorep']) $(p).hidden = p !== id;
-  menus(id === 'tmorep'); for (const g of $('tmorep').querySelectorAll('details')) g.open = false;
-  if (id === 'tconf') $('tgo').focus({ preventScroll: true }); else document.activeElement?.blur?.(); // so Enter answers the question (Tab and Space are the game's)
+  menus(id === 'tmorep'); for (const g of document.querySelectorAll('#tmorep details, #tconf details')) g.open = false;
+  $('tfrom').hidden = !!list; $('tchapg').open = !!list;
+  if (id === 'tconf' && !list) $('tgo').focus({ preventScroll: true }); else document.activeElement?.blur?.(); // so Enter answers the question (Tab and Space are the game's)
 };
 if (saved) {
   const s = STAGES[saved], n = CHAPTERS.findIndex(([, k]) => k === saved);
-  $('tcname').textContent = chapName(s); $('tcact').textContent = (n >= 0 ? `Chapter ${ROMAN[n] || n + 1} · ` : '') + actOf(s);
+  $('tcname').textContent = chapName(s); $('tcact').textContent = (n >= 0 ? `Chapter ${ROMAN[n] || n + 1} \u00B7 ` : '') + actOf(s);
   $('tcont').style.display = ''; $('tcont').addEventListener('click', () => panel('tconf')); $('tgo').addEventListener('click', () => leave(saved));
-  $('tplay').className = 'btn';
-}
+  $('tplay').className = 'btn go';
+} else if (reached.size > 1) { $('tchaps').style.display = ''; $('tchapg').querySelector('summary').textContent = 'Chapters'; } // the game finished (G.finish), or the save was lost
+$('tchaps').addEventListener('click', () => panel('tconf', true));
 $('tplay').textContent = saved || reached.size > 1 ? 'NEW GAME' : 'PLAY'; $('tplay').addEventListener('click', () => leave(0));
 $('tmore').addEventListener('click', () => panel('tmorep'));
 for (const id of ['tback', 'tmback']) $(id).addEventListener('click', () => panel('tmenu'));
