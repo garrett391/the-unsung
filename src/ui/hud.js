@@ -135,6 +135,8 @@ export const ui = {
   },
   // A new objective or hint arrives with a short gold flash and a soft cue, so it is seen (a count ticking up inside one is not new).
   objective(text) { const el = $('obj'), key = (text || '').replace(/\d+/g, ''); el.textContent = text || ''; el.style.opacity = text ? 1 : 0; if (key && key !== ui._obj) arrive(el); ui._obj = key; },
+  // A tip that must be read while a foe is loose: the hint, larger and mid-screen, with the fight slowed and the picture dimmed behind it (G.focus, main.js).
+  tip(text) { $('hint').classList.toggle('tip', !!text); $('hud').classList.toggle('focus', !!text); G.focus = text ? 1 : 0; ui.hint(text); },
   hint(text) { const el = $('hint'); if (text) el.innerHTML = fill(text); el.style.opacity = text ? 1 : 0; if (text && text !== ui._hint) arrive(el); ui._hint = text || ''; },
   // What the captain thinks: a plain line of italic text above the hint, no box. It stays only as long as it takes to read (dur is a ceiling), stops nothing and gives way to dialogue.
   // A bystander's line, said as he comes near: the dialogue box, but it stops nothing, asks for no click and goes by itself.

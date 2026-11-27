@@ -84,6 +84,8 @@ function step(rdt, noRender) {
   G.rdt = rdt; G.clock += rdt; pollInput(cam);
   let dt = rdt * G.timeScale;
   if (G.hitstop > 0) { G.hitstop -= rdt; dt = 0; } else if (G.slow > 0) { G.slow -= rdt; dt *= 0.3; }
+  // A tip that has to be read mid-fight (ui.tip): the fight runs at a tenth while the picture dims and goes soft.
+  G.focusK += ((G.focus ? 1 : 0) - G.focusK) * Math.min(1, rdt * 7); if (G.focusK < 0.003) G.focusK = 0; G.grade.uniforms.uFocus.value = G.focusK; dt *= 1 - 0.9 * G.focusK;
   G.shake = Math.max(0, G.shake - rdt * 1.6) * Math.exp(-6 * rdt);
   G.hurt = Math.max(0, G.hurt - rdt * 1.5); G.grade.uniforms.uHurt.value = opts.blood ? G.hurt * G.hurt * (3 - 2 * G.hurt) : 0; G.grade.uniforms.uTime.value = G.clock % 64;
   if (dt > 0) {
@@ -233,4 +235,4 @@ Promise.race([document.fonts ? document.fonts.ready : null, new Promise((r) => s
 
 // handles for the headless playtest and for poking at things in the console
 Object.assign(G, { step, begin, I, keys, press, cam, CL, PZ, C, director, STAGES, opts, Extra, LOOKS });
-window.G = G;
+window.G = G; G.ui = ui;

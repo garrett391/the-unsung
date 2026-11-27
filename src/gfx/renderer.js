@@ -11,15 +11,20 @@ import { gfx, startGfx, applyGfx, capGfx } from './quality.js';
 // a red pulse at the frame edge when the captain is cut (uHurt), and fine noise that
 // breaks up banding in the night sky and fog.
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.85 }, uWarm: { value: 0 }, uHurt: { value: 0 }, uTime: { value: 0 } },
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.85 }, uWarm: { value: 0 }, uHurt: { value: 0 }, uTime: { value: 0 }, uFocus: { value: 0 }, uBlur: { value: 0.011 }, uAsp: { value: 1 } },
   vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader: `uniform sampler2D tDiffuse;uniform float uVig,uWarm,uHurt,uTime;varying vec2 vUv;
-    void main(){vec4 c=texture2D(tDiffuse,vUv);float l=dot(c.rgb,vec3(.299,.587,.114));
+  fragmentShader: `uniform sampler2D tDiffuse;uniform float uVig,uWarm,uHurt,uTime,uFocus,uBlur,uAsp;varying vec2 vUv;
+    void main(){vec4 c=texture2D(tDiffuse,vUv);
+      // A tip that stops the fight to be read (uFocus, ui.tip): the picture goes soft, here, in the pass that is drawn anyway.
+      if(uFocus>.004&&uBlur>0.){vec3 a=c.rgb;for(int i=1;i<24;i++){float f=float(i),r=sqrt(f/24.)*uBlur*uFocus*min(1.,uAsp),t=f*2.39996;
+        a+=texture2D(tDiffuse,vUv+r*vec2(cos(t)/uAsp,sin(t))).rgb;}c.rgb=a/24.;}
+      float l=dot(c.rgb,vec3(.299,.587,.114));
       vec3 cool=vec3(.90,.97,1.10),warm=vec3(1.10,1.0,.88);
       c.rgb*=mix(mix(cool,vec3(1.),uWarm),warm,smoothstep(.15,.9,l));
       c.rgb=mix(vec3(l),c.rgb,1.12);c.rgb*=mix(.9,1.08,smoothstep(0.,.5,l));
       vec2 d=vUv-.5;float e=dot(d,d)*2.2;c.rgb*=1.-uVig*smoothstep(.25,.95,e);
       c.rgb=mix(c.rgb,vec3(.34,.02,.025)*(.35+l),uHurt*.7*smoothstep(.1,.8,e));
+      c.rgb=mix(c.rgb,vec3(dot(c.rgb,vec3(.299,.587,.114)))*vec3(.93,.97,1.06),uFocus*.55)*(1.-uFocus*.5);
       float n=fract(sin(dot(gl_FragCoord.xy+uTime*61.,vec2(12.9898,78.233)))*43758.5453)-.5;
       c.rgb=max(c.rgb+n*(.0012+.014*c.rgb),0.);
       gl_FragColor=c;}`,
@@ -72,7 +77,7 @@ export function initRenderer(canvas) {
   composer.addPass(new OutputPass());
   function resize() {
     const W = innerWidth, H = innerHeight, pr = Math.min(devicePixelRatio || 1, gfx.pr);
-    renderer.setPixelRatio(pr); renderer.setSize(W, H, false); composer.setPixelRatio(pr); composer.setSize(W, H);
+    renderer.setPixelRatio(pr); renderer.setSize(W, H, false); composer.setPixelRatio(pr); composer.setSize(W, H); grade.uniforms.uAsp.value = W / H;
     camera.aspect = W / H; camera.fov = W < H ? 66 : 54; camera.updateProjectionMatrix();
   }
   addEventListener('resize', resize); resize(); G.on((kind) => { if (kind === 'gfx') resize(); });
