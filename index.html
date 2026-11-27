@@ -119,8 +119,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
   background:radial-gradient(ellipse at center,rgba(7,9,19,.55),rgba(7,9,19,.95))}
 #title{overflow-y:auto;justify-content:safe center}
 /* Until the game has loaded and drawn its first frame (main.js takes .loading off) the title shows its name and a quiet LOADING, no buttons. */
-#title>.btn,#title>details,#title>.sub{transition:opacity .7s}
-#title.loading>.btn,#title.loading>details,#title.loading>.sub{opacity:0;pointer-events:none;transition:none}
+#title.loading .tpanel{opacity:0;pointer-events:none;transition:none}
 #tload{display:none;margin-top:34px;font-size:13px;letter-spacing:.4em;text-indent:.4em;opacity:.6;animation:pulse 1.6s ease-in-out infinite}
 #title.loading #tload{display:block;position:absolute;top:calc(50% + 30px);left:0;right:0}
 #pause{display:none;background:rgba(5,6,12,.94);overflow-y:auto;justify-content:flex-start}
@@ -129,24 +128,27 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
   padding:12px 0;width:min(70vw,240px);margin:6px 0;cursor:pointer;border-radius:2px}
 .btn:hover,.btn:focus-visible{background:rgba(217,178,74,.25);outline:none}
 .btn.main{font-size:22px;padding:14px 0;margin-top:30px}
-#tcont+.btn{margin-top:18px}
-#tcwhere{display:block;font:italic 400 13px "Cormorant Garamond",Georgia,serif;letter-spacing:.3em;text-indent:.3em;opacity:.7;margin-top:5px}#tcwhere:empty{display:none}
 .btn.small{font-size:13px;padding:9px 0}
-#pause label,#title label{display:block;margin:8px 0 6px;font-size:14px;letter-spacing:.14em}
-#pause details{width:min(70vw,240px);border-top:1px solid rgba(217,178,74,.3);flex-shrink:0}#pause details:first-of-type{margin-top:22px}#pause details:last-of-type{border-bottom:1px solid rgba(217,178,74,.3)}
-#pause summary{cursor:pointer;list-style:none;padding:11px 0;font-size:13px;font-weight:700;letter-spacing:.3em;text-indent:.3em;text-transform:uppercase;color:#e9c15a;opacity:.85}#pause summary::-webkit-details-marker{display:none}
-#pause summary:hover,#pause summary:focus-visible{opacity:1;background:rgba(217,178,74,.12);outline:none}#pause summary::after{content:'+';margin-left:.5em;opacity:.7}#pause details[open] summary::after{content:'\2212'}
-#pause details>:last-child,#title details>:last-child{margin-bottom:14px}#pause details .note,#title details .note{font-size:13px;font-style:italic;opacity:.7;margin:2px 0 8px;line-height:1.3}
-#pause input[type=range],#title input[type=range]{width:min(70vw,240px);accent-color:#d9b24a}
-#title details{margin-top:16px;font-size:14px;letter-spacing:.1em;width:min(70vw,240px);flex-shrink:0}#title details[open]>summary{opacity:1;margin-bottom:4px}
-#title summary{cursor:pointer;opacity:.75;list-style:none}#title summary::-webkit-details-marker{display:none}
-#pause dl{margin-top:4px;display:grid;grid-template-columns:auto auto;gap:4px 16px;font-size:14px;text-align:left}
-#pause dt{color:#e9c15a;text-align:right}
+/* The pause menu's groups (.grp: the pause menu, and the title's MORE panel while it borrows them). */
+.grp label{display:block;margin:8px 0 6px;font-size:14px;letter-spacing:.14em}
+.grp details{width:min(70vw,240px);border-top:1px solid rgba(217,178,74,.3);flex-shrink:0}.grp details:first-of-type{margin-top:22px}.grp details:last-of-type{border-bottom:1px solid rgba(217,178,74,.3)}
+.grp summary{cursor:pointer;list-style:none;padding:11px 0;font-size:13px;font-weight:700;letter-spacing:.3em;text-indent:.3em;text-transform:uppercase;color:#e9c15a;opacity:.85}.grp summary::-webkit-details-marker{display:none}
+.grp summary:hover,.grp summary:focus-visible{opacity:1;background:rgba(217,178,74,.12);outline:none}.grp summary::after{content:'+';margin-left:.5em;opacity:.7}.grp details[open] summary::after{content:'\2212'}
+.grp details>:last-child{margin-bottom:14px}.grp details .note{font-size:13px;font-style:italic;opacity:.7;margin:2px 0 8px;line-height:1.3}
+.grp input[type=range]{width:min(70vw,240px);accent-color:#d9b24a}
+.grp dl{margin-top:4px;display:grid;grid-template-columns:auto auto;gap:4px 16px;font-size:14px;text-align:left}
+.grp dt{color:#e9c15a;text-align:right}
 #bP{top:12px;right:12px;width:40px;height:40px;font-size:15px;letter-spacing:0}
 #title h1{font-size:clamp(38px,11vw,84px);letter-spacing:.2em;text-indent:.2em;font-weight:700}
-#title p.sub{letter-spacing:.3em;font-size:13px;margin-top:8px;opacity:.75;font-style:italic}
-#title dl{margin-top:12px;display:grid;grid-template-columns:auto auto;gap:5px 16px;font-size:15px;text-align:left}
-#title dt{color:#e9c15a;text-align:right}#title dd{opacity:.9}
+/* The title's panels (main.js, panel): one at a time under the name, each at least as tall as the tallest closed one so the name stays put as they change. */
+#title .tpanel{display:flex;flex-direction:column;align-items:center;margin-top:30px;min-height:250px;flex-shrink:0;transition:opacity .7s;animation:tin .35s ease-out}
+#title .tpanel[hidden]{display:none}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}}
+#title .tpanel>.btn{margin:7px 0}
+#tconf .tq{font-size:13px;font-weight:500;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase;color:#e9c15a}
+#tconf .tname{font-size:30px;font-weight:600;letter-spacing:.06em;margin:12px 0 4px}
+#tconf .tact{font-size:14px;font-style:italic;letter-spacing:.12em;opacity:.7;margin-bottom:22px}
+#tmorep details:first-of-type{margin-top:4px}#title #tmorep>.btn{margin-top:22px}
 .chaps{display:flex;flex-direction:column;align-items:stretch;width:min(70vw,240px);margin:2px auto 0;text-align:left}
 .chaps .act{font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.55;margin:12px 0 3px;padding-bottom:4px;border-bottom:1px solid rgba(217,178,74,.25)}.chaps .act:first-child{margin-top:6px}
 .chap{font:600 17px "Cormorant Garamond",Georgia,serif;letter-spacing:.05em;color:#efe6d2;background:none;border:0;padding:6px 4px;display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer}
@@ -204,14 +206,24 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
 <div id="title" class="loading">
   <h1>THE UNSUNG</h1>
   <p id="tload">LOADING</p>
-  <button class="btn main" id="tcont" style="display:none">CONTINUE<span id="tcwhere"></span></button>
-  <button class="btn main" id="tplay">PLAY</button>
-  <details name="tgrp" id="tchapg" style="display:none"><summary>Chapters</summary><div class="chaps" id="tchap"></div></details>
-  <details name="tgrp" id="topt"><summary>Options</summary></details>
-  <details name="tgrp"><summary>Controls</summary><dl id="thelp"></dl></details>
-  <details name="tgrp" id="ttrial"><summary>Trials</summary></details>
+  <div class="tpanel" id="tmenu">
+    <button class="btn main" id="tcont" style="display:none">CONTINUE</button>
+    <button class="btn main" id="tplay">PLAY</button>
+    <button class="btn" id="tmore">MORE</button>
+  </div>
+  <div class="tpanel" id="tconf" hidden>
+    <p class="tq">Continue from</p>
+    <p class="tname" id="tcname"></p>
+    <p class="tact" id="tcact"></p>
+    <button class="btn main" id="tgo">CONTINUE</button>
+    <button class="btn small" id="tback">BACK</button>
+  </div>
+  <!-- MORE: the pause menu's groups are moved in here while it is open (main.js, panel) -->
+  <div class="tpanel grp" id="tmorep" hidden>
+    <button class="btn small" id="tmback">BACK</button>
+  </div>
 </div>
-<div id="pause">
+<div id="pause" class="grp">
   <h2>PAUSED</h2>
   <button class="btn" id="presume">RESUME</button>
   <button class="btn small" id="pretry">RESTART CHECKPOINT</button>
@@ -223,7 +235,7 @@ html,body{height:100%;overflow:hidden;background:#070913;color:#efe6d2;font-fami
     <button class="btn small" id="pgfx" style="margin:10px 0 14px"></button>
     <p class="note" id="pgfxn" style="margin-top:-6px"></p>
   </details>
-  <details name="pgrp"><summary>Chapters</summary><div class="chaps" id="pchap"></div></details>
+  <details name="pgrp" id="pchapg"><summary>Chapters</summary><div class="chaps" id="pchap"></div></details>
   <details name="pgrp"><summary>Controls</summary><dl id="phelp"></dl></details>
   <details name="pgrp" id="ptrial"><summary>Trials</summary>
     <p class="note">Things being tried out. They may look unfinished.</p>

@@ -139,7 +139,7 @@ const rows = coarse
   ? [['Left thumb', 'Move'], ['Drag right side', 'Camera'], ['STRIKE', 'Tap up to three times'], ['HEAVY', 'Hold to charge, or finish a combo'], ['GUARD', 'Hold to block; tap late to parry'], ['DODGE', 'Roll, side roll, backstep'], ['LOCK', 'Target an enemy']]
   : [['W A S D', 'Move'], ['J / Click', 'Strike, up to three'], ['K / Right-click', 'Heavy: hold to charge, or finish a combo'], ['L / Shift', 'Guard: tap late to parry'], ['Space', 'Dodge: roll, side roll, backstep'], ['F / Tab', 'Lock on'], ['Q E / Mouse', 'Camera']];
 const help = rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('') + (coarse ? '' : '<dt>Esc / P</dt><dd>Pause</dd>');
-$('thelp').innerHTML = $('phelp').innerHTML = help;
+$('phelp').innerHTML = help;
 $('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
 function begin(from = 0) {
   if (G.running) return; initAudio(); if (from && !STAGES[from].cards) stopMusic(4); // a new game keeps the title theme through the opening cards, and so does a chapter that opens on cards (owner, Nov 2026: no silence under them); the chapter's own music takes over from it
@@ -156,38 +156,53 @@ function leave(from) {
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } } // asked for now, while the click still counts
   setTimeout(() => begin(from), 1000);
 }
-$('tplay').addEventListener('click', () => leave(0));
 // Replaying a chapter plays it as if for the first time: the cutscenes and lessons that a retry skips are shown again.
 // (Its own lessons, that is: runFrom marks the earlier chapters' as learned. Picking the Glass Door used to teach lock, strike and shield over again.)
 const fresh = () => { G.seenHalls = G.seenWay = G.seenFront = G.seenJav = G.seenCaravan = G.seenTracks = G.taughtStrike = G.taughtDoor = G.taughtWay = false; };
 // The list is grouped by act, numbered, and quiet: rows of text, not a column of boxed buttons. A chapter not yet reached
-// shows no name (some are spoilers); the one being played is marked.
+// shows no name (some are spoilers); the one being played is marked (on the title, the one CONTINUE goes to).
 const ACTS = [['Prologue', ['forecourt', 'halls', 'door']], ['The years between', ['waystation', 'muster']], ['The Western Watch', ['patrol', 'beacon', 'picket', 'caravan', 'tracks']], ['The first night', ['spar', 'raid', 'hold', 'vessa']]], ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 const CHAPTERS = STAGES.map((s, k) => [s, k]).filter(([s]) => s.checkpoint);
 const chapName = (s) => { const l = LABEL[s.name] || s.name; return l[0].toUpperCase() + l.slice(1); };
+const actOf = (s) => (ACTS.find(([, names]) => names.includes(s.name)) || ['Later'])[0];
+const saved = loadSave();
+// From the title a picked chapter fades in like NEW GAME; from the pause menu it cuts in under a short fade.
 // (A chapter that opens on cards keeps whatever is playing under them: STAGES[k].cards.)
+const pick = (k) => {
+  fresh(); if (!G.running) { leave(k); return; }
+  G.pause(false); ui.fade(1, 0.3); if (k === 0) playMusic('title', { cross: 1 }); else if (!STAGES[k].cards) stopMusic(1.5); setTimeout(() => G.runFrom(k), 350);
+};
 G.drawChapters = () => {
-  for (const [id, pick] of [['tchap', (k) => { fresh(); leave(k); }], ['pchap', (k) => { fresh(); G.pause(false); ui.fade(1, 0.3); if (k === 0) playMusic('title', { cross: 1 }); else if (!STAGES[k].cards) stopMusic(1.5); setTimeout(() => G.runFrom(k), 350); }]]) {
-    const box = $(id); box.innerHTML = ''; let act = null;
-    CHAPTERS.forEach(([s, k], n) => {
-      const a = (ACTS.find(([, names]) => names.includes(s.name)) || ['Later'])[0], open = reached.has(s.name);
-      if (a !== act) { act = a; const h = document.createElement('div'); h.className = 'act'; h.textContent = a; box.appendChild(h); }
-      const b = document.createElement('button'), num = document.createElement('i'); b.className = 'chap' + (G.running && G.checkpoint === k ? ' now' : ''); num.textContent = ROMAN[n] || n + 1;
-      b.append(num, open ? chapName(s) : '\u00B7 \u00B7 \u00B7'); b.disabled = !open; b.addEventListener('click', () => pick(k)); box.appendChild(b);
-    });
-  }
-  $('tchapg').style.display = reached.size > 1 ? '' : 'none'; // nothing to replay until a second chapter has been reached
+  const box = $('pchap'), here = G.running ? G.checkpoint : saved || -1; box.innerHTML = ''; let act = null;
+  CHAPTERS.forEach(([s, k], n) => {
+    const a = actOf(s), open = reached.has(s.name);
+    if (a !== act) { act = a; const h = document.createElement('div'); h.className = 'act'; h.textContent = a; box.appendChild(h); }
+    const b = document.createElement('button'), num = document.createElement('i'); b.className = 'chap' + (open && here === k ? ' now' : ''); num.textContent = ROMAN[n] || n + 1;
+    b.append(num, open ? chapName(s) : '· · ·'); b.disabled = !open; b.addEventListener('click', () => pick(k)); box.appendChild(b);
+  });
+  $('pchapg').style.display = G.running || reached.size > 1 ? '' : 'none'; // on the title, nothing to replay until a second chapter has been reached
 };
 G.drawChapters();
-// The settings (Options, Trials) are one set of controls: shown in the title's groups until a game starts, then in the pause menu's.
-// (QUIT TO TITLE reloads the page, so they never have to come back.)
-const menus = (title) => { for (const [t, p] of [['topt', 'popt'], ['ttrial', 'ptrial']]) { const from = $(title ? p : t), to = $(title ? t : p); for (const n of [...from.children].filter((n) => n.tagName !== 'SUMMARY')) to.appendChild(n); } };
-menus(true);
-const saved = loadSave();
+// The title (owner, 27 Nov 2026: it was crowded): three panels under the name, one at a time. The menu: CONTINUE, NEW GAME,
+// MORE. The question CONTINUE asks, which says where it continues from (it used to be a line under the button). And MORE,
+// which borrows the pause menu's groups (Chapters, Options, Controls, Trials) while it is open, so each control exists once;
+// they go back to the pause menu when MORE is left or a game starts. Esc goes back to the menu.
+const menus = (title) => { const to = title ? $('tmorep') : $('pause'); for (const g of document.querySelectorAll('#pause>details, #tmorep>details')) if (g.parentNode !== to) to.insertBefore(g, title ? $('tmback') : null); };
+const panel = (id) => {
+  for (const p of ['tmenu', 'tconf', 'tmorep']) $(p).hidden = p !== id;
+  menus(id === 'tmorep'); for (const g of $('tmorep').querySelectorAll('details')) g.open = false;
+  if (id === 'tconf') $('tgo').focus({ preventScroll: true }); else document.activeElement?.blur?.(); // so Enter answers the question (Tab and Space are the game's)
+};
 if (saved) {
-  const b = $('tcont'); b.style.display = ''; $('tcwhere').textContent = 'from ' + (LABEL[STAGES[saved].name] || STAGES[saved].name);
-  $('tplay').textContent = 'NEW GAME'; $('tplay').className = 'btn'; b.addEventListener('click', () => leave(saved));
+  const s = STAGES[saved], n = CHAPTERS.findIndex(([, k]) => k === saved);
+  $('tcname').textContent = chapName(s); $('tcact').textContent = (n >= 0 ? `Chapter ${ROMAN[n] || n + 1} · ` : '') + actOf(s);
+  $('tcont').style.display = ''; $('tcont').addEventListener('click', () => panel('tconf')); $('tgo').addEventListener('click', () => leave(saved));
+  $('tplay').className = 'btn';
 }
+$('tplay').textContent = saved || reached.size > 1 ? 'NEW GAME' : 'PLAY'; $('tplay').addEventListener('click', () => leave(0));
+$('tmore').addEventListener('click', () => panel('tmorep'));
+for (const id of ['tback', 'tmback']) $(id).addEventListener('click', () => panel('tmenu'));
+addEventListener('keydown', (e) => { if (e.code === 'Escape' && !G.running && !leaving) panel('tmenu'); });
 
 // pause menu: RESUME, RESTART CHECKPOINT and QUIT TO TITLE stay in view; everything else is in groups that open one at a time
 // (Options, Controls, Trials: index.html). A new setting goes in a group, not on the top level.
