@@ -38,7 +38,7 @@ for (const [dev, vp, touch] of [['desk', { width: 960, height: 640 }, false], ['
   check(`${dev}: menu shows CONTINUE, NEW GAME, More`, (await page.evaluate(() => ['tcont', 'tplay', 'tmore'].map((id) => document.getElementById(id).textContent).join())) === 'CONTINUE,NEW GAME,More');
   check(`${dev}: no Chapters link with a save`, !(await seen(page, 'tchaps')));
   await page.click('#tcont'); await shot(page, `${dev}-continue`);
-  check(`${dev}: CONTINUE asks where from`, (await page.evaluate(() => document.getElementById('tcname').textContent + ' / ' + document.getElementById('tcact').textContent)) === 'The muster / Chapter V · The years between');
+  check(`${dev}: CONTINUE asks where from`, (await page.evaluate(() => document.getElementById('tcname').textContent)) === 'The muster');
   check(`${dev}: the question's CONTINUE has focus`, await page.evaluate(() => document.activeElement?.id === 'tgo'));
   await page.click('#tchapg summary'); await shot(page, `${dev}-continue-chapters`);
   check(`${dev}: the chapter CONTINUE goes to is marked`, (await page.evaluate(() => document.querySelector('#tchap .chap.now')?.textContent)) === 'VThe muster');

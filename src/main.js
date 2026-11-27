@@ -198,8 +198,7 @@ const panel = (id, list) => {
   if (id === 'tconf' && !list) $('tgo').focus({ preventScroll: true }); else document.activeElement?.blur?.(); // so Enter answers the question (Tab and Space are the game's)
 };
 if (saved) {
-  const s = STAGES[saved], n = CHAPTERS.findIndex(([, k]) => k === saved);
-  $('tcname').textContent = chapName(s); $('tcact').textContent = (n >= 0 ? `Chapter ${ROMAN[n] || n + 1} \u00B7 ` : '') + actOf(s);
+  $('tcname').textContent = chapName(STAGES[saved]);
   $('tcont').style.display = ''; $('tcont').addEventListener('click', () => panel('tconf')); $('tgo').addEventListener('click', () => leave(saved));
   $('tplay').className = 'btn go';
 } else if (reached.size > 1) { $('tchaps').style.display = ''; $('tchapg').querySelector('summary').textContent = 'Chapters'; } // the game finished (G.finish), or the save was lost
