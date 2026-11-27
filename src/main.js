@@ -143,7 +143,7 @@ $('thelp').innerHTML = $('phelp').innerHTML = help;
 $('dmore').textContent = coarse ? 'TAP \u25B8' : 'SPACE / CLICK \u25B8';
 function begin(from = 0) {
   if (G.running) return; initAudio(); if (from && !STAGES[from].cards) stopMusic(4); // a new game keeps the title theme through the opening cards, and so does a chapter that opens on cards (owner, Nov 2026: no silence under them); the chapter's own music takes over from it
-  $('title').style.display = 'none'; $('hud').style.visibility = 'visible'; if (coarse) showTouch();
+  $('title').style.display = 'none'; menus(false); $('hud').style.visibility = 'visible'; if (coarse) showTouch();
   player.setVisible(true); G.running = true; G.confirm = false; G.runFrom(from);
   if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* refused */ } }
 }
@@ -179,9 +179,13 @@ G.drawChapters = () => {
   $('tchapg').style.display = reached.size > 1 ? '' : 'none'; // nothing to replay until a second chapter has been reached
 };
 G.drawChapters();
+// The settings (Options, Trials) are one set of controls: shown in the title's groups until a game starts, then in the pause menu's.
+// (QUIT TO TITLE reloads the page, so they never have to come back.)
+const menus = (title) => { for (const [t, p] of [['topt', 'popt'], ['ttrial', 'ptrial']]) { const from = $(title ? p : t), to = $(title ? t : p); for (const n of [...from.children].filter((n) => n.tagName !== 'SUMMARY')) to.appendChild(n); } };
+menus(true);
 const saved = loadSave();
 if (saved) {
-  const b = $('tcont'); b.style.display = ''; b.textContent = 'CONTINUE'; $('tcwhere').textContent = 'from ' + (LABEL[STAGES[saved].name] || STAGES[saved].name);
+  const b = $('tcont'); b.style.display = ''; $('tcwhere').textContent = 'from ' + (LABEL[STAGES[saved].name] || STAGES[saved].name);
   $('tplay').textContent = 'NEW GAME'; $('tplay').className = 'btn'; b.addEventListener('click', () => leave(saved));
 }
 
