@@ -186,7 +186,7 @@ G.drawChapters = () => { // the pause menu's list, and the title's under CONTINU
 };
 G.drawChapters();
 // The title (owner, 27 Nov 2026: it was crowded): three panels under the name, one at a time. The menu: CONTINUE and NEW GAME
-// (the only buttons styled to be pressed: .go), then a quiet More. CONTINUE asks first, saying where it continues from, with
+// (gold-bordered buttons, CONTINUE the larger), then a quiet More. CONTINUE asks first, saying where it continues from, with
 // the chapters under it for starting somewhere else (with no save but chapters reached, a quiet Chapters link opens only
 // those). More borrows the pause menu's Options, Controls and Trials while it is open, so each control exists once; they go
 // back when More is left or a game starts. The pause menu keeps its own Chapters. Esc goes back to the menu.
@@ -200,7 +200,7 @@ const panel = (id, list) => {
 if (saved) {
   $('tcname').textContent = chapName(STAGES[saved]);
   $('tcont').style.display = ''; $('tcont').addEventListener('click', () => panel('tconf')); $('tgo').addEventListener('click', () => leave(saved));
-  $('tplay').className = 'btn go';
+  $('tplay').className = 'btn';
 } else if (reached.size > 1) { $('tchaps').style.display = ''; $('tchapg').querySelector('summary').textContent = 'Chapters'; } // the game finished (G.finish), or the save was lost
 $('tchaps').addEventListener('click', () => panel('tconf', true));
 $('tplay').textContent = saved || reached.size > 1 ? 'NEW GAME' : 'PLAY'; $('tplay').addEventListener('click', () => leave(0));
